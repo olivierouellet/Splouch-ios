@@ -62,6 +62,7 @@ struct HeatCard: View {
     let eventName: String
     @Environment(\.palette) private var palette
     @Environment(\.faces) private var faces
+    @Environment(\.sideInset) private var sideInset
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -91,6 +92,7 @@ struct HeatCard: View {
             }
         }
         .padding(12)
+        .padding(.horizontal, sideInset)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(heat.stripe % 2 == 0 ? palette.rowEven : palette.rowOdd)   // S-04
         .overlay(alignment: .leading) {

@@ -44,6 +44,9 @@ struct MeetShell: View {
     @State private var network = NetworkWatcher()
     @State private var showFilter = false
     @State private var isLandscape = false
+    /// The width inside the safe area; the pager measures the full width and
+    /// the difference is the inset its rows re-apply to their content.
+    @State private var insetWidth: CGFloat = 0
 
     private var tab: Binding<MeetTab> {
         Binding(get: { MeetTab(rawValue: tabRaw) ?? .scoreboard }, set: { tabRaw = $0.rawValue })
@@ -60,7 +63,10 @@ struct MeetShell: View {
         .background(palette.bg.ignoresSafeArea())
         .environment(\.palette, palette)
         .environment(\.faces, faces)
-        .onGeometryChange(for: Bool.self) { $0.size.width > $0.size.height } action: { isLandscape = $0 }
+        .onGeometryChange(for: CGSize.self) { $0.size } action: {
+            isLandscape = $0.width > $0.height
+            insetWidth = $0.width
+        }
         .sheet(isPresented: $showFilter) { FilterSheet(ctx: ctx) }
         .onAppear {
             network.start()
@@ -139,12 +145,21 @@ struct MeetShell: View {
     // A-03: the platform's pager, full-width and drag-tracking.
     @ViewBuilder private var pager: some View {
         #if os(iOS)
-        TabView(selection: tab) {
-            ScoreboardTab(ctx: ctx, isLandscape: isLandscape).tag(MeetTab.scoreboard)
-            ResultsTab(ctx: ctx, isLandscape: isLandscape).tag(MeetTab.results)
-            ScheduleTab(ctx: ctx).tag(MeetTab.schedule)
+        // The reader ignores the horizontal inset, so its pages fill the screen
+        // and their backgrounds reach both edges. A view that ignores the safe
+        // area reports no insets, so the inset is the half-difference between
+        // this full width and the shell's inset width — handed down as
+        // `sideInset` for the rows to re-apply to their content.
+        GeometryReader { geo in
+            TabView(selection: tab) {
+                ScoreboardTab(ctx: ctx, isLandscape: isLandscape).tag(MeetTab.scoreboard)
+                ResultsTab(ctx: ctx, isLandscape: isLandscape).tag(MeetTab.results)
+                ScheduleTab(ctx: ctx).tag(MeetTab.schedule)
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .environment(\.sideInset, insetWidth > 0 ? max(0, (geo.size.width - insetWidth) / 2) : 0)
         }
-        .tabViewStyle(.page(indexDisplayMode: .never))
+        .ignoresSafeArea(edges: .horizontal)
         #else
         switch tab.wrappedValue {
         case .scoreboard: ScoreboardTab(ctx: ctx, isLandscape: isLandscape)
@@ -196,7 +211,20 @@ private struct FacesKey: EnvironmentKey {
     static let defaultValue = Faces(ThemeFonts())
 }
 
+/// Landscape insets the screen down both sides. The pager spans the whole
+/// width so the board's greys reach the edges instead of reading as clipped,
+/// and hands the inset down here so every row can put its content back where
+/// it was. Zero in portrait, which has no such inset.
+private struct SideInsetKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 0
+}
+
 extension EnvironmentValues {
+    var sideInset: CGFloat {
+        get { self[SideInsetKey.self] }
+        set { self[SideInsetKey.self] = newValue }
+    }
+
     var palette: Palette {
         get { self[PaletteKey.self] }
         set { self[PaletteKey.self] = newValue }

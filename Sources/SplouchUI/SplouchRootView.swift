@@ -30,7 +30,7 @@ public struct SplouchRootView: View {
                 // the neighbouring page's leading edge showing down the right
                 // until the pager was nudged. Nothing here may animate its
                 // geometry; opacity is safe.
-                .transition(.opacity)
+                .transition(.opacity)   // paired with the picker's, below
             } else {
                 NavigationStack {
                     PickerScreen(app: app, opening: opening) { summary in
@@ -42,7 +42,10 @@ public struct SplouchRootView: View {
                     .toolbarTitleDisplayMode(.inline)
                     #endif
                 }
-                .transition(.move(edge: .leading))
+                // The picker has no pager and could still slide, but a screen
+                // sliding against one that fades reads as a glitch rather than
+                // a direction. The pair cross-fades both ways instead.
+                .transition(.opacity)
             }
         }
         .animation(.default, value: meet == nil)
