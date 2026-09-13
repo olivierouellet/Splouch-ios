@@ -22,7 +22,15 @@ public struct SplouchRootView: View {
                     Task { await meet.stop() }
                     self.meet = nil
                 }
-                .transition(.move(edge: .trailing))
+                // A fade, not a slide: the meet screen carries the paged
+                // TabView (A-03), whose UIPageViewController measures itself
+                // while the transition is still moving and keeps the content
+                // offset it read mid-slide. Opening a meet with the device
+                // already in landscape then left the board a few points off,
+                // the neighbouring page's leading edge showing down the right
+                // until the pager was nudged. Nothing here may animate its
+                // geometry; opacity is safe.
+                .transition(.opacity)
             } else {
                 NavigationStack {
                     PickerScreen(app: app, opening: opening) { summary in
