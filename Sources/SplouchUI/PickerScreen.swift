@@ -174,15 +174,13 @@ struct MeetCard: View {
     var text: Color = Color(hex: "#e0e0e0")
     var meta: Color = Color(hex: "#666666")
     var live: Color = Color(hex: "#4CAF50")
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var pulsing = false
 
     var body: some View {
         HStack(spacing: 12) {
             // P-02: the live dot leads the row, ahead of the meet's image.
-            Circle()
-                .fill(meet.offline ? Color.clear : live)
-                .overlay(Circle().stroke(meet.offline ? meta : Color.clear))
-                .shadow(color: meet.offline ? .clear : live.opacity(0.7), radius: 3)
-                .frame(width: 8, height: 8)
+            liveDot
             if let imageURL {
                 AsyncImage(url: imageURL) { $0.resizable().scaledToFill() } placeholder: { border }
                     .frame(width: 64, height: 64)
@@ -214,5 +212,27 @@ struct MeetCard: View {
         .background(card, in: RoundedRectangle(cornerRadius: 10))
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(border))
         .opacity(meet.offline ? 0.75 : 1)
+    }
+
+    /// A live meet breathes; a retained one is a hollow ring and holds still.
+    /// Both are the same 8pt frame and only `opacity`/`scaleEffect` move, so a
+    /// pulsing dot never shifts the image or the text beside it.
+    @ViewBuilder private var liveDot: some View {
+        if meet.offline {
+            Circle().strokeBorder(meta, lineWidth: 1).frame(width: 8, height: 8)
+        } else {
+            Circle()
+                .fill(live)
+                .frame(width: 8, height: 8)
+                .shadow(color: live.opacity(0.7), radius: 3)
+                .opacity(pulsing ? 1 : 0.45)
+                .scaleEffect(pulsing ? 1 : 0.78)
+                // Core Animation drives this, unlike the board's per-frame
+                // TimelineView pulse (L-12) — that one has to start and stop
+                // with a lane, this one runs for the life of the card.
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.85).repeatForever(autoreverses: true),
+                           value: pulsing)
+                .onAppear { pulsing = true }
+        }
     }
 }
