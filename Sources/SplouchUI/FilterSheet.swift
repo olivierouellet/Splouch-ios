@@ -60,13 +60,17 @@ struct FilterSheet: View {
         }
     }
 
-    /// The platform's own Done where it offers one, ours below that.
-    @ViewBuilder private var doneButton: some View {
-        if #available(iOS 26.0, macOS 26.0, *) {
-            Button(role: .close) { dismiss() }
-        } else {
-            Button(Native.done) { dismiss() }
+    /// A green checkmark rather than the platform's close role, whose `X` reads
+    /// as "discard" over a sheet whose whole content is the filters. The same
+    /// button on every OS version, so the gesture does not change under the user.
+    /// It only dismisses: every control here already writes straight to
+    /// `ctx.filter`, so the schedule is filtered before this is tapped.
+    private var doneButton: some View {
+        Button { dismiss() } label: {
+            Label(Native.done, systemImage: "checkmark.circle.fill")
+                .labelStyle(.iconOnly)
         }
+        .tint(.green)
     }
 
     // S-10: type, name, club; already-added ones are marked and inert.
