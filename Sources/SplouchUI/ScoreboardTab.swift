@@ -11,12 +11,16 @@ struct ScoreboardTab: View {
         VStack(spacing: 0) {
             BoardHeader(event: board.currentEvent, heat: board.currentHeat,
                         eventName: ctx.eventName(board.eventName, parts: board.eventNameParts), labels: ctx.labels)
-            ScrollView {
-                BoardTable(rows: (1...board.numLanes).map { BoardRow($0, board[lane: $0]) },
-                           columns: Columns(ctx.settings), labels: ctx.labels, isLandscape: isLandscape)
-                    .frame(minHeight: isLandscape ? 0 : CGFloat(board.numLanes) * 52)
+            // The table sits in a scroll view for pull-to-refresh (A-05); in
+            // landscape it is given the whole height so the rows share it (L-16).
+            GeometryReader { geo in
+                ScrollView {
+                    BoardTable(rows: (1...board.numLanes).map { BoardRow($0, board[lane: $0]) },
+                               columns: Columns(ctx.settings), labels: ctx.labels, isLandscape: isLandscape)
+                        .frame(minHeight: isLandscape ? geo.size.height : CGFloat(board.numLanes) * 52)
+                }
+                .refreshable { await ctx.refresh() }
             }
-            .refreshable { await ctx.refresh() }   // A-05
         }
         // L-12: the device ticks the clock at ~10Hz off a monotonic instant while
         // the tab is on screen; the task ends with the view, so a hidden tab

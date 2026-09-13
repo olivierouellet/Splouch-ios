@@ -19,6 +19,9 @@ struct FilterSheet: View {
                 Section {
                     TextField(strings.mobile("search_placeholder"), text: $query)
                         .autocorrectionDisabled()
+                        #if os(iOS)
+                        .textInputAutocapitalization(.never)   // a name search, sent as typed
+                        #endif
                         .onChange(of: query) { _, q in search(q) }
                     if searched, suggestions.isEmpty, !query.isEmpty {
                         Text(strings.mobile("no_search_results")).foregroundStyle(.secondary)   // S-19

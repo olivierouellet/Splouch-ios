@@ -274,7 +274,9 @@ import Testing
         var s = liveBoard()
         s.apply(frame(#"{"current_heat":"1","lane_running1":true,"running_time":"10.00"}"#), at: t0)
         s.apply(frame(#"{"current_heat":"2"}"#), at: t0)
-        #expect(s[lane: 1].time == "")
+        // Running on the previous frame: the time stays (L-13, second case); the
+        // ticker stopped, so the lane pulses until the next re-base.
+        #expect(s[lane: 1].time == "10.0")
         #expect(s[lane: 1].running == true)
         #expect(s[lane: 1].pulse == true)
         #expect(s[lane: 1].timeStyle == .running)

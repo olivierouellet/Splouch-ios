@@ -9,10 +9,19 @@ public enum APIError: Error, Sendable, Equatable {
     case notASplouchServer
 }
 
-/// A cached `GET /i18n/{lang}` body with the validator to revalidate it.
-public struct CachedBundle: Sendable, Equatable, Codable {
-    public var bundle: I18nBundle
+/// A `GET /i18n/{lang}` body, kept verbatim, with the validator to revalidate it
+/// and its decoded form. The cache stores `body` as is: the same shape as the
+/// compiled snapshot, one decoder for both (app.md T-10).
+public struct CachedBundle: Sendable, Equatable {
+    public var body: Data
     public var etag: String?
+    public var bundle: I18nBundle
+
+    public init(body: Data, etag: String?) throws {
+        self.body = body
+        self.etag = etag
+        self.bundle = try I18nBundle(data: body)
+    }
 }
 
 /// The REST endpoints a native client needs (api.md §4), one call each.
@@ -47,8 +56,7 @@ public struct SplouchAPI: Sendable {
         guard let http = response as? HTTPURLResponse else { throw APIError.http(0) }
         if http.statusCode == 304 { return nil }
         guard (200..<300).contains(http.statusCode) else { throw APIError.http(http.statusCode) }
-        let bundle = try I18nBundle(data: data)
-        return CachedBundle(bundle: bundle, etag: http.value(forHTTPHeaderField: "ETag"))
+        return try CachedBundle(body: data, etag: http.value(forHTTPHeaderField: "ETag"))
     }
 
     public func locales() async throws -> [LocaleEntry] {
@@ -94,6 +102,11 @@ public struct SplouchAPI: Sendable {
 
     public func piConfig() async throws -> PiDisplayConfig {
         try PiDisplayConfig(data: try await get(address.endpoint("/config")))
+    }
+
+    /// The Pi's start list — the cloud's schedule body, no meet in the path.
+    public func piSchedule() async throws -> Schedule {
+        try Schedule(data: try await get(address.endpoint("/schedule.json")))
     }
 
     // MARK: Plumbing

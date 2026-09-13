@@ -32,13 +32,8 @@ is built here and why not.
 ## Building and testing
 
 ```sh
-scripts/test.sh
+swift test
 ```
-
-Runs `swift test` when SwiftPM works. On a machine whose CommandLineTools cannot
-launch `swift-package`, it falls back to driving `swiftc` directly with the macOS
-SDK that matches the compiler and the `Testing` framework that ships in
-CommandLineTools. Either way the same suites run.
 
 Dev servers (both default to port 5000, which macOS AirPlay Receiver may hold):
 
@@ -47,11 +42,43 @@ cd ../Splouch/server && uv run python app.py                                   #
 cd ../Splouch/cloud  && DATA_DIR=/tmp/splouch-cloud uv run uvicorn cloud_server:app --port 5055
 ```
 
-## Refreshing the built-in strings
-
-`Sources/SplouchCore/Strings/BuiltInStrings.generated.swift` is the compiled floor
-of app.md T-10. Regenerate it from a running server, never by hand:
+## Running on the simulator against local servers
 
 ```sh
-scripts/update-strings.sh http://127.0.0.1:5055
+cd ../Splouch/server && uv run uvicorn app:app --port 5056          # Pi
+cd ../Splouch/cloud  && DATA_DIR=/tmp/splouch-cloud uv run uvicorn cloud_server:app --port 5055
+xcodebuild -project App/Splouch.xcodeproj -scheme Splouch \
+  -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath .build/xcode build
+xcrun simctl install booted .build/xcode/Build/Products/Debug-iphonesimulator/Splouch.app
+SIMCTL_CHILD_SPLOUCH_SERVER=http://127.0.0.1:5056 xcrun simctl launch booted app.splouch.ios
+```
+
+Debug builds read three launch-environment variables, ignored in release:
+`SPLOUCH_SERVER` (start on this server instead of the default cloud, without
+touching stored preferences), `SPLOUCH_MEET` (open this meet id at once) and
+`SPLOUCH_TAB` (`scoreboard`, `results` or `schedule`).
+
+Live frames without a timing console: log in to the Pi (`score` / `swimming` by
+default) and `POST /test_play {"name": "200m_medley_2heats.cts"}`. To feed the
+local cloud, create a relay key on it (`POST /admin`, Basic auth `admin` with an
+empty password by default, form `action=add&organizer=Dev`; the key lands in
+`$DATA_DIR/keys.json`) and save it on the Pi with `POST /settings`
+(`cloud_settings_submit=1`, `cloud_relay_url`, `cloud_relay_key`).
+
+`swift test` also runs two integration checks against a real server when
+`SPLOUCH_LIVE_SERVER=http://host:port` is set.
+
+`scripts/sim-tap.sh "iPhone 17" 0.5 0.93` taps the simulator at a fraction of the
+device screen through System Events (the terminal needs Accessibility access), and
+`xcrun simctl io <udid> screenshot out.png` captures it.
+
+## Refreshing the built-in strings
+
+`Sources/SplouchCore/Resources/i18n/<lang>.json` are the compiled floor of app.md
+T-10: the body of `GET /i18n/{lang}` for each language the default cloud lists,
+verbatim. Regenerate them from the default cloud before a release and whenever
+`shared/locales/` changes, never by hand:
+
+```sh
+scripts/update-strings.sh https://splouch.ca
 ```

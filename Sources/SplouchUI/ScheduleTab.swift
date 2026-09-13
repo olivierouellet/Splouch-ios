@@ -16,8 +16,10 @@ struct ScheduleTab: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    if ctx.scheduleUnavailable || (ctx.schedule != nil && heats.isEmpty) {
-                        emptyState(ctx.strings.mobile(ctx.scheduleUnavailable ? "no_meet" : "no_schedule"))
+                    if ctx.schedule != nil, heats.isEmpty {
+                        // S-07: on a Pi an empty list means no meet file is loaded;
+                        // on a cloud the meet is there but carries no schedule yet.
+                        emptyState(ctx.strings.mobile(ctx.kind == .pi ? "no_meet" : "no_schedule"))
                     } else if ctx.schedule == nil {
                         if ctx.scheduleFailed { emptyState(ctx.strings.display("connection_lost")) } else { ProgressView().padding(40) }
                     } else if visible.isEmpty {

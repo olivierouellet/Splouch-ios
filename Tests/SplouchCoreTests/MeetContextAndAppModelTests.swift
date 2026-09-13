@@ -46,6 +46,30 @@ import Testing
         await ctx.stop()
     }
 
+    @Test func reconnectAndForegroundRecheckTheMeet() async {
+        let stub = StubServer()
+        stub.route("/meet/m1/schedule", json: #"{"heats":[]}"#)
+        stub.route("/meet/m1/config", json: #"{"name":"Open","settings":{"num_lanes":4}}"#)
+        let connector = FakeConnector()
+        let ctx = make(stub: stub, connector: connector)
+        ctx.start()
+        _ = await eventually { connector.openCount == 3 }
+        #expect(stub.requestCount("/meet/m1/config") == 0)
+        // Foreground: C-05 probe on every socket, and the A-09 check.
+        ctx.foregrounded()
+        #expect(await eventually { stub.requestCount("/meet/m1/config") == 1 })
+        #expect(await eventually { connector.connections.allSatisfy { $0.sentEvents.contains("ping") } })
+        // The scoreboard socket drops and comes back: checked again.
+        await connector.connections[0].dropFromServer()
+        #expect(await eventually { stub.requestCount("/meet/m1/config") == 2 })
+        #expect(!ctx.gone)
+        // The meet expires: the next check sends the user back.
+        stub.route("/meet/m1/config") { _ in .init(status: 404) }
+        ctx.foregrounded()
+        #expect(await eventually { @MainActor in ctx.gone })
+        await ctx.stop()
+    }
+
     @Test func meetGoneOnRefreshFlagsA09() async {
         let stub = StubServer()
         stub.route("/meet/m1/schedule", json: #"{"heats":[]}"#)
@@ -87,19 +111,21 @@ import Testing
         #expect(ctx.eventName("Club Handicap Final", parts: nil) == "Club Handicap Final")
     }
 
-    @Test func piContextHasNoScheduleAndNoJoin() async {
+    @Test func piContextLoadsScheduleJSONAndSendsNoJoin() async {
         let stub = StubServer()
+        stub.route("/schedule.json", json: #"{"heats":[{"event":3,"heat":1,"lanes":[]}]}"#)
         let api = SplouchAPI(address: stub.address, session: stub.session)
         let connector = FakeConnector()
         let ctx = MeetContext(api: api, kind: .pi, meetID: "ignored", title: "Pool", settings: MeetSettings(),
                               stringsLoader: StringsLoader(api: api, cache: InMemoryBundleCache()), preferences: Preferences(),
                               vidStore: InMemoryVidStore(), connector: connector, timing: timing)
-        #expect(ctx.scheduleUnavailable)
         #expect(ctx.meetID == nil)
         ctx.start()
         _ = await eventually { connector.openCount == 3 }
         #expect(connector.connections.allSatisfy { $0.sent.isEmpty })
-        #expect(ctx.schedule == nil)
+        #expect(await eventually { @MainActor in ctx.schedule?.heats.count == 1 })
+        await ctx.refresh()   // a Pi's config cannot 404 into A-09
+        #expect(!ctx.gone)
         await ctx.stop()
     }
 }
@@ -142,6 +168,7 @@ import Testing
         await app.start()
         #expect(app.unreachable)
         #expect(app.meets.isEmpty)
+        #expect(!app.loading)
     }
 
     @Test func probeChecksBeforeSaving() async throws {
@@ -193,6 +220,20 @@ import Testing
         #expect(store.load().labelStyle == .long)
     }
 
+    @Test func contractMismatchIsANoticeNotAGate() async {
+        let stub = StubServer()
+        cloud(stub)
+        stub.route("/server", json: #"{"kind":"cloud","name":"Old","contract":{"api":"v1","app":"v1"}}"#)
+        let app = make(stub)
+        await app.start()
+        #expect(!app.unreachable)
+        #expect(app.meets.count == 1)   // connected regardless
+        #expect(app.contractNotice == "api v1 ≠ v2")
+        stub.route("/server", json: #"{"kind":"cloud","name":"New","contract":{"api":"v2","app":"v1"}}"#)
+        await app.load()
+        #expect(app.contractNotice == nil)
+    }
+
     @Test func piStartSkipsThePicker() async throws {
         let stub = StubServer()
         stub.route("/server", json: #"{"kind":"pi","name":"Piscine","contract":{"api":"v2","app":"v1"}}"#)
@@ -205,6 +246,5 @@ import Testing
         let ctx = try await app.openPi()
         #expect(ctx.title == "Regional")
         #expect(ctx.settings.numLanes == 10)
-        #expect(ctx.scheduleUnavailable)
     }
 }

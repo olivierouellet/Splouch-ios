@@ -13,7 +13,7 @@ let package = Package(
         .library(name: "SplouchUI", targets: ["SplouchUI"]),
     ],
     targets: [
-        .target(name: "SplouchCore"),
+        .target(name: "SplouchCore", resources: [.copy("Resources/i18n")]),
         .target(name: "SplouchUI", dependencies: ["SplouchCore"]),
         .testTarget(name: "SplouchCoreTests", dependencies: ["SplouchCore"]),
     ]

@@ -82,7 +82,7 @@ import Testing
     @Test func refreshFailureKeepsTheCache() async {
         let stub = StubServer()
         let cache = InMemoryBundleCache()
-        cache.store(CachedBundle(bundle: I18nBundle(lang: "fr", mobile: ["scoreboard": "Cached"]), etag: nil),
+        cache.store(try! CachedBundle(body: Data(#"{"lang":"fr","mobile":{"scoreboard":"Cached"}}"#.utf8), etag: nil),
                     origin: stub.address.origin, lang: "fr")
         let loader = StringsLoader(api: SplouchAPI(address: stub.address, session: stub.session), cache: cache)
         #expect(await loader.refresh("fr") == nil)
@@ -93,10 +93,17 @@ import Testing
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("splouch-test-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: dir) }
         let cache = FileBundleCache(directory: dir)
-        let c = CachedBundle(bundle: I18nBundle(lang: "fr", mobile: ["a": "b"], labels: ["short": ["event": "ÉP"]]), etag: "\"x\"")
+        let body = Data(#"{"lang":"fr","mobile":{"a":"b"},"labels":{"short":{"event":"ÉP"}}}"#.utf8)
+        let c = try! CachedBundle(body: body, etag: "\"x\"")
         cache.store(c, origin: "https://a.example:443", lang: "fr")
-        #expect(cache.load(origin: "https://a.example:443", lang: "fr") == c)
+        let back = cache.load(origin: "https://a.example:443", lang: "fr")
+        #expect(back == c)
+        #expect(back?.body == body)   // verbatim, the snapshot's shape
+        #expect(back?.bundle.labels["short"]?["event"] == "ÉP")
         #expect(cache.load(origin: "http://pi.local:5000", lang: "fr") == nil)
+        // No ETag: none comes back either.
+        cache.store(try! CachedBundle(body: body, etag: nil), origin: "https://a.example:443", lang: "fr")
+        #expect(cache.load(origin: "https://a.example:443", lang: "fr")?.etag == nil)
     }
 }
 

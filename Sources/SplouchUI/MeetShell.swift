@@ -29,7 +29,17 @@ struct MeetShell: View {
     let onBack: () -> Void
 
     // A-04: platform state restoration.
-    @SceneStorage("splouch.tab") private var tabRaw = MeetTab.scoreboard.rawValue
+    @SceneStorage("splouch.tab") private var tabRaw = MeetShell.initialTab
+
+    /// Debug builds honour `SPLOUCH_TAB=scoreboard|results|schedule` in the
+    /// launch environment, so a tab can be screenshotted without tapping.
+    private static var initialTab: Int {
+        #if DEBUG
+        if let name = ProcessInfo.processInfo.environment["SPLOUCH_TAB"],
+           let t = MeetTab.allCases.first(where: { $0.key == name }) { return t.rawValue }
+        #endif
+        return MeetTab.scoreboard.rawValue
+    }
     @Environment(\.scenePhase) private var scenePhase
     @State private var network = NetworkWatcher()
     @State private var showFilter = false
@@ -52,12 +62,18 @@ struct MeetShell: View {
         .environment(\.faces, faces)
         .onGeometryChange(for: Bool.self) { $0.size.width > $0.size.height } action: { isLandscape = $0 }
         .sheet(isPresented: $showFilter) { FilterSheet(ctx: ctx) }
-        .onAppear { network.start() }
+        .onAppear {
+            network.start()
+            #if DEBUG
+            if let env = ProcessInfo.processInfo.environment["SPLOUCH_TAB"],
+               let t = MeetTab.allCases.first(where: { $0.key == env }) { tabRaw = t.rawValue }
+            #endif
+        }
         .onDisappear { network.stop() }
         // C-05: foreground → probe; background → the ticker stops (L-12).
         .onChange(of: scenePhase) { _, phase in
             switch phase {
-            case .active: ctx.session.wake()
+            case .active: ctx.foregrounded()   // C-05 probe, A-09 check
             default: ctx.session.suspend()
             }
         }
@@ -83,12 +99,14 @@ struct MeetShell: View {
             }
             VStack(alignment: .leading, spacing: 0) {
                 Text(ctx.title).font(faces.text(15, weight: .semibold)).fitOneLine()
-                if !app.isDefaultServer {
-                    Text(app.serverName).font(.caption2).foregroundStyle(palette.thText).fitOneLine()
+                if !app.isDefaultServer || app.contractNotice != nil {
+                    // P-11: the server when it is not the default; P-14: the version notice.
+                    Text([app.isDefaultServer ? nil : app.serverName, app.contractNotice].compactMap { $0 }.joined(separator: " \u{00B7} "))
+                        .font(.caption2).foregroundStyle(palette.thText).fitOneLine()
                 }
             }
             Spacer()
-            if tab.wrappedValue == .schedule, !ctx.scheduleUnavailable {
+            if tab.wrappedValue == .schedule {
                 filterButton
             }
         }

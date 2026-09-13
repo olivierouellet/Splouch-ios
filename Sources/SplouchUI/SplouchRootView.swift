@@ -22,18 +22,30 @@ public struct SplouchRootView: View {
                 }
                 .transition(.move(edge: .trailing))
             } else {
-                PickerScreen(app: app, opening: opening) { summary in
-                    await open { try await app.open(summary) }
-                } openPi: {
-                    await open { try await app.openPi() }
+                NavigationStack {
+                    PickerScreen(app: app, opening: opening) { summary in
+                        await open { try await app.open(summary) }
+                    } openPi: {
+                        await open { try await app.openPi() }
+                    }
+                    #if os(iOS)
+                    .toolbarTitleDisplayMode(.inline)
+                    #endif
                 }
                 .transition(.move(edge: .leading))
             }
         }
         .animation(.default, value: meet == nil)
+        .preferredColorScheme(.dark)   // the picker is the web picker's dark; a meet themes itself
         .task {
             await app.start()
             if app.isPi { await open { try await app.openPi() } }
+            #if DEBUG
+            // `SPLOUCH_MEET=<id>` opens a meet straight away for screenshots.
+            if let id = ProcessInfo.processInfo.environment["SPLOUCH_MEET"], let m = app.meets.first(where: { $0.id == id }) {
+                await open { try await app.open(m) }
+            }
+            #endif
         }
         .onChange(of: app.isPi) { _, isPi in
             if isPi, meet == nil { Task { await open { try await app.openPi() } } }

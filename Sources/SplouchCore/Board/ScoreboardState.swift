@@ -112,6 +112,9 @@ public struct ScoreboardState: Sendable, Equatable {
     }
 
     public mutating func apply(_ fields: [String: JSONValue], at now: Instant) {
+        // L-13's second case reads the state before this frame.
+        let wasRunning = lanes.contains(where: \.running)
+
         // Running flags first, as both reference boards do: they decide whether
         // the cells written below take their time from `lane_time<i>` or from the
         // clock, and at a wall the flag and the split arrive in the same frame.
@@ -157,9 +160,11 @@ public struct ScoreboardState: Sendable, Equatable {
         if let v = fields["heat_time"]?.text { heatTime = v }
         if let v = fields["expected_splits"]?.int { expectedSplits = v }
 
-        // A new event or heat blanks times, deltas and places (L-13). The first
-        // value seen after a connect is a baseline, not a change: a join replay
-        // must not blank the snapshot it just delivered.
+        // L-13, three cases. The first event/heat seen after a connect is a
+        // baseline, not a change: a join replay must not blank the snapshot it
+        // just delivered. A change while a lane was running on the previous
+        // frame keeps every time as a result: the console advanced before it
+        // published them. Otherwise the change blanks times, deltas and places.
         var heatChanged = false
         if let v = fields["current_event"]?.text {
             currentEvent = v
@@ -171,7 +176,13 @@ public struct ScoreboardState: Sendable, Equatable {
             if let last = lastHeat, last != v { heatChanged = true }
             lastHeat = v
         }
-        if heatChanged { blankForNewHeat() }
+        if heatChanged {
+            if wasRunning {
+                clock.stop()   // the ticker stops either way (L-12)
+            } else {
+                blankForNewHeat()
+            }
+        }
 
         // Nothing runs a clock unless some lane is running.
         if !lanes.contains(where: \.running) { clock.stop() }

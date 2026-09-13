@@ -23,20 +23,28 @@ public struct FileBundleCache: BundleCache {
         return FileBundleCache(directory: base.appendingPathComponent("Splouch/i18n", isDirectory: true))
     }
 
-    private func file(origin: String, lang: String) -> URL {
+    /// `<origin>-<lang>.json` is the server's body verbatim; the ETag sits beside
+    /// it in `<origin>-<lang>.etag`.
+    private func file(origin: String, lang: String, ext: String) -> URL {
         let safe = origin.map { $0.isLetter || $0.isNumber ? String($0) : "_" }.joined()
-        return directory.appendingPathComponent("\(safe)-\(lang).json")
+        return directory.appendingPathComponent("\(safe)-\(lang).\(ext)")
     }
 
     public func load(origin: String, lang: String) -> CachedBundle? {
-        guard let data = try? Data(contentsOf: file(origin: origin, lang: lang)) else { return nil }
-        return try? JSONDecoder().decode(CachedBundle.self, from: data)
+        guard let body = try? Data(contentsOf: file(origin: origin, lang: lang, ext: "json")) else { return nil }
+        let etag = (try? String(contentsOf: file(origin: origin, lang: lang, ext: "etag"), encoding: .utf8))?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return try? CachedBundle(body: body, etag: etag.flatMap { $0.isEmpty ? nil : $0 })
     }
 
     public func store(_ cached: CachedBundle, origin: String, lang: String) {
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        if let data = try? JSONEncoder().encode(cached) {
-            try? data.write(to: file(origin: origin, lang: lang), options: .atomic)
+        try? cached.body.write(to: file(origin: origin, lang: lang, ext: "json"), options: .atomic)
+        let etagFile = file(origin: origin, lang: lang, ext: "etag")
+        if let etag = cached.etag {
+            try? Data(etag.utf8).write(to: etagFile, options: .atomic)
+        } else {
+            try? FileManager.default.removeItem(at: etagFile)
         }
     }
 }

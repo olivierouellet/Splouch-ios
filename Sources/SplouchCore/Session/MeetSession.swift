@@ -38,6 +38,9 @@ public final class MeetSession {
     public var onReload: (@MainActor () -> Void)?
     /// Called on `schedule_update` (S-21) after `scheduleVersion` changes.
     public var onScheduleUpdate: (@MainActor () -> Void)?
+    /// Called when the scoreboard socket comes back after a drop (A-09 re-check).
+    public var onReconnected: (@MainActor () -> Void)?
+    private var scoreboardEverConnected = false
 
     private let scoreboardSocket: SplouchSocket
     private let resultsSocket: SplouchSocket
@@ -158,6 +161,8 @@ public final class MeetSession {
         case .connected:
             scoreboardConnected = true
             scoreboard.socketConnected()
+            if scoreboardEverConnected { onReconnected?() }
+            scoreboardEverConnected = true
         case .disconnected:
             scoreboardConnected = false
             scoreboard.socketDisconnected()   // C-09: a drop implies not live

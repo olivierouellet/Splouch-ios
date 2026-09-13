@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import os
 
 /// The picker and the choice of server (app.md §1, §7). One per app.
 ///
@@ -27,6 +28,9 @@ public final class AppModel {
     public private(set) var unreachable = false
     /// Chrome strings in the device's language.
     public private(set) var strings: StringTable
+    /// P-14: the contract versions that differ from the ones this app was built
+    /// against, as `api v1 ≠ v2`; nil when they match. A notice, never a gate.
+    public private(set) var contractNotice: String?
 
     public init(defaultServer: ServerAddress, preferencesStore: any PreferencesStore = UserDefaultsPreferencesStore(),
                 vidStore: any VidStore = UserDefaultsVidStore(), bundleCache: any BundleCache = FileBundleCache.standard(),
@@ -57,14 +61,18 @@ public final class AppModel {
 
     /// P-09 / picker load: `GET /server`, then `/picker/config`, `/meets`,
     /// `/servers`, `/locales`.
+    private static let log = Logger(subsystem: "app.splouch", category: "AppModel")
+
     public func load() async {
         loading = true
-        defer { loading = false }
+        defer { loading = false; Self.log.info("load finished unreachable=\(self.unreachable) meets=\(self.meets.count)") }
         let api = self.api
+        Self.log.info("load start \(api.address.url.absoluteString)")
         do {
             let info = try await api.server()
             serverInfo = info
             unreachable = false
+            contractNotice = Self.notice(for: info)
             if info.kind == .cloud {
                 async let picker = api.pickerConfig(lang: preferences.language)
                 async let meets = api.meets()
@@ -79,6 +87,7 @@ public final class AppModel {
             locales = (try? await api.locales()) ?? []
             await refreshStrings()
         } catch {
+            Self.log.error("load failed: \(String(describing: error))")
             unreachable = true
         }
     }
@@ -112,6 +121,7 @@ public final class AppModel {
     public func switchServer(_ address: ServerAddress) async {
         server = address
         serverInfo = nil
+        contractNotice = nil
         meets = []
         picker = nil
         var p = preferences
@@ -171,6 +181,14 @@ public final class AppModel {
         return MeetContext(api: api, kind: .pi, meetID: nil, title: config.meetTitle, settings: config.settings,
                            stringsLoader: stringsLoader, preferences: preferences, vidStore: vidStore,
                            connector: connector)
+    }
+
+    static func notice(for info: ServerInfo) -> String? {
+        let expected = ServerInfo.expectedContract
+        var parts: [String] = []
+        if info.contract.api != expected.api { parts.append("api \(info.contract.api) \u{2260} \(expected.api)") }
+        if info.contract.app != expected.app { parts.append("app \(info.contract.app) \u{2260} \(expected.app)") }
+        return parts.isEmpty ? nil : parts.joined(separator: " \u{00B7} ")
     }
 
     private func refreshStrings() async {

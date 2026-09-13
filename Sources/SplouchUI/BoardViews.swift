@@ -76,14 +76,20 @@ struct BoardHeader: View {
     }
 }
 
-/// L-03: device local time, `HH:MM`, ticking every second.
+/// L-03: device local time, `HH:MM`, ticking every second. Always 24-hour, as
+/// the board is, whatever the locale's clock preference.
 struct WallClock: View {
     @Environment(\.palette) private var palette
     @Environment(\.faces) private var faces
 
+    static func hhmm(_ date: Date) -> String {
+        let c = Calendar.current.dateComponents([.hour, .minute], from: date)
+        return String(format: "%02d:%02d", c.hour ?? 0, c.minute ?? 0)
+    }
+
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { ctx in
-            Text(ctx.date, format: .dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits))
+            Text(Self.hhmm(ctx.date))
                 .font(faces.clock(22))
                 .foregroundStyle(palette.headerValue)
                 .monospacedDigit()

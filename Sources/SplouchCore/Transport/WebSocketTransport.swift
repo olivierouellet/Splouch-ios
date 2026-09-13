@@ -13,32 +13,52 @@ public protocol WebSocketConnector: Sendable {
     func open(_ url: URL) async throws -> any WebSocketConnection
 }
 
-/// `URLSessionWebSocketTask` behind the protocol above.
-///
-/// `open` confirms the handshake with a protocol-level ping (not the app-level
-/// `{"event":"ping"}` frame): its completion fires on the pong or on the
-/// connection error, so no delegate is needed to learn that the socket opened.
-public struct URLSessionWebSocketConnector: WebSocketConnector {
+/// `URLSessionWebSocketTask` behind the protocol above. `open` resolves on the
+/// session delegate's open callback and throws on a completion that arrives
+/// before it, so a refused or unreachable server fails fast.
+public final class URLSessionWebSocketConnector: WebSocketConnector, @unchecked Sendable {
     private let session: URLSession
+    private let delegate: OpenDelegate
 
-    public init(session: URLSession = .shared) {
-        self.session = session
+    public init(configuration: URLSessionConfiguration = .default) {
+        let delegate = OpenDelegate()
+        self.delegate = delegate
+        self.session = URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
     }
 
     public func open(_ url: URL) async throws -> any WebSocketConnection {
         let task = session.webSocketTask(with: url)
-        task.resume()
-        do {
-            try await withCheckedThrowingContinuation { (c: CheckedContinuation<Void, any Error>) in
-                task.sendPing { error in
-                    if let error { c.resume(throwing: error) } else { c.resume() }
-                }
-            }
-        } catch {
-            task.cancel(with: .abnormalClosure, reason: nil)
-            throw error
+        try await withCheckedThrowingContinuation { (c: CheckedContinuation<Void, any Error>) in
+            delegate.register(task, c)
+            task.resume()
         }
         return URLSessionWebSocketConnection(task: task)
+    }
+
+    private final class OpenDelegate: NSObject, URLSessionWebSocketDelegate, @unchecked Sendable {
+        private let lock = NSLock()
+        private var pending: [ObjectIdentifier: CheckedContinuation<Void, any Error>] = [:]
+
+        func register(_ task: URLSessionWebSocketTask, _ c: CheckedContinuation<Void, any Error>) {
+            lock.withLock { pending[ObjectIdentifier(task)] = c }
+        }
+
+        private func take(_ task: URLSessionTask) -> CheckedContinuation<Void, any Error>? {
+            lock.withLock { pending.removeValue(forKey: ObjectIdentifier(task)) }
+        }
+
+        func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
+            take(webSocketTask)?.resume()
+        }
+
+        func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask,
+                        didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
+            take(webSocketTask)?.resume(throwing: URLError(.networkConnectionLost))
+        }
+
+        func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: (any Error)?) {
+            take(task)?.resume(throwing: error ?? URLError(.cannotConnectToHost))
+        }
     }
 }
 

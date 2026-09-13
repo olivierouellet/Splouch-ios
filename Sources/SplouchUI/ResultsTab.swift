@@ -16,21 +16,23 @@ struct ResultsTab: View {
             BoardHeader(event: snapshot?.event ?? "", heat: snapshot?.heat ?? "",
                         eventName: snapshot.map { ctx.eventName($0.eventName, parts: $0.eventNameParts) } ?? "",
                         labels: ctx.labels)
-            ScrollView {
-                VStack(spacing: 0) {
-                    BoardTable(rows: rows.map(BoardRow.init), columns: Columns(ctx.settings), labels: ctx.labels,
-                               isLandscape: isLandscape)
-                        .frame(minHeight: isLandscape ? 0 : CGFloat(n) * 52)
-                    if snapshot == nil {
-                        // R-01: below the empty grid, wherever there is room.
-                        Text(ctx.strings.mobile("waiting_results"))
-                            .font(faces.text(15))
-                            .foregroundStyle(palette.thText)
-                            .padding(.vertical, 24)
+            GeometryReader { geo in
+                ScrollView {
+                    VStack(spacing: 0) {
+                        BoardTable(rows: rows.map(BoardRow.init), columns: Columns(ctx.settings), labels: ctx.labels,
+                                   isLandscape: isLandscape)
+                            .frame(minHeight: isLandscape ? geo.size.height : CGFloat(n) * 52)
+                        if snapshot == nil {
+                            // R-01: below the empty grid, wherever there is room.
+                            Text(ctx.strings.mobile("waiting_results"))
+                                .font(faces.text(15))
+                                .foregroundStyle(palette.thText)
+                                .padding(.vertical, 24)
+                        }
                     }
                 }
+                .refreshable { await ctx.refresh() }
             }
-            .refreshable { await ctx.refresh() }
         }
         .onAppear { ctx.session.resultsTabShown() }   // R-10
     }

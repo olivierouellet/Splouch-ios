@@ -14,12 +14,20 @@ scope for a native client; everything else starts `deferred`.
 `Level` is copied from `app.md` v1 for triage only. **`app.md` is authoritative** —
 if the two ever disagree, that document wins and this one is stale.
 
-**Where things stand (2026-09-13).** `SplouchCore` (Foundation-only, tested with
-`scripts/test.sh`, see README) and `SplouchUI` (SwiftUI, every screen) are written.
-The build machine has no iOS SDK: the UI compiles on macOS and has **never run on a
-device or simulator**. A `done` row whose note names a view is therefore *built and
-compile-checked, unverified* until the first run under Xcode; a `done` row that names
-a Core type is tested. The app target itself is `App/` (see its README).
+**Where things stand (2026-09-13).** `SplouchCore` is tested with `swift test`;
+`SplouchUI` and the app target (`App/Splouch.xcodeproj`) build with Xcode 26.6 and
+were run on the iOS 26.5 simulator against a local Pi (recorded session) and a local
+cloud fed by that Pi's relay. Seen working on screen: picker with cards, empty state,
+disclaimer and unreachable state; the shell and tab bar; the scoreboard with names,
+the ticking race clock over both the Pi and the throttled relay, splits with delta and
+place, the join replay; results by lane; the schedule with the current heat marked; the
+Pi's no-schedule state; the Pi's schedule from `GET /schedule.json`; the filter
+sheet and its toggles; the picker menu; the dark picker. **Not yet exercised on
+screen**: the server sheet and Bonjour list (menu items do not take scripted taps),
+the language and label pickers, landscape, the lane pulse, the lock flash,
+pull-to-refresh, backgrounding. Debug builds honour `SPLOUCH_SERVER`, `SPLOUCH_MEET`
+and `SPLOUCH_TAB` in the launch environment and `scripts/sim-tap.sh` taps the
+simulator (README).
 
 Suggested order: `P-13` (handshake) → `C-01`–`C-05` (sockets) → `P-01`/`P-08` (meet
 list, open a meet) → `L-01`–`L-14` (scoreboard). Results, Schedule and the `T-*`
@@ -43,6 +51,7 @@ language controls reuse all of it.
 | `P-11` | Choose which server to connect to, from a list, in the picker's menu | native-only | `done` | `ServerSheet`: `AppModel.knownServers` (default, `GET /servers`, hand-added), current one checked; the header shows the server name when it is not the default |
 | `P-12` | Servers on the local network are offered without anyone typing an address | native-only | `done` | `BonjourBrowser` (NWBrowser on `_splouch._tcp`, TXT `kind` must be `pi`, resolved to host:port) listed in `ServerSheet`; App/Info.plist carries `NSBonjourServices`, `NSLocalNetworkUsageDescription` and the scoped `NSAllowsLocalNetworking` |
 | `P-13` | A server can be added by hand, checked before it is saved | native-only | `done` | `ServerSheet.add` → `AppModel.probe(typed:)` must answer `GET /server` before `addServer` saves it |
+| `P-14` | A server whose contract versions differ from the app's gets a one-line notice naming both; the app connects regardless | native-only | `done` | `AppModel.contractNotice` (`api v1 ≠ v2`, symbols only so nothing is translated in the app) shown under the picker title and in the shell header beside the server name; `load()` continues on a mismatch. Tests: AppModelTests |
 
 ## 2. App shell
 
@@ -56,7 +65,7 @@ language controls reuse all of it.
 | `A-06` | Content clears notch, Dynamic Island, and home indicator | must (free natively) | `done` | safe-area layout; only the background ignores it |
 | `A-07` | Portrait stacks label under icon; landscape drops labels to save height | should | `done` | `MeetShell.tabBar` drops labels when width > height |
 | `A-08` | Window and home-screen title is the meet's `app_window_title`, falling back to its `name` | web-only | `n/a` | web-only — an app satisfies it by existing (app.md §0.3) |
-| `A-09` | Meet goes offline mid-session → return to the picker | must | `done` | `MeetContext.refresh()`/`loadSchedule()` set `gone` on `APIError.notFound`; `MeetShell` pops on it. Triggers: pull-to-refresh, `reload`, `schedule_update`. **Still to settle in app.md**: no socket signal exists for a gone meet; this client also does not yet re-check on reconnect or foreground |
+| `A-09` | Meet goes offline mid-session → return to the picker | must | `done` | `MeetContext.checkMeet()` fetches `/meet/{id}/config` on reconnect (`MeetSession.onReconnected`), foreground (`foregrounded()`), pull-to-refresh and `reload`; 404 → `gone` → `MeetShell` pops. A Pi never sets `gone`. Tests: MeetContextTests |
 
 ## 3.1 Header
 
@@ -79,7 +88,7 @@ language controls reuse all of it.
 | `L-10` | Frames are partial: merge changed keys into local state, never replace | must | `done` | `ScoreboardState.apply` merges key by key (Board/ScoreboardState.swift); running flags first, then `running_time`, then cells. Tests: ScoreboardStateTests |
 | `L-11` | A running lane's time is styled distinctly; on stop it plays a one-shot "locked" transition, cancelled if the lane starts running… | must | `done` | `TimeCell`: running dimmed, `.locked(generation:)` replays a 0.8s white→timing flash per edge |
 | `L-12` | Every running lane's time cell shows the race clock: one value for the heat, re-based by the server every couple of seconds and… | must | `done` | `RaceClock`/`ScoreboardState` (tested) + `ScoreboardTab.task` ticking every 100ms off `ContinuousClock` while the tab is on screen; `LaneNumber` pulses and finishes its cycle before stopping; `MeetShell` suspends on backgrounding and wakes on foreground. `running_time` format taken from the reference (`m:ss.hh` / `ss.hh`), not stated in api.md |
-| `L-13` | Event or heat change blanks all times, deltas, and places | must | `done` | blank on change (decided 2026-09-12). The first event/heat seen after a connect is a baseline, not a change, so a join replay never blanks the snapshot it just delivered |
+| `L-13` | Event or heat change blanks all times, deltas, and places | must | `done` | three cases as app.md states them: baseline after a connect, times kept when a lane was running on the previous frame (ticker stopped), blank otherwise. Tests: ScoreboardStateTests |
 | `L-14` | Returning to the tab re-runs layout and refreshes the clock | must (native: on-appear) | `done` | `ScoreboardTab.task` ticks on appear; `.onDisappear` suspends |
 
 ## 3.3 Layout
@@ -119,20 +128,20 @@ language controls reuse all of it.
 
 | ID | Feature | Level | Status | Notes |
 | --- | --- | --- | --- | --- |
-| `S-01` | Every heat as a card: scheduled time, "Event N — Heat M", event name | must | `done` | `HeatCard` over `ScheduleView.visible` on a cloud. **Pi gap stands**: api.md §4 gives a Pi no schedule JSON, so `MeetContext.scheduleUnavailable` shows `mobile.no_meet` there |
+| `S-01` | Every heat as a card: scheduled time, "Event N — Heat M", event name | must | `done` | `HeatCard` over `ScheduleView.visible`; `GET /meet/{id}/schedule` on a cloud, `GET /schedule.json` on a Pi (`SplouchAPI.piSchedule`). Seen on both |
 | `S-02` | Each card lists its lanes: lane number, name, club, seed time | must | `done` | `HeatCard` lane rows |
 | `S-03` | Relay entries show member first names joined by `·` | should | `done` | `ScheduleView.displayName` |
 | `S-04` | Alternating card backgrounds, computed over *visible* cards so filtering keeps the stripe | should | `done` | `VisibleHeat.stripe` → `rowOdd`/`rowEven` |
 | `S-05` | The heat the meet is on is highlighted in the list | must | `done` | `VisibleHeat.isCurrent` → accent bar; `MeetContext.currentHeat` from either socket |
 | `S-06` | The list auto-scrolls to the current heat once per appearance | must | `done` | `ScheduleTab.scrolledToCurrent`, re-armed on appear and on `scenePhase == .active` |
-| `S-07` | Empty state when no meet file is loaded | must | `done` | `mobile.no_schedule` for empty `heats`, `mobile.no_meet` on a Pi |
+| `S-07` | Empty state when no meet file is loaded | must | `done` | `mobile.no_meet` on a Pi with empty `heats`, `mobile.no_schedule` on a cloud |
 
 ## 5.2 Filtering
 
 | ID | Feature | Level | Status | Notes |
 | --- | --- | --- | --- | --- |
 | `S-08` | Full-screen filter sheet, opened from a button in the top bar | must | `done` | `FilterSheet` from the top-bar button |
-| `S-09` | Typeahead search over swimmers and clubs, debounced ~220ms | must | `done` | `FilterSheet.search`: 220ms debounce → `GET /search_suggestions` |
+| `S-09` | Typeahead search over swimmers and clubs, debounced ~220ms | must | `done` | `FilterSheet.search`: 220ms debounce → `GET /search_suggestions`, `meet_id` only on a cloud; the field never autocapitalises. **Pi bug (2026-09-13)**: the Pi's route is case-sensitive (`?q=Le` empty, `?q=le` matches); the cloud folds case |
 | `S-10` | Suggestions show type (swimmer/club), name, and club; already-added ones are marked and inert | should | `done` | icon per type, name, club; added ones checked and disabled |
 | `S-11` | Active filters appear as chips; tapping a chip's × removes it | must | `done` | chips in a `FlowLayout`, × removes |
 | `S-12` | A count badge on the filter button shows how many filters are active | should | `done` | badge on the filter button |
@@ -174,10 +183,10 @@ language controls reuse all of it.
 | `T-02` | Schedule-specific colours `schedule_event`, `schedule_time`, `schedule_name`, `schedule_club`, each with a built-in default | should | `done` | `HeatCard` uses `scheduleEvent/Time/Name/Club` |
 | `T-03` | Three font roles — `family` (text), `digits` (clock), `timing` (times and deltas) | must | `done` | `Faces`: `family` for text, `digits` for EVENT/HEAT/clock, `timing` for times and deltas; six faces bundled in App/Fonts, unknown names fall back to system monospace |
 | `T-04` | Column headers and header labels are the server's words, never the app's | must | `done` | `MeetContext.labels` via `LabelResolver`; every header and the schedule card title use it |
-| `T-05` | The app's own chrome — tab names, empty states, filter UI — is fetched and cached, not translated in the app | must | `deferred` | `StringTable.mobile` everywhere, fetched and cached. **Blocked on the server**: keys the app needs that `[mobile]` lacks and render as their key name until added to `shared/locales/*.toml`: `server`, `add_server`, `server_placeholder`, `nearby`, `cancel`, `done`, `ok`, `retry`, `language`, `prefs_auto`, `prefs_labels`, `no_matches`, `no_search_results` |
+| `T-05` | The app's own chrome — tab names, empty states, filter UI — is fetched and cached, not translated in the app | must | `deferred` | `StringTable.mobile` everywhere, fetched and cached. **Blocked on the server**: keys the app needs that `[mobile]` still lacks (checked against splouch.ca 2026-09-13) and that render as their key name until added to `shared/locales/*.toml`: `server`, `add_server`, `server_placeholder`, `nearby`, `cancel`, `done`, `ok`, `retry`, `language`, `prefs_auto`, `prefs_labels`, `no_matches`, `no_search_results` |
 | `T-06` | Language defaults to the meet's locale and the user may override it | must | `done` | `MeetContext.effectiveLanguage` = preference or `settings.locale` |
 | `T-07` | Missing theme keys fall back to the documented defaults rather than rendering unstyled | must | `done` | `ThemeColors` / `ThemeFonts` fall back per key to the servers' own defaults (`cloud_server._DEFAULT_COLORS`, `state.DEFAULT_THEME_COLORS`). Tests: ThemeTests |
 | `T-08` | A language control, per device, applying to every meet opened afterwards | should | `done` | picker menu → `AppModel.setLanguage`, stored in `Preferences`, `?lang=` on `/picker/config`, applied to every meet opened afterwards |
 | `T-09` | A short/long control over the EVENT and HEAT headers only, starting from short | should | `done` | picker menu → `AppModel.setLabelStyle`; the options are shown as the tables' own EVENT/HEAT words, so nothing is translated in the app |
-| `T-10` | A built-in snapshot of the strings is the floor: compiled into the app, refreshed from the server, cached to disk | must | `done` | compiled snapshot + `FileBundleCache` on disk (Application Support) + ETag revalidation via `StringsLoader` |
+| `T-10` | A built-in snapshot of the strings is the floor: compiled into the app, refreshed from the server, cached to disk | must | `done` | one checked-in JSON body per language in `Sources/SplouchCore/Resources/i18n/` captured verbatim by `scripts/update-strings.sh` from the default cloud's `GET /locales`; the run-time cache stores the fetched body verbatim beside its ETag (`FileBundleCache`), same shape, one decoder; `StringTable` is the lookup chain |
 | `T-11` | The event name follows the chosen language, composed from parts the server sends | should | `done` | `EventName.compose`/`resolve` join `event_name_parts` against `StringTable.eventVocabulary`, falling back to `event_name`; mirrors the reference `composeEventName` exactly (Strings/EventName.swift). Tests: EventNameTests |

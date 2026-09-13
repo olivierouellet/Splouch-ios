@@ -24,8 +24,6 @@ public final class MeetContext {
     /// nil until loaded; empty `heats` is "loaded, no schedule yet" (S-07).
     public private(set) var schedule: Schedule?
     public private(set) var scheduleFailed = false
-    /// True against a Pi: api.md §4 gives a Pi no schedule JSON.
-    public let scheduleUnavailable: Bool
     /// Session-only (S-20).
     public var filter = ScheduleFilter()
     /// A-09: the meet is gone from this server.
@@ -48,7 +46,6 @@ public final class MeetContext {
         self.stringsLoader = stringsLoader
         self.language = preferences.language
         self.labelStyle = preferences.labelStyle
-        self.scheduleUnavailable = kind == .pi
         self.session = MeetSession(address: api.address, kind: kind, meetID: meetID, settings: settings,
                                    vidStore: vidStore, connector: connector, timing: timing)
         let lang = preferences.language ?? settings.locale
@@ -60,6 +57,7 @@ public final class MeetContext {
                                            style: preferences.labelStyle, table: strings)
         session.onReload = { [weak self] in Task { await self?.refresh() } }
         session.onScheduleUpdate = { [weak self] in Task { await self?.loadSchedule() } }
+        session.onReconnected = { [weak self] in Task { await self?.checkMeet() } }
     }
 
     /// The language the tabs render in.
@@ -78,6 +76,27 @@ public final class MeetContext {
         await session.stop()
     }
 
+    /// Foreground: probe the sockets (C-05) and ask whether the meet is still
+    /// there (A-09).
+    public func foregrounded() {
+        session.wake()
+        Task { await checkMeet() }
+    }
+
+    /// A-09: on a cloud, `GET /meet/{id}/config` is the check; 404 means gone.
+    /// Any other failure is a network fault the sockets already handle. A Pi has
+    /// one meet that cannot go away.
+    public func checkMeet() async {
+        guard kind == .cloud, let meetID else { return }
+        do {
+            let config = try await api.meetConfig(meetID)
+            title = config.appWindowTitle.isEmpty ? config.name : config.appWindowTitle
+            apply(settings: config.settings, rejoin: false)
+        } catch APIError.notFound {
+            gone = true
+        } catch {}
+    }
+
     /// A-05 and C-08: re-fetch config, redraw, re-join. A 404 means the meet is
     /// gone (A-09).
     public func refresh() async {
@@ -89,30 +108,39 @@ public final class MeetContext {
                 guard let meetID else { return }
                 let config = try await api.meetConfig(meetID)
                 title = config.appWindowTitle.isEmpty ? config.name : config.appWindowTitle
-                apply(settings: config.settings)
+                apply(settings: config.settings, rejoin: true)
             case .pi:
                 let config = try await api.piConfig()
                 title = config.meetTitle
-                apply(settings: config.settings)
+                apply(settings: config.settings, rejoin: true)
             }
-        } catch APIError.notFound {
+        } catch APIError.notFound where kind == .cloud {
             gone = true
             return
         } catch {
-            // Unreachable: keep drawing what we have; the sockets carry on.
+            // Unreachable, or a Pi answering oddly: keep drawing what we have;
+            // the sockets carry on (a Pi's one meet cannot go away, §0.2).
         }
         await loadSchedule()
         await refreshStrings()
     }
 
+    /// The start list: `GET /meet/{id}/schedule` on a cloud, `GET /schedule.json`
+    /// on a Pi — the same body (api.md §5.8).
     public func loadSchedule() async {
-        guard kind == .cloud, let meetID else { return }
         do {
-            let s = try await api.schedule(meetID: meetID)
+            let s: Schedule
+            switch kind {
+            case .cloud:
+                guard let meetID else { return }
+                s = try await api.schedule(meetID: meetID)
+            case .pi:
+                s = try await api.piSchedule()
+            }
             schedule = s
             scheduleFailed = false
             filter.prune(to: s.heats)
-        } catch APIError.notFound {
+        } catch APIError.notFound where kind == .cloud {
             gone = true
         } catch {
             scheduleFailed = schedule == nil
@@ -138,7 +166,8 @@ public final class MeetContext {
 
     // MARK: - Private
 
-    private func apply(settings new: MeetSettings) {
+    private func apply(settings new: MeetSettings, rejoin: Bool) {
+        let changed = new != settings
         settings = new
         colors = ThemeColors(new.themeColors)
         fonts = ThemeFonts(new.themeFonts)
@@ -146,7 +175,7 @@ public final class MeetContext {
             strings = stringsLoader.table(for: new.locale)
         }
         rebuildLabels()
-        session.apply(settings: new)
+        if rejoin || changed { session.apply(settings: new) }
     }
 
     private func rebuildLabels() {
