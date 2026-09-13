@@ -181,11 +181,18 @@ struct MeetCard: View {
         HStack(spacing: 12) {
             // P-02: the live dot leads the row, ahead of the meet's image.
             liveDot
-            if let imageURL {
-                AsyncImage(url: imageURL) { $0.resizable().scaledToFill() } placeholder: { border }
-                    .frame(width: 64, height: 64)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            // The slot is reserved whether or not the meet carries an image, so
+            // titles line up down the list; a meet without one shows the same
+            // empty tile the image shows while it loads.
+            Group {
+                if let imageURL {
+                    AsyncImage(url: imageURL) { $0.resizable().scaledToFill() } placeholder: { border }
+                } else {
+                    border
+                }
             }
+            .frame(width: 64, height: 64)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
             VStack(alignment: .leading, spacing: 4) {
                 // The name wraps rather than shrinking. On one line with a 0.5
                 // floor a long name hit that floor in portrait — half of
