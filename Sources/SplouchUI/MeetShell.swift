@@ -53,7 +53,7 @@ struct MeetShell: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            topBar
+            if showsTopBar { topBar }
             pager
             tabBar
         }
@@ -90,13 +90,15 @@ struct MeetShell: View {
         }
     }
 
-    // A-02, and the server name when it is not the default (P-11 note).
+    /// Only when there is something to put in it: a meet title, a server name or
+    /// version notice, or the Schedule tab's filter button.
+    private var showsTopBar: Bool {
+        !ctx.title.isEmpty || !app.isDefaultServer || app.contractNotice != nil || tab.wrappedValue == .schedule
+    }
+
+    // The meet title, and the server name when it is not the default (P-11 note).
     private var topBar: some View {
         HStack(spacing: 12) {
-            Button(action: onBack) {
-                Label(ctx.strings.mobile("back_to_meets"), systemImage: "chevron.left")
-                    .labelStyle(.titleAndIcon)
-            }
             VStack(alignment: .leading, spacing: 0) {
                 Text(ctx.title).font(faces.text(15, weight: .semibold)).fitOneLine()
                 if !app.isDefaultServer || app.contractNotice != nil {
@@ -153,8 +155,18 @@ struct MeetShell: View {
     }
 
     // A-01, A-07: labels under icons in portrait, icons only in landscape.
+    // A-02: the way back to the picker sits at the left, as an arrow only.
     private var tabBar: some View {
-        HStack {
+        HStack(spacing: 0) {
+            Button(action: onBack) {
+                Image(systemName: "chevron.left")
+                    .font(.title3)
+                    .frame(width: 56, height: isLandscape ? 28 : 40)
+                    .padding(.vertical, isLandscape ? 4 : 6)
+                    .foregroundStyle(palette.thText)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(ctx.strings.mobile("back_to_meets"))
             ForEach(MeetTab.allCases, id: \.rawValue) { t in
                 Button { tab.wrappedValue = t } label: {
                     VStack(spacing: 2) {
