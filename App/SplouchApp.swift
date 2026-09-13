@@ -7,7 +7,7 @@ import SplouchUI
 @main
 struct SplouchApp: App {
     /// The one URL the app ships knowing — the default cloud (app.md P-11 note).
-    private static let defaultCloud = ServerAddress(typed: "https://splouch.app")!
+    private static let defaultCloud = ServerAddress(typed: "https://splouch.ca")!
 
     @State private var model = AppModel(defaultServer: defaultCloud)
 
