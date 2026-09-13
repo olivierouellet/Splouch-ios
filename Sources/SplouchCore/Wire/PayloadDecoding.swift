@@ -79,24 +79,8 @@ public extension MeetSettings {
             themeFonts: json.strings("theme_fonts"),
             locale: json["locale"]?.text ?? "en",
             labels: json.strings("labels"),
-            labelStyle: json["label_style"]?.string,
-            labelOverrides: Self.overrides(json["label_overrides"])
+            labelStyle: json["label_style"]?.string
         )
-    }
-
-    private static func overrides(_ v: JSONValue?) -> [String: [String: [String: String]]] {
-        guard let langs = v?.object else { return [:] }
-        var out: [String: [String: [String: String]]] = [:]
-        for (lang, styles) in langs {
-            guard let styles = styles.object else { continue }
-            var byStyle: [String: [String: String]] = [:]
-            for (style, table) in styles {
-                guard let table = table.object else { continue }
-                byStyle[style] = table.compactMapValues(\.text)
-            }
-            out[lang] = byStyle
-        }
-        return out
     }
 }
 

@@ -71,8 +71,7 @@ import Testing
                              labels: ["short": ["event": "EV", "heat": "HT", "lane": "LN", "place": "PL"],
                                       "long": ["event": "EVENT", "heat": "HEAT", "lane": "LN", "place": "PL"]])
     var settings: MeetSettings {
-        MeetSettings(locale: "en", labels: ["event": "ÉP", "heat": "SÉR", "lane": "CL"], labelStyle: "short",
-                     labelOverrides: ["en": ["long": ["event": "COURSE", "lane": "CORRIDOR"], "short": ["lane": "CO"]]])
+        MeetSettings(locale: "en", labels: ["event": "ÉP", "heat": "SÉR", "lane": "CL"], labelStyle: "short")
     }
 
     @Test func noChoiceRendersTheServersLabelsAsSent() {
@@ -81,21 +80,20 @@ import Testing
         #expect(LabelResolver.labels(settings: settings, language: "fr", style: .long, table: nil) == settings.labels)
     }
 
-    @Test func chosenStyleUsesTheI18nTableWithOverrides() {
+    @Test func chosenStyleUsesTheI18nTableAsServed() {
         let table = StringTable(language: "en", english: english)
+        // The server's long table already keeps the narrow columns short (T-09);
+        // the app renders it as given.
         let long = LabelResolver.labels(settings: settings, language: nil, style: .long, table: table)
-        // Wide keys take the long override; the narrow lane column ignores its
-        // long override and keeps the short one (T-09).
-        #expect(long == ["event": "COURSE", "heat": "HEAT", "lane": "CO", "place": "PL"])
+        #expect(long == ["event": "EVENT", "heat": "HEAT", "lane": "LN", "place": "PL"])
         let short = LabelResolver.labels(settings: settings, language: nil, style: .short, table: table)
-        #expect(short == ["event": "EV", "heat": "HT", "lane": "CO", "place": "PL"])
+        #expect(short == ["event": "EV", "heat": "HT", "lane": "LN", "place": "PL"])
     }
 
     @Test func styleDefaultsToTheOperatorsWhenOnlyLanguageChosen() {
         let table = StringTable(language: "en", english: english)
         var s = settings
         s.labelStyle = "long"
-        s.labelOverrides = [:]
         #expect(LabelResolver.labels(settings: s, language: "en", style: nil, table: table)["event"] == "EVENT")
         s.labelStyle = nil
         #expect(LabelResolver.labels(settings: s, language: "en", style: nil, table: table)["event"] == "EV")

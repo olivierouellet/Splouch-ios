@@ -1,7 +1,8 @@
 import SwiftUI
 import SplouchCore
 
-/// S-08 to S-19: the full-screen filter sheet.
+/// S-08 to S-19: the full-screen filter sheet. Its words are the server's
+/// (`mobile`, T-05); only the Done button is the platform's.
 struct FilterSheet: View {
     @Bindable var ctx: MeetContext
     @Environment(\.dismiss) private var dismiss
@@ -30,9 +31,11 @@ struct FilterSheet: View {
                         suggestionRow(s)
                     }
                 }
-                if ctx.filter.isFiltering {
-                    Section {
+                Section {
+                    if ctx.filter.isFiltering {
                         chips
+                    } else {
+                        Text(strings.mobile("no_filters")).foregroundStyle(.secondary)
                     }
                 }
                 Section {
@@ -44,15 +47,23 @@ struct FilterSheet: View {
                     .disabled(ctx.filter == ScheduleFilter())
                 }
             }
+            .navigationTitle(strings.mobile("filter"))
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(strings.mobile("done")) { dismiss() }
-                }
+                ToolbarItem(placement: .confirmationAction) { doneButton }
             }
-            // S-18
+            // S-18: the dialog brings the platform's own Cancel.
             .confirmationDialog(strings.mobile("reset_confirm"), isPresented: $confirmReset, titleVisibility: .visible) {
                 Button(strings.mobile("reset_filters"), role: .destructive) { ctx.filter.reset() }
             }
+        }
+    }
+
+    /// The platform's own Done where it offers one, ours below that.
+    @ViewBuilder private var doneButton: some View {
+        if #available(iOS 26.0, macOS 26.0, *) {
+            Button(role: .close) { dismiss() }
+        } else {
+            Button(Native.done) { dismiss() }
         }
     }
 
@@ -70,9 +81,9 @@ struct FilterSheet: View {
                     .foregroundStyle(.secondary)
                 VStack(alignment: .leading) {
                     Text(s.name).foregroundStyle(.primary)
-                    if !s.club.isEmpty, term.kind == .swimmer {
-                        Text(s.club).font(.footnote).foregroundStyle(.secondary)
-                    }
+                    Text([strings.mobile(term.kind == .club ? "club" : "swimmer"), term.kind == .swimmer ? s.club : ""]
+                        .filter { !$0.isEmpty }.joined(separator: " · "))
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
                 Spacer()
                 if added { Image(systemName: "checkmark").foregroundStyle(.secondary) }

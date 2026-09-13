@@ -21,7 +21,7 @@ struct ScheduleTab: View {
                         // on a cloud the meet is there but carries no schedule yet.
                         emptyState(ctx.strings.mobile(ctx.kind == .pi ? "no_meet" : "no_schedule"))
                     } else if ctx.schedule == nil {
-                        if ctx.scheduleFailed { emptyState(ctx.strings.display("connection_lost")) } else { ProgressView().padding(40) }
+                        if ctx.scheduleFailed { emptyState(Native.serverUnreachable) } else { ProgressView().padding(40) }
                     } else if visible.isEmpty {
                         // S-19: no swimmer matches these filters.
                         emptyState(ctx.strings.mobile(ctx.filter.upcomingOnly && !ctx.filter.isFiltering ? "no_upcoming" : "no_matches"))

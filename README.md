@@ -72,13 +72,30 @@ empty password by default, form `action=add&organizer=Dev`; the key lands in
 device screen through System Events (the terminal needs Accessibility access), and
 `xcrun simctl io <udid> screenshot out.png` captures it.
 
-## Refreshing the built-in strings
+## Strings
 
-`Sources/SplouchCore/Resources/i18n/<lang>.json` are the compiled floor of app.md
-T-10: the body of `GET /i18n/{lang}` for each language the default cloud lists,
-verbatim. Regenerate them from the default cloud before a release and whenever
-`shared/locales/` changes, never by hand:
+Two kinds, split by what the word is about (app.md T-05):
 
-```sh
-scripts/update-strings.sh https://splouch.ca
-```
+- **Served.** Everything a spectator reads that the web pages also show — tab
+  names, empty states, the filter sheet, the picker's chrome and preference
+  controls, the compliance text — comes from `GET /i18n/{lang}` → `mobile`,
+  through `StringTable.mobile(...)`, cached on disk and revalidated by ETag.
+  `Sources/SplouchCore/Resources/i18n/<lang>.json` are its compiled floor: the
+  body of `GET /i18n/{lang}` for each language the default cloud lists,
+  verbatim, plus `locales.json`, the body of `GET /locales`, which is the
+  language menu's floor when the server cannot be reached. Regenerate them from
+  the default cloud before a release and whenever the server's `shared/locales/`
+  changes, never by hand:
+
+  ```sh
+  scripts/update-strings.sh https://splouch.ca
+  ```
+
+  `SnapshotCoverageTests` fails if the app asks for a `mobile` key the captured
+  snapshot does not carry, so a new key is added on the server first and
+  captured here second.
+- **Native.** Words about the app or the device — the server sheet, "nearby",
+  connection and address errors, retry, open board — live in
+  `Sources/SplouchUI/Resources/Localizable.xcstrings` (en, fr, es) behind the
+  `Native` enum. Cancel, Done and OK use the platform's own labels where SwiftUI
+  provides them.

@@ -25,6 +25,17 @@
         <string>Fonts/Orbitron[wght].ttf</string>
         <string>Fonts/RobotoMono[wght].ttf</string>
     </array>
+    <!-- The languages the app runs in (app.md T-05, native words). iOS matches the
+         device's preferred languages against this list; the served words follow
+         the same choice through Accept-Language. -->
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>en</string>
+        <string>fr</string>
+        <string>es</string>
+    </array>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
     <key>UISupportedInterfaceOrientations</key>
     <array>
         <string>UIInterfaceOrientationPortrait</string>

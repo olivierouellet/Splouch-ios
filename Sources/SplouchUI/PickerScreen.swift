@@ -1,7 +1,9 @@
 import SwiftUI
 import SplouchCore
 
-/// The meet picker (app.md §1). Language is the device's, not a meet's.
+/// The meet picker (app.md §1). Language is the device's, not a meet's. Its
+/// chrome and preference controls are the server's words (`mobile`, T-05);
+/// the server menu and the connection error are the app's.
 struct PickerScreen: View {
     let app: AppModel
     let opening: Bool
@@ -44,9 +46,12 @@ struct PickerScreen: View {
                     unreachable
                 } else if app.isPi {
                     Button { Task { await openPi() } } label: {
-                        Label(app.serverName, systemImage: "sportscourt")
+                        Label(Native.openBoard, systemImage: "sportscourt")
+                            .padding(.horizontal, 18).padding(.vertical, 10)
+                            .background(Ink.card, in: Capsule())
+                            .overlay(Capsule().stroke(Ink.border))
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.plain)
                 } else if app.meets.isEmpty, !app.loading {
                     Text(picker?.strings["no_meets"] ?? strings.mobile("no_meets"))
                         .foregroundStyle(Ink.faint)
@@ -56,7 +61,8 @@ struct PickerScreen: View {
                         ForEach(app.meets) { meet in
                             Button { Task { await open(meet) } } label: {
                                 MeetCard(meet: meet, imageURL: meet.hasPickerImage ? app.api.pickerImageURL(meetID: meet.id) : nil,
-                                         unnamed: picker?.strings["unnamed_meet"] ?? "",
+                                         unnamed: picker?.strings["unnamed_meet"] ?? strings.mobile("unnamed_meet"),
+                                         offline: strings.mobile("offline"),
                                          card: Ink.card, border: Ink.border, text: Ink.text, meta: Ink.meta, live: Ink.live)
                             }
                             .buttonStyle(.plain)
@@ -95,11 +101,12 @@ struct PickerScreen: View {
         .padding(.top)
     }
 
+    /// A connection error is about the device, so it is native (T-05).
     private var unreachable: some View {
         VStack(spacing: 16) {
-            Text(strings.display("connection_lost")).foregroundStyle(Ink.faint)
+            Text(Native.serverUnreachable).foregroundStyle(Ink.faint).multilineTextAlignment(.center)
             Button { Task { await app.load() } } label: {
-                Text(strings.mobile("retry"))
+                Text(Native.retry)
                     .padding(.horizontal, 18).padding(.vertical, 8)
                     .background(Ink.card, in: Capsule())
                     .overlay(Capsule().stroke(Ink.border))
@@ -109,7 +116,7 @@ struct PickerScreen: View {
         .padding(.top, 40)
     }
 
-    // P-06, P-07
+    // P-06, P-07: served, never compiled in.
     @ViewBuilder private var footer: some View {
         if let p = picker {
             VStack(spacing: 8) {
@@ -124,16 +131,16 @@ struct PickerScreen: View {
         }
     }
 
-    // P-11, T-08, T-09
+    // P-11 (native words), T-08 and T-09 (the server's words).
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .automatic) {
             Menu {
                 Button { showServers = true } label: {
-                    Label(strings.mobile("server"), systemImage: "server.rack")
+                    Label(Native.server, systemImage: "server.rack")
                 }
                 Picker(selection: Binding(get: { app.preferences.language ?? "" },
                                           set: { v in Task { await app.setLanguage(v.isEmpty ? nil : v) } })) {
-                    Text(strings.mobile("prefs_auto")).tag("")
+                    Text(strings.mobile("language_auto")).tag("")
                     ForEach(app.locales, id: \.code) { Text($0.name).tag($0.code) }
                 } label: {
                     Label(strings.mobile("language"), systemImage: "globe")
@@ -142,8 +149,8 @@ struct PickerScreen: View {
                 Picker(selection: Binding(get: { app.preferences.labelStyle?.rawValue ?? "" },
                                           set: { app.setLabelStyle(SplouchCore.LabelStyle(rawValue: $0)) })) {
                     Text(strings.mobile("prefs_auto")).tag("")
-                    Text(sample(.short)).tag(SplouchCore.LabelStyle.short.rawValue)
-                    Text(sample(.long)).tag(SplouchCore.LabelStyle.long.rawValue)
+                    Text(strings.mobile("prefs_short")).tag(SplouchCore.LabelStyle.short.rawValue)
+                    Text(strings.mobile("prefs_long")).tag(SplouchCore.LabelStyle.long.rawValue)
                 } label: {
                     Label(strings.mobile("prefs_labels"), systemImage: "textformat.abc")
                 }
@@ -153,12 +160,6 @@ struct PickerScreen: View {
             }
         }
     }
-
-    /// The style shown by its own words, so nothing is translated here (T-04).
-    private func sample(_ style: SplouchCore.LabelStyle) -> String {
-        let t = strings.labels(style)
-        return [t["event"], t["heat"]].compactMap { $0 }.joined(separator: " · ")
-    }
 }
 
 /// P-01, P-02, P-03.
@@ -166,6 +167,8 @@ struct MeetCard: View {
     let meet: MeetSummary
     let imageURL: URL?
     let unnamed: String
+    /// The server's word for a retained meet with no relay (`mobile.offline`).
+    var offline: String = ""
     var card: Color = Color(hex: "#1a1a1a")
     var border: Color = Color(hex: "#2e2e2e")
     var text: Color = Color(hex: "#e0e0e0")
@@ -188,8 +191,10 @@ struct MeetCard: View {
                         .frame(width: 8, height: 8)
                     Text(meet.name.isEmpty ? unnamed : meet.name).font(.headline).foregroundStyle(text).fitOneLine()
                 }
-                Text([meet.meetDate, meet.location].filter { !$0.isEmpty }.joined(separator: " · "))
-                    .font(.subheadline).foregroundStyle(meta)
+                let details = [meet.meetDate, meet.location, meet.offline ? offline : ""].filter { !$0.isEmpty }
+                if !details.isEmpty {
+                    Text(details.joined(separator: " · ")).font(.subheadline).foregroundStyle(meta)
+                }
                 if !meet.sport.isEmpty {
                     Text(meet.sport).font(.caption).foregroundStyle(meta)
                 }

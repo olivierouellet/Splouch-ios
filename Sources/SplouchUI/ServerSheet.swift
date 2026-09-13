@@ -3,43 +3,41 @@ import SplouchCore
 
 /// P-11: the servers on offer; P-12: the ones found on the local network;
 /// P-13: one added by hand, checked with `GET /server` before it is saved.
+/// Every word here is about the app or the device, so it is native (T-05).
 struct ServerSheet: View {
     let app: AppModel
     @Environment(\.dismiss) private var dismiss
     @State private var bonjour = BonjourBrowser()
     @State private var typed = ""
     @State private var checking = false
-    @State private var checkError = false
-
-    private var strings: StringTable { app.strings }
+    @State private var checkError: String?
 
     var body: some View {
         NavigationStack {
             List {
                 Section {
                     ForEach(app.knownServers) { s in
-                        row(s.name, s.address, kind: s.address == app.defaultServer ? "cloud" : nil)
-                    }
-                    .onDelete { offsets in
-                        // Only hand-added servers can be removed; the rest are data.
-                        let known = app.knownServers
-                        for i in offsets {
-                            if let saved = app.preferences.savedServers.first(where: { $0.id == known[i].id }) {
-                                app.removeSavedServer(saved)
+                        row(s.name, s.address)
+                            .swipeActions(edge: .trailing) {
+                                if let saved = app.preferences.savedServers.first(where: { $0.id == s.id }) {
+                                    // Only hand-added servers can be removed; the rest are data.
+                                    Button(role: .destructive) { app.removeSavedServer(saved) } label: {
+                                        Label(Native.remove, systemImage: "trash")
+                                    }
+                                }
                             }
-                        }
                     }
                 }
                 if bonjour.browsing {
-                    Section(strings.mobile("nearby")) {
+                    Section(Native.nearby) {
                         if bonjour.found.isEmpty {
-                            HStack { ProgressView(); Text(strings.display("waiting_server")).foregroundStyle(.secondary) }
+                            ProgressView()
                         }
-                        ForEach(bonjour.found) { f in row(f.name, f.address, kind: "pi") }
+                        ForEach(bonjour.found) { f in row(f.name, f.address) }
                     }
                 }
-                Section(strings.mobile("add_server")) {
-                    TextField(strings.mobile("server_placeholder"), text: $typed)
+                Section(Native.addServer) {
+                    TextField(Native.serverPlaceholder, text: $typed)
                         .textContentType(.URL)
                         .autocorrectionDisabled()
                         #if os(iOS)
@@ -49,28 +47,35 @@ struct ServerSheet: View {
                         .onSubmit { Task { await add() } }
                     Button { Task { await add() } } label: {
                         HStack {
-                            Text(strings.mobile("add_server"))
+                            Text(checking ? Native.checking : Native.addServer)
                             if checking { ProgressView().padding(.leading, 8) }
                         }
                     }
                     .disabled(typed.trimmingCharacters(in: .whitespaces).isEmpty || checking)
-                    if checkError {
-                        Text(strings.display("connection_lost")).font(.footnote).foregroundStyle(.red)
+                    if let checkError {
+                        Text(checkError).font(.footnote).foregroundStyle(.red)
                     }
                 }
             }
-            .navigationTitle(strings.mobile("server"))
+            .navigationTitle(Native.server)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(strings.mobile("cancel")) { dismiss() }
-                }
+                ToolbarItem(placement: .cancellationAction) { cancelButton }
             }
         }
         .onAppear { bonjour.start() }
         .onDisappear { bonjour.stop() }
     }
 
-    private func row(_ name: String, _ address: ServerAddress, kind: String?) -> some View {
+    /// The platform's own Cancel where it offers one, ours below that.
+    @ViewBuilder private var cancelButton: some View {
+        if #available(iOS 26.0, macOS 26.0, *) {
+            Button(role: .cancel) { dismiss() }
+        } else {
+            Button(Native.cancel, role: .cancel) { dismiss() }
+        }
+    }
+
+    private func row(_ name: String, _ address: ServerAddress) -> some View {
         Button {
             Task {
                 await app.switchServer(address)
@@ -91,14 +96,18 @@ struct ServerSheet: View {
     /// P-13: a typo fails here, not at the first blank board.
     private func add() async {
         checking = true
-        checkError = false
+        checkError = nil
         defer { checking = false }
         do {
             let (address, info) = try await app.probe(typed: typed)
             await app.addServer(address, info: info)
             dismiss()
+        } catch APIError.invalidAddress {
+            checkError = Native.invalidAddress
+        } catch APIError.notASplouchServer, APIError.notFound, APIError.notJSON {
+            checkError = Native.notSplouch
         } catch {
-            checkError = true
+            checkError = Native.serverUnreachable
         }
     }
 }

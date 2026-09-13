@@ -45,8 +45,7 @@ import Testing
         {"name":"Open","location":"Pool","sport":"Swimming","meet_date":"2026-09-12","live":true,
          "settings":{"num_lanes":6,"show_club":false,"show_delta_header":false,
                      "theme_colors":{"bg":"#000"},"theme_fonts":{"family":"Orbitron"},
-                     "locale":"fr","labels":{"event":"ÉP","heat":"SÉR"},"label_style":"short",
-                     "label_overrides":{"fr":{"long":{"event":"COURSE"}}}}}
+                     "locale":"fr","labels":{"event":"ÉP","heat":"SÉR"},"label_style":"short"}}
         """#))
         #expect(c.live)
         #expect(c.settings.numLanes == 6)
@@ -58,7 +57,6 @@ import Testing
         #expect(c.settings.locale == "fr")
         #expect(c.settings.labels["event"] == "ÉP")
         #expect(c.settings.labelStyle == "short")
-        #expect(c.settings.labelOverrides["fr"]?["long"]?["event"] == "COURSE")
     }
 
     @Test func settingsDefaultsWhenEmpty() {

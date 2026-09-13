@@ -7,6 +7,7 @@ import PackageDescription
 // iOS SDK is available on the build machine.
 let package = Package(
     name: "Splouch",
+    defaultLocalization: "en",
     platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
         .library(name: "SplouchCore", targets: ["SplouchCore"]),
@@ -14,7 +15,7 @@ let package = Package(
     ],
     targets: [
         .target(name: "SplouchCore", resources: [.copy("Resources/i18n")]),
-        .target(name: "SplouchUI", dependencies: ["SplouchCore"]),
+        .target(name: "SplouchUI", dependencies: ["SplouchCore"], resources: [.process("Resources")]),
         .testTarget(name: "SplouchCoreTests", dependencies: ["SplouchCore"]),
     ]
 )

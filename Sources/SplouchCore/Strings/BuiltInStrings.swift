@@ -11,7 +11,16 @@ public enum BuiltInStrings {
     /// The languages the snapshot carries.
     public static var languages: [String] {
         let urls = Bundle.module.urls(forResourcesWithExtension: "json", subdirectory: directory) ?? []
-        return urls.map { $0.deletingPathExtension().lastPathComponent }.sorted()
+        return urls.map { $0.deletingPathExtension().lastPathComponent }.filter { $0 != "locales" }.sorted()
+    }
+
+    /// `GET /locales` as captured — the language menu's floor when the server
+    /// cannot be reached (app.md T-08). Empty only if the snapshot is missing.
+    public static var locales: [LocaleEntry] {
+        guard let url = Bundle.module.url(forResource: "locales", withExtension: "json", subdirectory: directory),
+              let data = try? Data(contentsOf: url),
+              let list = try? JSONDecoder().decode([LocaleEntry].self, from: data) else { return [] }
+        return list
     }
 
     public static func body(for lang: String) -> Data? {

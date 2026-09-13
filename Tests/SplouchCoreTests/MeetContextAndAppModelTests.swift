@@ -175,7 +175,7 @@ import Testing
         let stub = StubServer()
         cloud(stub)
         let app = make(stub)
-        await #expect(throws: APIError.self) { try await app.probe(typed: "not a url at all ://") }
+        await #expect(throws: APIError.invalidAddress) { try await app.probe(typed: "not a url at all ://") }
         let (address, info) = try await app.probe(typed: stub.host)
         #expect(info.name == "Splouch")
         #expect(address == stub.address)
@@ -218,6 +218,24 @@ import Testing
         #expect(store.load().language == "fr")
         app.setLabelStyle(.long)
         #expect(store.load().labelStyle == .long)
+    }
+
+    @Test func languageListStartsFromTheSnapshotAndSurvivesAFailedRefresh() async {
+        let stub = StubServer()
+        cloud(stub)
+        stub.route("/locales", json: "oops", status: 500)
+        let app = make(stub)
+        #expect(app.locales == BuiltInStrings.locales)
+        #expect(!app.locales.isEmpty)
+        await app.start()
+        // Nothing usable came back: the captured list stays.
+        #expect(app.locales == BuiltInStrings.locales)
+        stub.route("/locales", json: #"[{"code":"en","name":"English"},{"code":"de","name":"Deutsch"}]"#)
+        await app.load()
+        #expect(app.locales.map(\.code) == ["en", "de"])
+        stub.route("/locales") { _ in .init(status: 503) }
+        await app.load()
+        #expect(app.locales.map(\.code) == ["en", "de"])   // the previous list, not the floor, not empty
     }
 
     @Test func contractMismatchIsANoticeNotAGate() async {

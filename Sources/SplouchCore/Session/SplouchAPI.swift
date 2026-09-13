@@ -7,6 +7,8 @@ public enum APIError: Error, Sendable, Equatable {
     case notJSON
     /// `GET /server` answered, but not as a Splouch server.
     case notASplouchServer
+    /// What was typed is not an http(s) address at all.
+    case invalidAddress
 }
 
 /// A `GET /i18n/{lang}` body, kept verbatim, with the validator to revalidate it

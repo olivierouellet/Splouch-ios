@@ -22,6 +22,23 @@ import Testing
         }
     }
 
+    @Test func capturedLocalesAreTheLanguageMenusFloor() {
+        let locales = BuiltInStrings.locales
+        #expect(locales.map(\.code).contains("en"))
+        #expect(locales.allSatisfy { !$0.name.isEmpty })
+        // Every listed language has its snapshot, and vice versa.
+        #expect(Set(locales.map(\.code)) == Set(BuiltInStrings.languages))
+    }
+
+    @Test func snapshotCarriesThePickerAndFilterWords() {
+        let en = BuiltInStrings.english.mobile
+        for k in ["page_title", "no_meets", "unnamed_meet", "results_disclaimer", "privacy_note", "offline",
+                  "language", "language_auto", "prefs_title", "prefs_auto", "prefs_labels", "prefs_short", "prefs_long",
+                  "filter", "no_filters", "no_search_results", "no_matches", "swimmer", "club"] {
+            #expect(en[k]?.isEmpty == false, "\(k)")
+        }
+    }
+
     @Test func tableWithoutServerResolvesFromTheSnapshot() {
         let t = BuiltInStrings.table(for: "fr")
         #expect(t.mobile("scoreboard") == "Tableau")

@@ -7,7 +7,8 @@ public struct SplouchRootView: View {
     @State private var app: AppModel
     @State private var meet: MeetContext?
     @State private var opening = false
-    @State private var openError = false
+    /// A native message: the meet is gone, or the server could not be reached.
+    @State private var openError: String?
 
     public init(app: AppModel) {
         _app = State(initialValue: app)
@@ -17,6 +18,7 @@ public struct SplouchRootView: View {
         ZStack {
             if let meet {
                 MeetShell(ctx: meet, app: app) {
+                    if meet.gone { openError = Native.meetGone }   // A-09
                     Task { await meet.stop() }
                     self.meet = nil
                 }
@@ -50,9 +52,8 @@ public struct SplouchRootView: View {
         .onChange(of: app.isPi) { _, isPi in
             if isPi, meet == nil { Task { await open { try await app.openPi() } } }
         }
-        .alert(app.strings.display("connection_lost"), isPresented: $openError) {
-            Button(app.strings.mobile("ok"), role: .cancel) {}
-        }
+        // No actions: the platform supplies its own OK.
+        .alert(openError ?? "", isPresented: Binding(get: { openError != nil }, set: { if !$0 { openError = nil } })) {}
     }
 
     private func open(_ make: () async throws -> MeetContext) async {
@@ -64,9 +65,10 @@ public struct SplouchRootView: View {
             ctx.start()
             meet = ctx
         } catch APIError.notFound {
+            openError = Native.meetGone
             await app.load()   // the meet is gone: refresh the list (A-09)
         } catch {
-            openError = true
+            openError = Native.serverUnreachable
         }
     }
 }

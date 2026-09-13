@@ -79,27 +79,13 @@ public enum LabelResolver {
     /// - No user choice: `settings.labels` exactly as sent — resolved by the
     ///   server for the meet's locale and the operator's style.
     /// - A chosen language or style: the matching table from `GET /i18n/{lang}`
-    ///   (`table`, which must be for the effective language), with this Pi's
-    ///   `label_overrides` for that language on top. A `long` override on a
-    ///   narrow column is ignored, the same as in the bundled table.
+    ///   (`table`, which must be for the effective language). There is no
+    ///   per-meet override to layer: both come from the same file on the server.
     public static func labels(settings: MeetSettings, language: String?, style: LabelStyle?,
                               table: StringTable?) -> [String: String] {
         guard language != nil || style != nil, let table else { return settings.labels }
-        let lang = language ?? settings.locale
         let style = style ?? (settings.labelStyle == "long" ? .long : .short)
-        var out = table.labels(style)
-        if out.isEmpty { return settings.labels }
-        let overrides = settings.labelOverrides[lang] ?? [:]
-        // Short overrides reach the narrow columns in both styles: those columns
-        // carry their short word in the long table too.
-        for (k, v) in overrides["short"] ?? [:] where style == .short || !wideKeys.contains(k) {
-            out[k] = v
-        }
-        if style == .long {
-            for (k, v) in overrides["long"] ?? [:] where wideKeys.contains(k) {
-                out[k] = v
-            }
-        }
-        return out
+        let out = table.labels(style)
+        return out.isEmpty ? settings.labels : out
     }
 }

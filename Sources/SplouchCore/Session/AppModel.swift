@@ -22,7 +22,10 @@ public final class AppModel {
     public private(set) var picker: PickerConfig?
     public private(set) var meets: [MeetSummary] = []
     public private(set) var directory: [ServerEntry] = []
-    public private(set) var locales: [LocaleEntry] = []
+    /// The language menu's list: the captured snapshot until a server answers,
+    /// then the last successful `GET /locales`. A failed refresh keeps the
+    /// previous list rather than emptying the menu (app.md T-08, T-10).
+    public private(set) var locales: [LocaleEntry] = BuiltInStrings.locales
     public private(set) var loading = false
     /// The last failure reaching the server, nil when the list loaded.
     public private(set) var unreachable = false
@@ -84,7 +87,7 @@ public final class AppModel {
                 meets = []
                 directory = []
             }
-            locales = (try? await api.locales()) ?? []
+            if let fresh = try? await api.locales(), !fresh.isEmpty { locales = fresh }
             await refreshStrings()
         } catch {
             Self.log.error("load failed: \(String(describing: error))")
@@ -96,7 +99,7 @@ public final class AppModel {
 
     /// P-13: a typed address must answer `GET /server` before it is saved.
     public func probe(typed: String) async throws -> (ServerAddress, ServerInfo) {
-        guard let address = ServerAddress(typed: typed) else { throw APIError.notASplouchServer }
+        guard let address = ServerAddress(typed: typed) else { throw APIError.invalidAddress }
         let info = try await SplouchAPI(address: address, session: session).server()
         return (address, info)
     }

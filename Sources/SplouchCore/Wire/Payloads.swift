@@ -94,9 +94,6 @@ public struct MeetSettings: Sendable, Equatable {
     public var labels: [String: String]
     /// `"short"` or `"long"`; nil when the server predates the field.
     public var labelStyle: String?
-    /// `{ lang: { style: { key: word } } }` — only what this Pi changes from the
-    /// bundled table. Normally absent.
-    public var labelOverrides: [String: [String: [String: String]]]
 
     public init(
         numLanes: Int = 8,
@@ -106,7 +103,7 @@ public struct MeetSettings: Sendable, Equatable {
         showTimeHeader: Bool = true, showDeltaHeader: Bool = true, showPositionHeader: Bool = true,
         themeColors: [String: String] = [:], themeFonts: [String: String] = [:],
         locale: String = "en", labels: [String: String] = [:],
-        labelStyle: String? = nil, labelOverrides: [String: [String: [String: String]]] = [:]
+        labelStyle: String? = nil
     ) {
         self.numLanes = numLanes
         self.showName = showName; self.showClub = showClub; self.showDelta = showDelta
@@ -116,7 +113,7 @@ public struct MeetSettings: Sendable, Equatable {
         self.showDeltaHeader = showDeltaHeader; self.showPositionHeader = showPositionHeader
         self.themeColors = themeColors; self.themeFonts = themeFonts
         self.locale = locale; self.labels = labels
-        self.labelStyle = labelStyle; self.labelOverrides = labelOverrides
+        self.labelStyle = labelStyle
     }
 }
 
