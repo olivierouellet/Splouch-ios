@@ -22,13 +22,21 @@ PLUGIN=$CLT/usr/lib/swift/host/plugins/testing/libTestingMacros.dylib
 BUILD=$ROOT/.build/fallback
 mkdir -p "$BUILD"
 
-COMMON=(-sdk "$SDK" -swift-version 6 -strict-concurrency=complete -parse-as-library)
+COMMON=(-sdk "$SDK" -target arm64-apple-macos14.0 -swift-version 6 -strict-concurrency=complete -parse-as-library)
 
 swiftc "${COMMON[@]}" -enable-testing \
     -module-name SplouchCore \
     -emit-module -emit-module-path "$BUILD/SplouchCore.swiftmodule" \
     -emit-library -o "$BUILD/libSplouchCore.dylib" \
     $(find Sources/SplouchCore -name '*.swift' | sort)
+
+# SplouchUI cannot run here, but it must compile.
+swiftc "${COMMON[@]}" \
+    -module-name SplouchUI \
+    -I "$BUILD" -L "$BUILD" -lSplouchCore \
+    -emit-module -emit-module-path "$BUILD/SplouchUI.swiftmodule" \
+    -emit-library -o "$BUILD/libSplouchUI.dylib" \
+    $(find Sources/SplouchUI -name '*.swift' | sort)
 
 cat > "$BUILD/main.swift" <<'MAIN'
 import Foundation

@@ -224,7 +224,7 @@ public struct ScheduleSwimmer: Sendable, Equatable {
 }
 
 /// `GET /i18n/{lang}` (api.md §5.9).
-public struct I18nBundle: Sendable, Equatable {
+public struct I18nBundle: Sendable, Equatable, Codable {
     public var lang: String
     public var mobile: [String: String]
     public var display: [String: String]

@@ -1,0 +1,178 @@
+import SwiftUI
+import SplouchCore
+
+enum MeetTab: Int, CaseIterable {
+    case scoreboard, results, schedule
+
+    var key: String {
+        switch self {
+        case .scoreboard: "scoreboard"
+        case .results: "results"
+        case .schedule: "schedule"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .scoreboard: "timer"
+        case .results: "list.number"
+        case .schedule: "calendar"
+        }
+    }
+}
+
+/// The app shell (app.md §2): three tabs on a pager, a back affordance, and
+/// the lifecycle hooks the sockets and the race clock depend on.
+struct MeetShell: View {
+    @Bindable var ctx: MeetContext
+    let app: AppModel
+    let onBack: () -> Void
+
+    // A-04: platform state restoration.
+    @SceneStorage("splouch.tab") private var tabRaw = MeetTab.scoreboard.rawValue
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var network = NetworkWatcher()
+    @State private var showFilter = false
+    @State private var isLandscape = false
+
+    private var tab: Binding<MeetTab> {
+        Binding(get: { MeetTab(rawValue: tabRaw) ?? .scoreboard }, set: { tabRaw = $0.rawValue })
+    }
+    private var palette: Palette { Palette(ctx.colors) }
+    private var faces: Faces { Faces(ctx.fonts) }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            topBar
+            pager
+            tabBar
+        }
+        .background(palette.bg.ignoresSafeArea())
+        .environment(\.palette, palette)
+        .environment(\.faces, faces)
+        .onGeometryChange(for: Bool.self) { $0.size.width > $0.size.height } action: { isLandscape = $0 }
+        .sheet(isPresented: $showFilter) { FilterSheet(ctx: ctx) }
+        .onAppear { network.start() }
+        .onDisappear { network.stop() }
+        // C-05: foreground → probe; background → the ticker stops (L-12).
+        .onChange(of: scenePhase) { _, phase in
+            switch phase {
+            case .active: ctx.session.wake()
+            default: ctx.session.suspend()
+            }
+        }
+        .onChange(of: network.isOnline) { _, online in
+            if online { ctx.session.wake() }
+        }
+        // R-10: returning to the tab re-joins.
+        .onChange(of: tabRaw) { _, raw in
+            if MeetTab(rawValue: raw) == .results { ctx.session.resultsTabShown() }
+        }
+        // A-09
+        .onChange(of: ctx.gone) { _, gone in
+            if gone { onBack() }
+        }
+    }
+
+    // A-02, and the server name when it is not the default (P-11 note).
+    private var topBar: some View {
+        HStack(spacing: 12) {
+            Button(action: onBack) {
+                Label(ctx.strings.mobile("back_to_meets"), systemImage: "chevron.left")
+                    .labelStyle(.titleAndIcon)
+            }
+            VStack(alignment: .leading, spacing: 0) {
+                Text(ctx.title).font(faces.text(15, weight: .semibold)).fitOneLine()
+                if !app.isDefaultServer {
+                    Text(app.serverName).font(.caption2).foregroundStyle(palette.thText).fitOneLine()
+                }
+            }
+            Spacer()
+            if tab.wrappedValue == .schedule, !ctx.scheduleUnavailable {
+                filterButton
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .foregroundStyle(palette.headerValue)
+        .background(palette.headerBg)
+    }
+
+    // S-08, S-12
+    private var filterButton: some View {
+        Button { showFilter = true } label: {
+            Image(systemName: "line.3.horizontal.decrease.circle")
+                .font(.title3)
+                .overlay(alignment: .topTrailing) {
+                    if ctx.filter.count > 0 {
+                        Text("\(ctx.filter.count)")
+                            .font(.caption2.bold())
+                            .padding(.horizontal, 5).padding(.vertical, 1)
+                            .background(palette.time, in: Capsule())
+                            .foregroundStyle(palette.bg)
+                            .offset(x: 10, y: -8)
+                    }
+                }
+        }
+    }
+
+    // A-03: the platform's pager, full-width and drag-tracking.
+    @ViewBuilder private var pager: some View {
+        #if os(iOS)
+        TabView(selection: tab) {
+            ScoreboardTab(ctx: ctx, isLandscape: isLandscape).tag(MeetTab.scoreboard)
+            ResultsTab(ctx: ctx, isLandscape: isLandscape).tag(MeetTab.results)
+            ScheduleTab(ctx: ctx).tag(MeetTab.schedule)
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        #else
+        switch tab.wrappedValue {
+        case .scoreboard: ScoreboardTab(ctx: ctx, isLandscape: isLandscape)
+        case .results: ResultsTab(ctx: ctx, isLandscape: isLandscape)
+        case .schedule: ScheduleTab(ctx: ctx)
+        }
+        #endif
+    }
+
+    // A-01, A-07: labels under icons in portrait, icons only in landscape.
+    private var tabBar: some View {
+        HStack {
+            ForEach(MeetTab.allCases, id: \.rawValue) { t in
+                Button { tab.wrappedValue = t } label: {
+                    VStack(spacing: 2) {
+                        Image(systemName: t.symbol).font(.title3)
+                        if !isLandscape {
+                            Text(ctx.strings.mobile(t.key)).font(.caption2)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, isLandscape ? 4 : 6)
+                    .foregroundStyle(tab.wrappedValue == t ? palette.time : palette.thText)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .background(palette.headerBg)
+        .overlay(alignment: .top) { palette.headerBorder.frame(height: 1) }
+    }
+}
+
+// Theme through the environment so every row reads one palette.
+private struct PaletteKey: EnvironmentKey {
+    static let defaultValue = Palette(ThemeColors())
+}
+
+private struct FacesKey: EnvironmentKey {
+    static let defaultValue = Faces(ThemeFonts())
+}
+
+extension EnvironmentValues {
+    var palette: Palette {
+        get { self[PaletteKey.self] }
+        set { self[PaletteKey.self] = newValue }
+    }
+    var faces: Faces {
+        get { self[FacesKey.self] }
+        set { self[FacesKey.self] = newValue }
+    }
+}

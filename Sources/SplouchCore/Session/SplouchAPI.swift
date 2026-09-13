@@ -10,7 +10,7 @@ public enum APIError: Error, Sendable, Equatable {
 }
 
 /// A cached `GET /i18n/{lang}` body with the validator to revalidate it.
-public struct CachedBundle: Sendable, Equatable {
+public struct CachedBundle: Sendable, Equatable, Codable {
     public var bundle: I18nBundle
     public var etag: String?
 }

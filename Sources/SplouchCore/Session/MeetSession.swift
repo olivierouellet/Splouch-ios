@@ -34,6 +34,10 @@ public final class MeetSession {
     public private(set) var scoreboardConnected = false
     public private(set) var resultsConnected = false
     public private(set) var scheduleConnected = false
+    /// Called on `reload` (C-08) after `reloadVersion` changes.
+    public var onReload: (@MainActor () -> Void)?
+    /// Called on `schedule_update` (S-21) after `scheduleVersion` changes.
+    public var onScheduleUpdate: (@MainActor () -> Void)?
 
     private let scoreboardSocket: SplouchSocket
     private let resultsSocket: SplouchSocket
@@ -168,6 +172,7 @@ public final class MeetSession {
                 }
             case "reload":
                 reloadVersion += 1
+                onReload?()
             default:
                 break   // C-07
             }
@@ -194,6 +199,7 @@ public final class MeetSession {
                 currentHeat = HeatRef(event: snap.event, heat: snap.heat)
             case "reload":
                 reloadVersion += 1
+                onReload?()
             default:
                 break
             }
@@ -205,7 +211,10 @@ public final class MeetSession {
         case .connected: scheduleConnected = true
         case .disconnected: scheduleConnected = false
         case .frame(let f):
-            if f.event == "schedule_update" { scheduleVersion += 1 }
+            if f.event == "schedule_update" {
+                scheduleVersion += 1
+                onScheduleUpdate?()
+            }
         }
     }
 

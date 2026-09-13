@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- app.md P-12: cleartext for the local network only. A Pi is plain HTTP;
+         anything remote must be HTTPS. Scoped, never NSAllowsArbitraryLoads. -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsLocalNetworking</key>
+        <true/>
+    </dict>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>Finds Splouch timing servers on the pool's network so you can follow a meet without an internet connection.</string>
+    <key>NSBonjourServices</key>
+    <array>
+        <string>_splouch._tcp</string>
+    </array>
+    <!-- app.md T-03: the bundled faces. -->
+    <key>UIAppFonts</key>
+    <array>
+        <string>Fonts/OverpassMono[wght].ttf</string>
+        <string>Fonts/DSEG7Classic-Regular.ttf</string>
+        <string>Fonts/DSEG14Classic-Regular.ttf</string>
+        <string>Fonts/ShareTechMono-Regular.ttf</string>
+        <string>Fonts/Orbitron[wght].ttf</string>
+        <string>Fonts/RobotoMono[wght].ttf</string>
+    </array>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>UILaunchScreen</key>
+    <dict/>
+</dict>
+</plist>

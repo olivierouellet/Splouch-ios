@@ -21,9 +21,13 @@ is built here and why not.
     (three sockets → tab state)
   - `Strings/` string resolution, labels, event names, the compiled snapshot
   - `Theme/`, `Schedule/`
-- `Tests/SplouchCoreTests` — Swift Testing suites, one per model.
-- The SwiftUI target sits on top of `SplouchCore` and is added once an iOS SDK is
-  available on the build machine.
+- `Sources/SplouchUI` — the SwiftUI screens: picker and server sheet, meet shell,
+  scoreboard, results, schedule and filter sheet. Compiles on macOS for checking;
+  runs on iOS.
+- `Tests/SplouchCoreTests` — Swift Testing suites, one per model, plus an HTTP stub
+  and a fake WebSocket.
+- `App/` — the `@main` entry, Info.plist keys and bundled fonts for the Xcode app
+  target (see `App/README.md`).
 
 ## Building and testing
 
