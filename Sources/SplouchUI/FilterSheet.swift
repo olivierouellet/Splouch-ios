@@ -7,10 +7,8 @@ struct FilterSheet: View {
     @Bindable var ctx: MeetContext
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
-    @State private var suggestions: [SearchSuggestion] = []
-    @State private var searched = false
+    @State private var suggestions: [Suggestion] = []
     @State private var confirmReset = false
-    @State private var searchTask: Task<Void, Never>?
 
     private var strings: StringTable { ctx.strings }
 
@@ -21,10 +19,14 @@ struct FilterSheet: View {
                     TextField(strings.mobile("search_placeholder"), text: $query)
                         .autocorrectionDisabled()
                         #if os(iOS)
-                        .textInputAutocapitalization(.never)   // a name search, sent as typed
+                        .textInputAutocapitalization(.never)   // a name search, folded either way
                         #endif
-                        .onChange(of: query) { _, q in search(q) }
-                    if searched, suggestions.isEmpty, !query.isEmpty {
+                        // S-09: no debounce — the old ~220ms wait spared the
+                        // server, and over a local index it is only lag.
+                        .onChange(of: query) { _, q in suggestions = ctx.suggestions.search(q) }
+                        // S-21: a new start list rebuilt the index under us.
+                        .onChange(of: ctx.schedule) { _, _ in suggestions = ctx.suggestions.search(query) }
+                    if suggestions.isEmpty, !query.trimmingCharacters(in: .whitespaces).isEmpty {
                         Text(strings.mobile("no_search_results")).foregroundStyle(.secondary)   // S-19
                     }
                     ForEach(Array(suggestions.enumerated()), id: \.offset) { _, s in
@@ -68,8 +70,8 @@ struct FilterSheet: View {
     }
 
     // S-10: type, name, club; already-added ones are marked and inert.
-    private func suggestionRow(_ s: SearchSuggestion) -> some View {
-        let term = FilterTerm(kind: s.type == "club" ? .club : .swimmer, name: s.name)
+    private func suggestionRow(_ s: Suggestion) -> some View {
+        let term = s.term
         let added = ctx.filter.contains(term)
         return Button {
             ctx.filter.add(term)
@@ -109,21 +111,6 @@ struct FilterSheet: View {
             }
         }
         .padding(.vertical, 4)
-    }
-
-    // S-09: debounced ~220ms.
-    private func search(_ q: String) {
-        searchTask?.cancel()
-        let trimmed = q.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { suggestions = []; searched = false; return }
-        searchTask = Task {
-            try? await Task.sleep(for: .milliseconds(220))
-            guard !Task.isCancelled else { return }
-            let result = (try? await ctx.api.searchSuggestions(meetID: ctx.meetID, query: trimmed)) ?? []
-            guard !Task.isCancelled else { return }
-            suggestions = result
-            searched = true
-        }
     }
 }
 

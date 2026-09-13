@@ -252,13 +252,6 @@ public struct ServerEntry: Sendable, Equatable, Decodable {
     public var kind: String
 }
 
-/// One row of `GET /search_suggestions`.
-public struct SearchSuggestion: Sendable, Equatable {
-    public var type: String
-    public var name: String
-    public var club: String
-}
-
 /// `meet_live { live }` — the same event and shape on both servers (api.md §2.1, §3).
 public struct MeetLive: Sendable, Equatable {
     public var live: Bool

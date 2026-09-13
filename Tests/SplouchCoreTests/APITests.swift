@@ -51,19 +51,6 @@ import Testing
         #expect(try await api.pickerConfig(lang: "es").lang == "es")
         #expect(try await api.pickerConfig().lang == "none")
     }
-
-    @Test func searchSuggestionsCarryMeetAndQuery() async throws {
-        let stub = StubServer()
-        stub.route("/search_suggestions") { req in
-            let q = URLComponents(url: req.url!, resolvingAgainstBaseURL: false)?.queryItems ?? []
-            let dict = Dictionary(uniqueKeysWithValues: q.map { ($0.name, $0.value ?? "") })
-            return .json(#"[{"type":"swimmer","name":"\#(dict["q"]!)","club":"\#(dict["meet_id"]!)"}]"#)
-        }
-        let api = SplouchAPI(address: stub.address, session: stub.session)
-        let s = try await api.searchSuggestions(meetID: "m1", query: "do")
-        #expect(s[0].name == "do")
-        #expect(s[0].club == "m1")
-    }
 }
 
 @Suite struct StringsLoaderTests {

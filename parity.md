@@ -141,8 +141,8 @@ language controls reuse all of it.
 | ID | Feature | Level | Status | Notes |
 | --- | --- | --- | --- | --- |
 | `S-08` | Full-screen filter sheet, opened from a button in the top bar | must | `done` | `FilterSheet` from the top-bar button |
-| `S-09` | Typeahead search over swimmers and clubs, debounced ~220ms | must | `done` | `FilterSheet.search`: 220ms debounce → `GET /search_suggestions`, `meet_id` only on a cloud; the field never autocapitalises. **Pi bug (2026-09-13)**: the Pi's route is case-sensitive (`?q=Le` empty, `?q=le` matches); the cloud folds case |
-| `S-10` | Suggestions show type (swimmer/club), name, and club; already-added ones are marked and inert | should | `done` | icon per type, name, club; added ones checked and disabled |
+| `S-09` | Typeahead search over swimmers and clubs, off a local index | must | `done` | `SuggestionIndex` built from the `S-01` start list — no request. `GET /search_suggestions` was removed from both servers (2026-09-13); it only ever read `lane.name`, `lane.club` and `lane.swimmers[].name`, all of which the schedule payload already carries, and answering from the server's list could suggest a name our lanes did not have yet. Rebuilt on every re-fetch (`S-21`). No debounce: the wait only ever spared the server. Match is substring of the folded query against a precomputed folded key (lowercase → NFD → expand the 17 letters with no canonical decomposition → drop above U+007F), so `Île-des-Sœurs` is reachable as `ile-des-soeurs`; the field never autocapitalises. Tests: FoldTests, SuggestionIndexTests |
+| `S-10` | Suggestions show type (swimmer/club), name, and club; already-added ones are marked and inert | should | `done` | icon per type, name, club; added ones checked and disabled. Swimmers first, then clubs, capped at 20 |
 | `S-11` | Active filters appear as chips; tapping a chip's × removes it | must | `done` | chips in a `FlowLayout`, × removes |
 | `S-12` | A count badge on the filter button shows how many filters are active | should | `done` | badge on the filter button |
 | `S-13` | Filters are OR-ed: a lane matches if it hits *any* club or swimmer filter | must | `done` | `ScheduleView.laneMatches` ORs every term (Schedule/ScheduleFilter.swift). Tests: ScheduleFilterTests |
@@ -158,7 +158,7 @@ language controls reuse all of it.
 
 | ID | Feature | Level | Status | Notes |
 | --- | --- | --- | --- | --- |
-| `S-21` | A new schedule from the Pi refreshes the list | must | `done` | `MeetSession.onScheduleUpdate` → `MeetContext.loadSchedule()`, filters pruned to names that still exist |
+| `S-21` | A new schedule from the Pi refreshes the list | must | `done` | `MeetSession.onScheduleUpdate` → `MeetContext.loadSchedule()`, filters pruned to names that still exist, `S-09`'s index rebuilt with it |
 
 ## 6. Connection and session
 

@@ -124,11 +124,8 @@ import Testing
         #expect(l[0].code == "fr")
     }
 
-    @Test func meetLiveAndSuggestions() {
+    @Test func meetLive() {
         #expect(MeetLive(json: json(#"{"live":true}"#)).live)
         #expect(MeetLive(json: .object([:])).live == false)
-        let s = SearchSuggestion(json: json(#"{"type":"swimmer","name":"Doe, Jane","club":"C"}"#))
-        #expect(s.type == "swimmer")
-        #expect(s.club == "C")
     }
 }

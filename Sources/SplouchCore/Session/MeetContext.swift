@@ -24,6 +24,9 @@ public final class MeetContext {
     /// nil until loaded; empty `heats` is "loaded, no schedule yet" (S-07).
     public private(set) var schedule: Schedule?
     public private(set) var scheduleFailed = false
+    /// S-09's typeahead index, built off the start list above — no request.
+    /// Rebuilt with every re-fetch (S-21).
+    public private(set) var suggestions = SuggestionIndex()
     /// Session-only (S-20).
     public var filter = ScheduleFilter()
     /// A-09: the meet is gone from this server.
@@ -139,6 +142,8 @@ public final class MeetContext {
             }
             schedule = s
             scheduleFailed = false
+            suggestions = SuggestionIndex(heats: s.heats)
+            // Keep the chips the new list can still match (S-20 lives on).
             filter.prune(to: s.heats)
         } catch APIError.notFound where kind == .cloud {
             gone = true

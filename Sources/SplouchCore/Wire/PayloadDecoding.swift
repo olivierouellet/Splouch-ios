@@ -186,12 +186,6 @@ public extension I18nBundle {
     init(data: Data) throws { self.init(json: try JSONValue.parse(data)) }
 }
 
-public extension SearchSuggestion {
-    init(json: JSONValue) {
-        type = json.str("type"); name = json.str("name"); club = json.str("club")
-    }
-}
-
 public extension MeetLive {
     init(json: JSONValue) { live = json.flag("live", default: false) }
 }

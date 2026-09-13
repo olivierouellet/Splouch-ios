@@ -65,13 +65,6 @@ public struct SplouchAPI: Sendable {
         try decode([LocaleEntry].self, from: try await get(address.endpoint("/locales")))
     }
 
-    public func searchSuggestions(meetID: String?, query: String) async throws -> [SearchSuggestion] {
-        var q = [URLQueryItem(name: "q", value: query)]
-        if let meetID { q.insert(URLQueryItem(name: "meet_id", value: meetID), at: 0) }
-        let json = try JSONValue.parse(try await get(address.endpoint("/search_suggestions", query: q)))
-        return (json.array ?? []).map(SearchSuggestion.init(json:))
-    }
-
     // MARK: Cloud
 
     public func meets() async throws -> [MeetSummary] {
