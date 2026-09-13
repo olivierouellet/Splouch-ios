@@ -177,30 +177,28 @@ struct MeetCard: View {
 
     var body: some View {
         HStack(spacing: 12) {
+            // P-02: the live dot leads the row, ahead of the meet's image.
+            Circle()
+                .fill(meet.offline ? Color.clear : live)
+                .overlay(Circle().stroke(meet.offline ? meta : Color.clear))
+                .shadow(color: meet.offline ? .clear : live.opacity(0.7), radius: 3)
+                .frame(width: 8, height: 8)
             if let imageURL {
                 AsyncImage(url: imageURL) { $0.resizable().scaledToFill() } placeholder: { border }
                     .frame(width: 64, height: 64)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
             VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .top, spacing: 8) {
-                    Circle()
-                        .fill(meet.offline ? Color.clear : live)
-                        .overlay(Circle().stroke(meet.offline ? meta : Color.clear))
-                        .shadow(color: meet.offline ? .clear : live.opacity(0.7), radius: 3)
-                        .frame(width: 8, height: 8)
-                        .padding(.top, 7)   // on the first line, not centred on the block
-                    // The name wraps rather than shrinking. On one line with a 0.5
-                    // floor a long name hit that floor in portrait — half of
-                    // `.headline`, about 8.5pt — because the card is narrow there.
-                    // The card grows by a line instead; landscape is wide enough
-                    // that nothing changes.
-                    Text(meet.name.isEmpty ? unnamed : meet.name)
-                        .font(.headline).foregroundStyle(text)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.8)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                // The name wraps rather than shrinking. On one line with a 0.5
+                // floor a long name hit that floor in portrait — half of
+                // `.headline`, about 8.5pt — because the card is narrow there.
+                // The card grows by a line instead; landscape is wide enough
+                // that nothing changes.
+                Text(meet.name.isEmpty ? unnamed : meet.name)
+                    .font(.headline).foregroundStyle(text)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+                    .fixedSize(horizontal: false, vertical: true)
                 let details = [meet.meetDate, meet.location, meet.offline ? offline : ""].filter { !$0.isEmpty }
                 if !details.isEmpty {
                     Text(details.joined(separator: " · ")).font(.subheadline).foregroundStyle(meta)
