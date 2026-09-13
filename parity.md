@@ -128,7 +128,7 @@ language controls reuse all of it.
 
 | ID | Feature | Level | Status | Notes |
 | --- | --- | --- | --- | --- |
-| `S-01` | Every heat as a card: scheduled time, "Event N — Heat M", event name | must | `done` | `HeatCard` over `ScheduleView.visible`; `GET /meet/{id}/schedule` on a cloud, `GET /schedule.json` on a Pi (`SplouchAPI.piSchedule`). Seen on both |
+| `S-01` | Every heat as a card: scheduled time, "Event N — Heat M", event name | must | `done` | `HeatCard` over `ScheduleView.visible`; `GET /meet/{id}/schedule` on a cloud, `GET /schedule.json` on a Pi (`SplouchAPI.piSchedule`). Seen on both. All three sit on one line, the event name to the right of "Event N — Heat M" rather than under it. Note the theme tokens read across their names: "Event N — Heat M" takes `schedule_event` and the event name takes `row_text`, swapped on request so the heat identifier is the coloured one |
 | `S-02` | Each card lists its lanes: lane number, name, club, seed time | must | `done` | `HeatCard` lane rows |
 | `S-03` | Relay entries show member first names joined by `·` | should | `done` | `ScheduleView.displayName` |
 | `S-04` | Alternating card backgrounds, computed over *visible* cards so filtering keeps the stripe | should | `done` | `VisibleHeat.stripe` → `rowOdd`/`rowEven` |

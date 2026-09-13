@@ -71,11 +71,12 @@ struct HeatCard: View {
                     Text(heat.heat.time).font(faces.timing(13)).foregroundStyle(palette.scheduleTime)
                 }
                 Text("\(labels["event"] ?? "") \(heat.heat.event) \u{2014} \(labels["heat"] ?? "") \(heat.heat.heat)")
-                    .font(faces.text(14, weight: .semibold)).foregroundStyle(palette.rowText)
+                    .font(faces.text(14, weight: .semibold)).foregroundStyle(palette.scheduleEvent)
+                if !eventName.isEmpty {
+                    Text(eventName).font(faces.text(13)).foregroundStyle(palette.rowText)
+                        .fitOneLine(minimumScale: 0.7)
+                }
                 Spacer()
-            }
-            if !eventName.isEmpty {
-                Text(eventName).font(faces.text(13)).foregroundStyle(palette.scheduleEvent).fitOneLine(minimumScale: 0.7)
             }
             ForEach(heat.lanes, id: \.lane) { lane in
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
