@@ -103,28 +103,36 @@ struct BoardTable: View {
     let columns: Columns
     let labels: [String: String]
     let isLandscape: Bool
+    /// The height the landscape rows share (L-16), measured by the caller.
+    /// It cannot be measured here: the table sits inside a `ScrollView`, which
+    /// proposes no height, so a `GeometryReader` in this body reported ~0 — the
+    /// row font pinned to its 11pt floor and the whole table collapsed into a
+    /// band floating mid-screen. The caller's reader is outside the scroll view
+    /// and has a real height.
+    let height: CGFloat
     @Environment(\.palette) private var palette
     @Environment(\.faces) private var faces
 
     var body: some View {
-        GeometryReader { geo in
-            let rowFont = isLandscape ? max(11, min(32, geo.size.height * 0.42 / CGFloat(max(1, rows.count)))) : 17
-            VStack(spacing: 0) {
-                if isLandscape { header(size: rowFont) }
-                ForEach(Array(rows.enumerated()), id: \.offset) { i, row in
-                    Group {
-                        if isLandscape {
-                            LandscapeRow(row: row, columns: columns, size: rowFont)
-                        } else {
-                            PortraitRow(row: row, columns: columns)
-                        }
+        let rowFont = isLandscape ? max(11, min(32, height * 0.42 / CGFloat(max(1, rows.count)))) : 17
+        VStack(spacing: 0) {
+            if isLandscape { header(size: rowFont) }
+            ForEach(Array(rows.enumerated()), id: \.offset) { i, row in
+                Group {
+                    if isLandscape {
+                        LandscapeRow(row: row, columns: columns, size: rowFont)
+                    } else {
+                        PortraitRow(row: row, columns: columns)
                     }
-                    .frame(maxWidth: .infinity, minHeight: isLandscape ? 0 : 52, maxHeight: isLandscape ? .infinity : nil)
-                    .background(i % 2 == 0 ? palette.rowOdd : palette.rowEven)
                 }
-                if !isLandscape { Spacer(minLength: 0) }
+                .frame(maxWidth: .infinity, minHeight: isLandscape ? 0 : 52, maxHeight: isLandscape ? .infinity : nil)
+                .background(i % 2 == 0 ? palette.rowOdd : palette.rowEven)
             }
+            if !isLandscape { Spacer(minLength: 0) }
         }
+        // Exactly the height in landscape, so rows with no minimum actually
+        // divide it; unconstrained in portrait, where the 52pt rows set it.
+        .frame(height: isLandscape ? height : nil)
     }
 
     private func header(size: CGFloat) -> some View {

@@ -20,8 +20,8 @@ struct ResultsTab: View {
                 ScrollView {
                     VStack(spacing: 0) {
                         BoardTable(rows: rows.map(BoardRow.init), columns: Columns(ctx.settings), labels: ctx.labels,
-                                   isLandscape: isLandscape)
-                            .frame(minHeight: isLandscape ? geo.size.height : CGFloat(n) * 52)
+                                   isLandscape: isLandscape, height: geo.size.height)
+                            .frame(minHeight: isLandscape ? nil : CGFloat(n) * 52)
                         if snapshot == nil {
                             // R-01: below the empty grid, wherever there is room.
                             Text(ctx.strings.mobile("waiting_results"))
