@@ -62,6 +62,12 @@ struct ServerSheet: View {
                 ToolbarItem(placement: .cancellationAction) { cancelButton }
             }
         }
+        // The app is dark throughout (SplouchRootView), and the default blue
+        // accent on a near-black list is hard to read. The rows take the accent
+        // too: inside a Button in a List, `.primary` and `.secondary` are
+        // levels of the current foreground style, not absolute colours, so the
+        // server name and its URL resolve to the tint as well.
+        .tint(.yellow)
         .onAppear { bonjour.start() }
         .onDisappear { bonjour.stop() }
     }
