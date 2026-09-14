@@ -74,9 +74,7 @@ import Testing
         MeetSettings(locale: "en", labels: ["event": "ÉP", "heat": "SÉR", "lane": "CL"], labelStyle: "short")
     }
 
-    @Test func noChoiceRendersTheServersLabelsAsSent() {
-        let table = StringTable(language: "en", english: english)
-        #expect(LabelResolver.labels(settings: settings, language: nil, style: nil, table: table) == settings.labels)
+    @Test func noTableRendersTheServersLabelsAsSent() {
         #expect(LabelResolver.labels(settings: settings, language: "fr", style: .long, table: nil) == settings.labels)
     }
 
@@ -90,13 +88,15 @@ import Testing
         #expect(short == ["event": "EV", "heat": "HT", "lane": "LN", "place": "PL"])
     }
 
-    @Test func styleDefaultsToTheOperatorsWhenOnlyLanguageChosen() {
+    @Test func theOperatorsStyleNoLongerSelectsTheTable() {
         let table = StringTable(language: "en", english: english)
+        // The device's style is the only one that counts now: a meet served as
+        // `short` still renders long for a device set to long.
         var s = settings
+        s.labelStyle = "short"
+        #expect(LabelResolver.labels(settings: s, language: "en", style: .long, table: table)["event"] == "EVENT")
         s.labelStyle = "long"
-        #expect(LabelResolver.labels(settings: s, language: "en", style: nil, table: table)["event"] == "EVENT")
-        s.labelStyle = nil
-        #expect(LabelResolver.labels(settings: s, language: "en", style: nil, table: table)["event"] == "EV")
+        #expect(LabelResolver.labels(settings: s, language: "en", style: .short, table: table)["event"] == "EV")
     }
 
     @Test func emptyTableFallsBackToSettings() {

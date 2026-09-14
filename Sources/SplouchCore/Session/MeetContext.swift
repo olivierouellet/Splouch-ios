@@ -35,7 +35,7 @@ public final class MeetContext {
 
     /// The device's choices, applied over the meet's locale (T-06).
     public private(set) var language: String?
-    public private(set) var labelStyle: LabelStyle?
+    public private(set) var labelStyle: LabelStyle
 
     public init(api: SplouchAPI, kind: ServerKind, meetID: String?, title: String, settings: MeetSettings,
                 stringsLoader: StringsLoader, preferences: Preferences, vidStore: any VidStore,
@@ -65,7 +65,7 @@ public final class MeetContext {
 
     /// The language the tabs render in.
     public var effectiveLanguage: String { language ?? settings.locale }
-    public var effectiveLabelStyle: LabelStyle { labelStyle ?? (settings.labelStyle == "long" ? .long : .short) }
+    public var effectiveLabelStyle: LabelStyle { labelStyle }
     public var currentHeat: HeatRef? { session.currentHeat }
 
     /// Opens the sockets, loads the schedule, revalidates the strings.
@@ -159,7 +159,7 @@ public final class MeetContext {
         Task { await refreshStrings() }
     }
 
-    public func setLabelStyle(_ style: LabelStyle?) {
+    public func setLabelStyle(_ style: LabelStyle) {
         labelStyle = style
         rebuildLabels()
     }

@@ -81,25 +81,27 @@ import Testing
         await ctx.stop()
     }
 
-    @Test func languageFollowsTheMeetUntilTheUserChooses() async {
+    @Test func languageFollowsTheMeetUntilTheUserChoosesAndTheStyleStartsLong() async {
         let stub = StubServer()
         stub.route("/i18n/es", json: #"{"lang":"es","mobile":{"scoreboard":"Marcador X"},"labels":{"short":{"event":"PR"},"long":{"event":"PRUEBA"}}}"#)
         let connector = FakeConnector()
         let ctx = make(stub: stub, connector: connector)
         #expect(ctx.effectiveLanguage == "fr")
         #expect(ctx.strings.mobile("scoreboard") == "Tableau")
-        #expect(ctx.labels == ["event": "ÉP"])   // T-04: as sent, no choice made
+        // The style starts long, so the meet's own `labels` ("ÉP") is not what
+        // renders — the fr long table from the snapshot is.
+        #expect(ctx.labels["event"] == "ÉPREUVE")
         ctx.setLanguage("es")
         #expect(ctx.effectiveLanguage == "es")
         #expect(await eventually { @MainActor in ctx.strings.mobile("scoreboard") == "Marcador X" })
-        #expect(ctx.labels["event"] == "PR")
-        ctx.setLabelStyle(.long)
         #expect(ctx.labels["event"] == "PRUEBA")
+        ctx.setLabelStyle(.short)
+        #expect(ctx.labels["event"] == "PR")
         ctx.setLanguage(nil)
         #expect(ctx.effectiveLanguage == "fr")
-        #expect(ctx.labels["event"] == "ÉPREUVE")   // style still chosen → i18n table for fr
-        ctx.setLabelStyle(nil)
-        #expect(ctx.labels == ["event": "ÉP"])
+        #expect(ctx.labels["event"] == "ÉP")   // fr again, still short
+        ctx.setLabelStyle(.long)
+        #expect(ctx.labels["event"] == "ÉPREUVE")
         await ctx.stop()
     }
 

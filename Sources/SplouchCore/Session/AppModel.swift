@@ -161,7 +161,7 @@ public final class AppModel {
         await load()
     }
 
-    public func setLabelStyle(_ style: LabelStyle?) {
+    public func setLabelStyle(_ style: LabelStyle) {
         var p = preferences
         p.labelStyle = style
         preferences = p

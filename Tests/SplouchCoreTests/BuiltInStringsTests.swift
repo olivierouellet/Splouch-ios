@@ -33,7 +33,9 @@ import Testing
     @Test func snapshotCarriesThePickerAndFilterWords() {
         let en = BuiltInStrings.english.mobile
         for k in ["page_title", "no_meets", "unnamed_meet", "results_disclaimer", "privacy_note", "offline",
-                  "language", "language_auto", "prefs_title", "prefs_auto", "prefs_labels", "prefs_short", "prefs_long",
+                  // `prefs_auto` is deliberately absent: the server still sends it for the
+                  // web picker's "Meet default" row, which this app no longer offers.
+                  "language", "language_auto", "prefs_title", "prefs_labels", "prefs_short", "prefs_long",
                   "filter", "no_filters", "no_search_results", "no_matches", "swimmer", "club"] {
             #expect(en[k]?.isEmpty == false, "\(k)")
         }

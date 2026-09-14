@@ -146,11 +146,10 @@ struct PickerScreen: View {
                     Label(strings.mobile("language"), systemImage: "globe")
                 }
                 .pickerStyle(.menu)
-                Picker(selection: Binding(get: { app.preferences.labelStyle?.rawValue ?? "" },
-                                          set: { app.setLabelStyle(SplouchCore.LabelStyle(rawValue: $0)) })) {
-                    Text(strings.mobile("prefs_auto")).tag("")
-                    Text(strings.mobile("prefs_short")).tag(SplouchCore.LabelStyle.short.rawValue)
-                    Text(strings.mobile("prefs_long")).tag(SplouchCore.LabelStyle.long.rawValue)
+                Picker(selection: Binding(get: { app.preferences.labelStyle },
+                                          set: { app.setLabelStyle($0) })) {
+                    Text(strings.mobile("prefs_short")).tag(SplouchCore.LabelStyle.short)
+                    Text(strings.mobile("prefs_long")).tag(SplouchCore.LabelStyle.long)
                 } label: {
                     Label(strings.mobile("prefs_labels"), systemImage: "textformat.abc")
                 }

@@ -17,18 +17,31 @@ public struct SavedServer: Sendable, Codable, Equatable, Identifiable {
 public struct Preferences: Sendable, Codable, Equatable {
     /// T-08: nil follows each meet's locale (T-06).
     public var language: String?
-    /// T-09: nil follows the operator's `label_style`.
-    public var labelStyle: LabelStyle?
+    /// T-09: the device's style, long until the user picks short. There is no
+    /// "follow the meet" state — see the note on `LabelResolver.labels`.
+    public var labelStyle: LabelStyle
     /// P-11: nil is the default cloud.
     public var server: ServerAddress?
     public var savedServers: [SavedServer]
 
-    public init(language: String? = nil, labelStyle: LabelStyle? = nil, server: ServerAddress? = nil,
+    public init(language: String? = nil, labelStyle: LabelStyle = .long, server: ServerAddress? = nil,
                 savedServers: [SavedServer] = []) {
         self.language = language
         self.labelStyle = labelStyle
         self.server = server
         self.savedServers = savedServers
+    }
+
+    /// Preferences stored before the style became a two-way choice carry either
+    /// no `labelStyle` or a null one, both meaning "follow the meet". They land
+    /// on the new default rather than failing to decode and dropping the
+    /// server list with them.
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        language = try c.decodeIfPresent(String.self, forKey: .language)
+        labelStyle = try c.decodeIfPresent(LabelStyle.self, forKey: .labelStyle) ?? .long
+        server = try c.decodeIfPresent(ServerAddress.self, forKey: .server)
+        savedServers = try c.decodeIfPresent([SavedServer].self, forKey: .savedServers) ?? []
     }
 }
 

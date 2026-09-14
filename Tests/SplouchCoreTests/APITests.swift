@@ -106,4 +106,25 @@ import Testing
         store.save(p)
         #expect(UserDefaultsPreferencesStore(defaults: defaults).load() == p)
     }
+
+    @Test func theStyleStartsLong() {
+        #expect(Preferences().labelStyle == .long)
+    }
+
+    @Test func storedPreferencesWithoutAStyleLandOnLong() throws {
+        // What a device that never touched the control, or one that chose the
+        // old "Meet default" row, has on disk.
+        for json in [#"{"savedServers":[]}"#, #"{"labelStyle":null,"savedServers":[]}"#] {
+            let p = try JSONDecoder().decode(Preferences.self, from: Data(json.utf8))
+            #expect(p.labelStyle == .long)
+            #expect(p.savedServers.isEmpty)
+        }
+    }
+
+    @Test func aStoredStyleSurvivesTheMigration() throws {
+        let json = #"{"labelStyle":"short","language":"fr","savedServers":[]}"#
+        let p = try JSONDecoder().decode(Preferences.self, from: Data(json.utf8))
+        #expect(p.labelStyle == .short)
+        #expect(p.language == "fr")
+    }
 }

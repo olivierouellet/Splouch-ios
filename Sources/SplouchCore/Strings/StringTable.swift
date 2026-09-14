@@ -74,17 +74,17 @@ public enum LabelResolver {
     /// is a narrow column and renders short whatever the style says (T-09).
     public static let wideKeys: Set<String> = ["event", "heat"]
 
-    /// The labels to render.
+    /// The labels to render: the `style` table from `GET /i18n/{lang}` (`table`,
+    /// which must be for the effective language).
     ///
-    /// - No user choice: `settings.labels` exactly as sent — resolved by the
-    ///   server for the meet's locale and the operator's style.
-    /// - A chosen language or style: the matching table from `GET /i18n/{lang}`
-    ///   (`table`, which must be for the effective language). There is no
-    ///   per-meet override to layer: both come from the same file on the server.
-    public static func labels(settings: MeetSettings, language: String?, style: LabelStyle?,
+    /// The style is always the device's own — the picker offers short and long
+    /// and nothing else — so the operator's `settings.label_style` no longer
+    /// selects between them. `settings.labels` stays the fallback for the two
+    /// cases where the i18n table cannot answer: no table cached yet, or a
+    /// language whose table came back empty.
+    public static func labels(settings: MeetSettings, language: String?, style: LabelStyle,
                               table: StringTable?) -> [String: String] {
-        guard language != nil || style != nil, let table else { return settings.labels }
-        let style = style ?? (settings.labelStyle == "long" ? .long : .short)
+        guard let table else { return settings.labels }
         let out = table.labels(style)
         return out.isEmpty ? settings.labels : out
     }
