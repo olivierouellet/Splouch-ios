@@ -110,10 +110,6 @@ struct MeetShell: View {
     // A-01: three tabs, icon and label, on the platform's own tab bar — which
     // carries A-07 with it (landscape compacts the items without our help) and
     // brings the selection states and VoiceOver tab traits for free.
-    //
-    // A-03 does not apply here: the web swiped between tabs because its tabs
-    // were iframes, and Android swipes because that is the Material idiom. On
-    // iOS a tab bar switches on tap — see the parity.md note.
     private var tabs: some View {
         TabView(selection: tab) {
             ScoreboardTab(ctx: ctx, isLandscape: isLandscape)
@@ -132,6 +128,40 @@ struct MeetShell: View {
         // rather than being forced through `UITabBar.appearance()`.
         .tint(palette.time)
         .themedTabBar(palette.headerBg)
+        .simultaneousGesture(tabSwipe)
+    }
+
+    /// A-03, as far as a real tab bar allows.
+    ///
+    /// There is no native swipe between tab-bar sections: UIKit and SwiftUI give
+    /// you a tab bar or a pager, never both, because swiping between peer
+    /// sections is not an iOS idiom. This is the cheap half — the tabs change on
+    /// release rather than following the finger, so the movement A-03 asks to be
+    /// visible is a crossfade, not a drag. Finger-tracking needs a
+    /// UIPageViewController under a bar of our own, which costs the iOS 26
+    /// floating bar, or an interactive transition driven by hand.
+    ///
+    /// `simultaneousGesture` rather than `gesture` so the tabs keep scrolling
+    /// vertically; the direction is only judged on release, when both
+    /// translations are known.
+    ///
+    /// The first 24pt are left alone on purpose. That strip is the system's
+    /// interactive pop, and it is the reason the old pager could not coexist
+    /// with a back swipe: it claimed the full width. Out of the strip the two
+    /// gestures share the screen — edge to leave the meet, anywhere else to
+    /// change tab.
+    private var tabSwipe: some Gesture {
+        DragGesture(minimumDistance: 30)
+            .onEnded { drag in
+                guard drag.startLocation.x > 24 else { return }
+                let dx = drag.translation.width
+                guard abs(dx) > abs(drag.translation.height), abs(dx) > 60 else { return }
+                let all = MeetTab.allCases
+                guard let here = all.firstIndex(of: tab.wrappedValue) else { return }
+                let next = dx < 0 ? here + 1 : here - 1
+                guard all.indices.contains(next) else { return }
+                tab.wrappedValue = all[next]
+            }
     }
 
     private func label(_ t: MeetTab) -> some View {
