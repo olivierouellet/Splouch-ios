@@ -156,22 +156,25 @@ struct MeetShell: View {
         }
     }
 
-    // S-08, S-12
+    // S-08, S-12. The count sits beside the symbol rather than in a bubble
+    // pinned outside it: a toolbar item is drawn inside a glass capsule that
+    // clips, so the offset overlay lost its top-right corner. Filters active
+    // also fills the symbol and takes the meet's timing colour, so the state
+    // reads at a glance and not only by the digit.
     private var filterButton: some View {
-        Button { showFilter = true } label: {
-            Image(systemName: "line.3.horizontal.decrease.circle")
-                .overlay(alignment: .topTrailing) {
-                    if ctx.filter.count > 0 {
-                        Text("\(ctx.filter.count)")
-                            .font(.caption2.bold())
-                            .padding(.horizontal, 5).padding(.vertical, 1)
-                            .background(palette.time, in: Capsule())
-                            .foregroundStyle(palette.bg)
-                            .offset(x: 10, y: -8)
-                    }
+        let count = ctx.filter.count
+        return Button { showFilter = true } label: {
+            HStack(spacing: 4) {
+                Image(systemName: count > 0 ? "line.3.horizontal.decrease.circle.fill"
+                                            : "line.3.horizontal.decrease.circle")
+                if count > 0 {
+                    Text("\(count)").font(.footnote.weight(.semibold)).monospacedDigit()
                 }
+            }
+            .foregroundStyle(count > 0 ? palette.time : Color.primary)
         }
         .accessibilityLabel(ctx.strings.mobile("filter"))
+        .accessibilityValue(count > 0 ? "\(count)" : "")
     }
 }
 
