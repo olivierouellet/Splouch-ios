@@ -91,7 +91,9 @@ struct HeatCard: View {
     private var laneColumn: CGFloat { 22 * typeScale }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        // Tighter than the 6pt the smaller type needed: at 17pt the rows are
+        // taller, so the same gap read as a gappy list rather than a heat.
+        VStack(alignment: .leading, spacing: 3) {
             header
             ForEach(heat.lanes, id: \.lane) { lane in
                 laneRow(lane)
@@ -109,9 +111,9 @@ struct HeatCard: View {
         let time = heat.heat.time.isEmpty ? nil :
             Text(heat.heat.time).font(faces.timing(13 * typeScale)).foregroundStyle(palette.scheduleTime)
         let eventHeat = Text("\(labels["event"] ?? "") \(heat.heat.event) \u{2014} \(labels["heat"] ?? "") \(heat.heat.heat)")
-            .font(faces.text(14 * typeScale, weight: .semibold)).foregroundStyle(palette.scheduleEvent)
+            .font(faces.text(17 * typeScale, weight: .semibold)).foregroundStyle(palette.scheduleEvent)
         let name = eventName.isEmpty ? nil :
-            Text(eventName).font(faces.text(13 * typeScale)).foregroundStyle(palette.rowText)
+            Text(eventName).font(faces.text(17 * typeScale)).foregroundStyle(palette.rowText)
 
         if stacked {
             VStack(alignment: .leading, spacing: 2) {
@@ -133,12 +135,12 @@ struct HeatCard: View {
     }
 
     @ViewBuilder private func laneRow(_ lane: ScheduleLane) -> some View {
-        let number = Text(String(lane.lane)).font(faces.text(13 * typeScale))
+        let number = Text(String(lane.lane)).font(faces.text(15 * typeScale))
             .foregroundStyle(palette.thText).frame(width: laneColumn, alignment: .trailing)
         let name = Text(ScheduleView.displayName(lane)).font(faces.text(17 * typeScale))
             .foregroundStyle(palette.scheduleName)
         let club = lane.club.isEmpty ? nil :
-            Text(lane.club).font(faces.text(17 * typeScale)).foregroundStyle(palette.scheduleClub)
+            Text(lane.club).font(faces.text(14 * typeScale)).foregroundStyle(palette.scheduleClub)
         // Never wrapped: a seed time broken across two lines reads as two times.
         let seed = lane.seedTime.isEmpty ? nil :
             Text(lane.seedTime).font(faces.timing(12 * typeScale)).foregroundStyle(palette.scheduleTime)
@@ -155,7 +157,12 @@ struct HeatCard: View {
                 }
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Color.clear.frame(width: laneColumn, height: 0)
-                    club?.fitOneLine(minimumScale: 0.7)
+                    // A lower floor than the one-line layout uses: the seed
+                    // time never shrinks, so at these sizes a four-letter club
+                    // was ellipsised to "RI…" rather than simply set smaller.
+                    // A club code is two to five capitals; half size still
+                    // reads, a missing half does not.
+                    club?.fitOneLine(minimumScale: 0.5)
                     Spacer(minLength: 6)
                     seed
                 }
