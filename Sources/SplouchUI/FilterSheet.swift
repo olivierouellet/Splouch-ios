@@ -59,11 +59,20 @@ struct FilterSheet: View {
             .onChange(of: ctx.schedule) { _, _ in suggestions = ctx.suggestions.search(query) }
             .navigationTitle(strings.mobile("filter"))
             .toolbar {
-                // It only dismisses: every control here already writes straight
-                // to `ctx.filter`, so the schedule is filtered before this is
-                // tapped.
+                // A checkmark, the way Settings confirms a choice, rather than
+                // the word. It only dismisses: every control here already
+                // writes straight to `ctx.filter`, so the schedule is filtered
+                // before this is tapped — the mark confirms what is already
+                // true rather than committing anything.
+                //
+                // The other glyph in this corner is not ours: while the search
+                // field is active the system replaces this with its own circled
+                // X, which cancels the search rather than closing the sheet.
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(Native.done) { dismiss() }
+                    Button { dismiss() } label: {
+                        Label(Native.done, systemImage: "checkmark")
+                            .labelStyle(.iconOnly)
+                    }
                 }
             }
             .sensoryFeedback(.impact(weight: .light), trigger: ctx.filter.terms.count)
