@@ -67,7 +67,7 @@ struct PickerScreen: View {
                                          offline: strings.mobile("offline"),
                                          card: Ink.card, border: Ink.border, text: Ink.text, meta: Ink.meta, live: Ink.live)
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(CardButtonStyle())
                             .disabled(opening)
                         }
                     }
@@ -79,6 +79,10 @@ struct PickerScreen: View {
         .background(Ink.bg.ignoresSafeArea())
         .foregroundStyle(Ink.text)
         .tint(Ink.text)
+        // The picker has no meet to theme it, so it keeps the web picker's
+        // dark whatever the device is set to. A meet's own screens follow the
+        // board instead — see MeetShell.
+        .preferredColorScheme(.dark)
         .refreshable { await app.load() }   // P-09
         .overlay { if app.loading && app.meets.isEmpty { ProgressView().tint(Ink.meta) } }
         .toolbar { toolbar }

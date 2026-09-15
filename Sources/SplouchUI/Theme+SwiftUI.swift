@@ -102,3 +102,24 @@ public extension View {
         self.lineLimit(1).minimumScaleFactor(minimumScale).truncationMode(.tail)
     }
 }
+
+public extension RGBA {
+    /// Rec. 709 luma against the usual midpoint. A meet themes itself (app.md
+    /// §7), so the system chrome drawn over its board — sheets, alerts, the
+    /// menu — has to know which way the board leans.
+    var isDark: Bool { 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.5 }
+}
+
+/// A card that answers the finger. `.buttonStyle(.plain)` leaves a tapped meet
+/// with no response at all until the screen changes, which on iOS reads as a
+/// dropped tap rather than a slow one.
+struct CardButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.7 : 1)
+            .scaleEffect(reduceMotion || !configuration.isPressed ? 1 : 0.98)
+            .animation(.spring(response: 0.25, dampingFraction: 0.8), value: configuration.isPressed)
+    }
+}

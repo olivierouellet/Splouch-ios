@@ -9,6 +9,8 @@ public struct SplouchRootView: View {
     @State private var opening = false
     /// A native message: the meet is gone, or the server could not be reached.
     @State private var openError: String?
+    /// Bumped when a meet opens, purely to fire the haptic.
+    @State private var openCount = 0
 
     public init(app: AppModel) {
         _app = State(initialValue: app)
@@ -32,7 +34,7 @@ public struct SplouchRootView: View {
                 if let meet { MeetShell(ctx: meet, app: app) }
             }
         }
-        .preferredColorScheme(.dark)   // the picker is the web picker's dark; a meet themes itself
+        .sensoryFeedback(.success, trigger: openCount)
         .task {
             await app.start()
             if app.isPi { await open { try await app.openPi() } }
@@ -70,6 +72,7 @@ public struct SplouchRootView: View {
             let ctx = try await make()
             ctx.start()
             meet = ctx
+            openCount += 1
         } catch APIError.notFound {
             openError = Native.meetGone
             await app.load()   // the meet is gone: refresh the list (A-09)

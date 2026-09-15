@@ -66,6 +66,7 @@ struct FilterSheet: View {
                     Button(Native.done) { dismiss() }
                 }
             }
+            .sensoryFeedback(.impact(weight: .light), trigger: ctx.filter.terms.count)
             // S-18: the dialog brings the platform's own Cancel.
             .confirmationDialog(strings.mobile("reset_confirm"), isPresented: $confirmReset, titleVisibility: .visible) {
                 Button(strings.mobile("reset_filters"), role: .destructive) { ctx.filter.reset() }
