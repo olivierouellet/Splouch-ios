@@ -192,14 +192,21 @@ struct PickerScreen: View {
                 Button { showLanguages = true } label: {
                     Label(strings.mobile("language"), systemImage: "globe")
                 }
-                Picker(selection: Binding(get: { app.preferences.labelStyle },
-                                          set: { app.setLabelStyle($0) })) {
-                    Text(strings.mobile("prefs_short")).tag(SplouchCore.LabelStyle.short)
-                    Text(strings.mobile("prefs_long")).tag(SplouchCore.LabelStyle.long)
-                } label: {
-                    Label(strings.mobile("prefs_labels"), systemImage: "textformat.abc")
-                }
-                .pickerStyle(.menu)
+                // T-09's short/long control, withdrawn: every meet renders the
+                // long labels (Preferences.effectiveLabelStyle). Kept rather
+                // than deleted so putting it back is uncommenting this and
+                // returning `labelStyle` from that property. The strings
+                // `prefs_labels`, `prefs_short` and `prefs_long` are still
+                // served, so nothing on the server side has to change either.
+                //
+                // Picker(selection: Binding(get: { app.preferences.labelStyle },
+                //                           set: { app.setLabelStyle($0) })) {
+                //     Text(strings.mobile("prefs_short")).tag(SplouchCore.LabelStyle.short)
+                //     Text(strings.mobile("prefs_long")).tag(SplouchCore.LabelStyle.long)
+                // } label: {
+                //     Label(strings.mobile("prefs_labels"), systemImage: "textformat.abc")
+                // }
+                // .pickerStyle(.menu)
             } label: {
                 Image(systemName: "ellipsis.circle")
             }
