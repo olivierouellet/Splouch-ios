@@ -64,8 +64,10 @@ struct BoardHeader: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(palette.headerBg)
-        .overlay(alignment: .bottom) { palette.headerBorder.frame(height: 1) }
+        // No background and no hairline: this used to be a bar of its own, with
+        // a `border-bottom` carried over from the web shell. It now sits under
+        // the real navigation bar, and two stacked bars for one screen is one
+        // too many — the table's first stripe is edge enough.
     }
 
     private func labelled(_ label: String, _ value: String) -> some View {
@@ -114,7 +116,15 @@ struct BoardTable: View {
     @Environment(\.faces) private var faces
 
     var body: some View {
-        let rowFont = isLandscape ? max(11, min(32, height * 0.42 / CGFloat(max(1, rows.count)))) : 17
+        let count = CGFloat(max(1, rows.count))
+        let rowFont = isLandscape ? max(11, min(32, height * 0.42 / count)) : 17
+        // Portrait rows share the height the way the landscape table does, with
+        // 52pt as the floor rather than the fixed size. They used to be exactly
+        // 52pt under a Spacer, so a six-lane board left a band of bare
+        // background below the last lane and the stripes stopped mid-screen —
+        // a table sized to its content, which is what the web page did because
+        // that is what a table does. A board fills its board.
+        let portraitRow = max(52, height / count)
         VStack(spacing: 0) {
             if isLandscape { header(size: rowFont) }
             ForEach(Array(rows.enumerated()), id: \.offset) { i, row in
@@ -125,13 +135,14 @@ struct BoardTable: View {
                         PortraitRow(row: row, columns: columns)
                     }
                 }
-                .frame(maxWidth: .infinity, minHeight: isLandscape ? 0 : 52, maxHeight: isLandscape ? .infinity : nil)
+                .frame(maxWidth: .infinity,
+                       minHeight: isLandscape ? 0 : portraitRow,
+                       maxHeight: isLandscape ? .infinity : nil)
                 .background(i % 2 == 0 ? palette.rowOdd : palette.rowEven)
             }
-            if !isLandscape { Spacer(minLength: 0) }
         }
         // Exactly the height in landscape, so rows with no minimum actually
-        // divide it; unconstrained in portrait, where the 52pt rows set it.
+        // divide it; in portrait the rows above set it, and overflow scrolls.
         .frame(height: isLandscape ? height : nil)
     }
 

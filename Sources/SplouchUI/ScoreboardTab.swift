@@ -18,7 +18,6 @@ struct ScoreboardTab: View {
                     BoardTable(rows: (1...board.numLanes).map { BoardRow($0, board[lane: $0]) },
                                columns: Columns(ctx.settings), labels: ctx.labels,
                                isLandscape: isLandscape, height: geo.size.height)
-                        .frame(minHeight: isLandscape ? nil : CGFloat(board.numLanes) * 52)
                 }
                 .refreshable { await ctx.refresh() }
             }

@@ -21,7 +21,6 @@ struct ResultsTab: View {
                     VStack(spacing: 0) {
                         BoardTable(rows: rows.map(BoardRow.init), columns: Columns(ctx.settings), labels: ctx.labels,
                                    isLandscape: isLandscape, height: geo.size.height)
-                            .frame(minHeight: isLandscape ? nil : CGFloat(n) * 52)
                         if snapshot == nil {
                             // R-01: below the empty grid, wherever there is room.
                             Text(ctx.strings.mobile("waiting_results"))
