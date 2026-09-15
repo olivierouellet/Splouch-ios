@@ -1,58 +1,24 @@
 import SwiftUI
 import SplouchCore
 
-/// S-08 to S-19: the full-screen filter sheet. Its words are the server's
-/// (`mobile`, T-05); only the confirming checkmark is the platform's.
+/// S-08 to S-19: the filter sheet. Its words are the server's (`mobile`, T-05);
+/// only the confirming checkmark is the platform's.
 struct FilterSheet: View {
     @Bindable var ctx: MeetContext
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
     @State private var suggestions: [Suggestion] = []
     @State private var confirmReset = false
+    /// Searching is a mode, and the mode begins at the tap — not at the first
+    /// letter. Everything below the field stands down while it is on.
+    @FocusState private var searching: Bool
 
     private var strings: StringTable { ctx.strings }
     private var typing: Bool { !query.trimmingCharacters(in: .whitespaces).isEmpty }
 
     var body: some View {
         NavigationStack {
-            // Settings first, then what has been chosen, then the field that
-            // adds to it. The field was at the top and every keystroke pushed
-            // the whole sheet down the screen; last, the suggestions open into
-            // the empty space under it and nothing above them moves.
-            //
-            // Last also puts the field against the keyboard, which covered all
-            // but the first result. Scrolling it up does not help — the sheet
-            // is shorter than the screen, so there is no scroll range to use.
-            // Instead the two sections above stand down while a query is being
-            // typed: neither is any use mid-search, and without them the field
-            // rises to the top and the results fill the space above the
-            // keyboard. Nothing is pushed below the fold, which is what putting
-            // the field last was for.
             List {
-                if !typing {
-                Section {
-                    // S-16, S-17. Two independent switches, so not a segmented
-                    // control — but `.button` toggle style puts them on one row
-                    // instead of two full-width rows, and FlowLayout wraps them
-                    // rather than clipping when a translation runs long.
-                    FlowLayout(spacing: 8) {
-                        pill(strings.mobile("show_all_heats"), isOn: $ctx.filter.showAllHeats)
-                        pill(strings.mobile("upcoming_only"), isOn: $ctx.filter.upcomingOnly)
-                    }
-                    .padding(.vertical, 4)
-                    Button(role: .destructive) { confirmReset = true } label: {
-                        Text(strings.mobile("reset_filters"))
-                    }
-                    .disabled(ctx.filter == ScheduleFilter())
-                }
-                Section {
-                    if ctx.filter.isFiltering {
-                        chips
-                    } else {
-                        Text(strings.mobile("no_filters")).foregroundStyle(.secondary)
-                    }
-                }
-                }
                 // The field is a row in the sheet, not `.searchable`.
                 //
                 // `.searchable` is built to filter the content on screen, and
@@ -73,9 +39,46 @@ struct FilterSheet: View {
                         }
                     }
                 }
+
+                // Tapping the field used to push these down the screen a row at
+                // a time as results arrived. They step out of the way instead,
+                // so the results open into the space they leave rather than
+                // shoving them under the fold.
+                if !searching {
+                    Section {
+                        if ctx.filter.isFiltering {
+                            chips
+                        } else {
+                            Text(strings.mobile("no_filters")).foregroundStyle(.secondary)
+                        }
+                    }
+                    Section {
+                        // S-16, S-17. Two independent switches, so not a
+                        // segmented control — but `.button` toggle style puts
+                        // them on one row instead of two full-width ones, and
+                        // FlowLayout wraps rather than clips a long translation.
+                        FlowLayout(spacing: 8) {
+                            pill(strings.mobile("show_all_heats"), isOn: $ctx.filter.showAllHeats)
+                            pill(strings.mobile("upcoming_only"), isOn: $ctx.filter.upcomingOnly)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    Section {
+                        Button(role: .destructive) { confirmReset = true } label: {
+                            Text(strings.mobile("reset_filters"))
+                                .frame(maxWidth: .infinity)
+                        }
+                        .disabled(ctx.filter == ScheduleFilter())
+                    }
+                }
             }
-            .animation(.default, value: typing)
+            .animation(.easeInOut(duration: 0.25), value: searching)
             .navigationTitle(strings.mobile("filter"))
+            #if os(iOS)
+            // Inline, so the title shares the bar with the checkmark rather than
+            // taking a line of its own above it.
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 // A checkmark, the way Settings confirms a choice. It only
                 // dismisses: every control here already writes straight to
@@ -92,6 +95,38 @@ struct FilterSheet: View {
             // S-18: the dialog brings the platform's own Cancel.
             .confirmationDialog(strings.mobile("reset_confirm"), isPresented: $confirmReset, titleVisibility: .visible) {
                 Button(strings.mobile("reset_filters"), role: .destructive) { ctx.filter.reset() }
+            }
+        }
+    }
+
+    private var entryField: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+            TextField(strings.mobile("search_placeholder"), text: $query)
+                .focused($searching)
+                .autocorrectionDisabled()
+                #if os(iOS)
+                .textInputAutocapitalization(.never)   // a name search, folded either way
+                .submitLabel(.done)
+                #endif
+                .onSubmit { searching = false }
+                // S-09: no debounce — the old ~220ms wait spared the server, and
+                // over a local index it is only lag.
+                .onChange(of: query) { _, q in suggestions = ctx.suggestions.search(q) }
+                // S-21: a new start list rebuilt the index under us.
+                .onChange(of: ctx.schedule) { _, _ in suggestions = ctx.suggestions.search(query) }
+            // Shown for the whole of the mode, not only once something is
+            // typed: with the rest of the sheet stood down it is the way back.
+            if searching || typing {
+                Button {
+                    query = ""
+                    suggestions = []
+                    searching = false
+                } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Native.cancel)
             }
         }
     }
@@ -114,33 +149,6 @@ struct FilterSheet: View {
         }
     }
 
-    private var entryField: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-            TextField(strings.mobile("search_placeholder"), text: $query)
-                .autocorrectionDisabled()
-                #if os(iOS)
-                .textInputAutocapitalization(.never)   // a name search, folded either way
-                #endif
-                // S-09: no debounce — the old ~220ms wait spared the server, and
-                // over a local index it is only lag.
-                .onChange(of: query) { _, q in suggestions = ctx.suggestions.search(q) }
-                // S-21: a new start list rebuilt the index under us.
-                .onChange(of: ctx.schedule) { _, _ in suggestions = ctx.suggestions.search(query) }
-            if typing {
-                // The clear button `.searchable` gave for free, by hand.
-                Button {
-                    query = ""
-                    suggestions = []
-                } label: {
-                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(Native.cancel)
-            }
-        }
-    }
-
     // S-10: type, name, club; already-added ones are marked and inert.
     //
     // `.buttonStyle(.plain)` for the same reason ServerSheet's rows use it:
@@ -154,6 +162,9 @@ struct FilterSheet: View {
             ctx.filter.add(term)
             query = ""
             suggestions = []
+            // Leaving the mode is the confirmation: the sheet comes back and
+            // the new token is there in it.
+            searching = false
         } label: {
             HStack {
                 Image(systemName: term.kind == .club ? "building.2" : "person")
