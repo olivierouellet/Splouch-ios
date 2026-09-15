@@ -5,29 +5,27 @@ import SplouchCore
 struct ResultsTab: View {
     let ctx: MeetContext
     let isLandscape: Bool
-    @Environment(\.palette) private var palette
-    @Environment(\.faces) private var faces
 
     var body: some View {
         let n = ctx.settings.numLanes
         let snapshot = ctx.session.results
-        let rows = snapshot.map { ResultsBoard.rows($0, numLanes: n) } ?? ResultsBoard.empty(numLanes: n)
         VStack(spacing: 0) {
             BoardHeader(event: snapshot?.event ?? "", heat: snapshot?.heat ?? "",
                         eventName: snapshot.map { ctx.eventName($0.eventName, parts: $0.eventNameParts) } ?? "",
                         labels: ctx.labels)
             GeometryReader { geo in
                 ScrollView {
-                    VStack(spacing: 0) {
-                        BoardTable(rows: rows.map(BoardRow.init), columns: Columns(ctx.settings), labels: ctx.labels,
+                    if let snapshot {
+                        BoardTable(rows: ResultsBoard.rows(snapshot, numLanes: n).map(BoardRow.init),
+                                   columns: Columns(ctx.settings), labels: ctx.labels,
                                    isLandscape: isLandscape, height: geo.size.height)
-                        if snapshot == nil {
-                            // R-01: below the empty grid, wherever there is room.
-                            Text(ctx.strings.mobile("waiting_results"))
-                                .font(faces.text(15))
-                                .foregroundStyle(palette.thText)
-                                .padding(.vertical, 24)
-                        }
+                    } else {
+                        // R-01: an empty lane grid here says nothing. Blank rows
+                        // are meaningful on the Scoreboard, where a heat is live
+                        // and they fill in (L-09); before the first snapshot they
+                        // are only a table the web had to draw to occupy the page.
+                        // The Schedule tab's empty state, said the same way.
+                        Unavailable(text: ctx.strings.mobile("waiting_results"), symbol: "list.number")
                     }
                 }
                 .refreshable { await ctx.refresh() }

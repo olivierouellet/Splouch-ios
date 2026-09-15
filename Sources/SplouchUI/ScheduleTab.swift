@@ -17,11 +17,11 @@ struct ScheduleTab: View {
                     if ctx.schedule != nil, heats.isEmpty {
                         // S-07: on a Pi an empty list means no meet file is loaded;
                         // on a cloud the meet is there but carries no schedule yet.
-                        unavailable(ctx.strings.mobile(ctx.kind == .pi ? "no_meet" : "no_schedule"),
+                        Unavailable(text: ctx.strings.mobile(ctx.kind == .pi ? "no_meet" : "no_schedule"),
                                     symbol: "calendar")
                     } else if ctx.schedule == nil {
                         if ctx.scheduleFailed {
-                            unavailable(Native.serverUnreachable, symbol: "wifi.exclamationmark",
+                            Unavailable(text: Native.serverUnreachable, symbol: "wifi.exclamationmark",
                                         actionLabel: Native.retry) { Task { await ctx.refresh() } }
                         } else {
                             ProgressView().padding(40)
@@ -30,7 +30,7 @@ struct ScheduleTab: View {
                         // S-19: no swimmer matches these filters. Offer the way
                         // out only when there is something to clear — "nothing
                         // upcoming" is not a filter the reset would undo.
-                        unavailable(ctx.strings.mobile(ctx.filter.upcomingOnly && !ctx.filter.isFiltering ? "no_upcoming" : "no_matches"),
+                        Unavailable(text: ctx.strings.mobile(ctx.filter.upcomingOnly && !ctx.filter.isFiltering ? "no_upcoming" : "no_matches"),
                                     symbol: "magnifyingglass",
                                     actionLabel: ctx.filter.isFiltering ? ctx.strings.mobile("reset_filters") : nil) {
                             ctx.filter.reset()
@@ -54,21 +54,6 @@ struct ScheduleTab: View {
             }
             .onAppear { scrolledToCurrent = false }
         }
-    }
-
-    /// The platform's empty state. The words stay the server's (T-05) and each
-    /// is one line, so it becomes the title and nothing is invented to fill a
-    /// description. The frame gives it the scroll view's height to centre in —
-    /// the list still scrolls, so A-05's pull-to-refresh survives an empty tab.
-    private func unavailable(_ text: String, symbol: String,
-                             actionLabel: String? = nil,
-                             action: @escaping () -> Void = {}) -> some View {
-        ContentUnavailableView {
-            Label(text, systemImage: symbol)
-        } actions: {
-            if let actionLabel { Button(actionLabel, action: action) }
-        }
-        .containerRelativeFrame(.vertical)
     }
 }
 

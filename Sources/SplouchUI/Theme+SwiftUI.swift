@@ -110,6 +110,27 @@ public extension RGBA {
     var isDark: Bool { 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.5 }
 }
 
+/// The platform's empty state, drawn the same way wherever a tab has nothing
+/// to show. The words stay the server's (T-05) and each is a single line, so it
+/// becomes the title and nothing is invented to fill a description. The frame
+/// gives it the scroll view's height to centre in, which leaves the list
+/// scrollable so A-05's pull-to-refresh still works on an empty tab.
+struct Unavailable: View {
+    let text: String
+    let symbol: String
+    var actionLabel: String?
+    var action: () -> Void = {}
+
+    var body: some View {
+        ContentUnavailableView {
+            Label(text, systemImage: symbol)
+        } actions: {
+            if let actionLabel { Button(actionLabel, action: action) }
+        }
+        .containerRelativeFrame(.vertical)
+    }
+}
+
 /// A card that answers the finger. `.buttonStyle(.plain)` leaves a tapped meet
 /// with no response at all until the screen changes, which on iOS reads as a
 /// dropped tap rather than a slow one.
