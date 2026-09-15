@@ -49,6 +49,9 @@ struct MeetShell: View {
     @State private var network = NetworkWatcher()
     @State private var showFilter = false
     @State private var isLandscape = false
+    /// Width of the shell, so the landscape header can be given a real width to
+    /// align inside (see `toolbar`).
+    @State private var width: CGFloat = 0
 
     private var tab: Binding<MeetTab> {
         Binding(get: { MeetTab(rawValue: tabRaw) ?? .scoreboard }, set: { tabRaw = $0.rawValue })
@@ -71,7 +74,10 @@ struct MeetShell: View {
             #endif
             .toolbar { toolbar }
             .sensoryFeedback(.selection, trigger: tabRaw)
-            .onGeometryChange(for: CGSize.self) { $0.size } action: { isLandscape = $0.width > $0.height }
+            .onGeometryChange(for: CGSize.self) { $0.size } action: {
+                isLandscape = $0.width > $0.height
+                width = $0.width
+            }
             .sheet(isPresented: $showFilter) { FilterSheet(ctx: ctx) }
             .onAppear {
                 network.start()
@@ -160,10 +166,32 @@ struct MeetShell: View {
         }
     }
 
+    /// The clock is chrome, not a control, so it does not take the glass
+    /// capsule iOS 26 gives a toolbar item by default — a pill around a ticking
+    /// time reads as something to tap.
+    @ToolbarContentBuilder private var clockItem: some ToolbarContent {
+        if #available(iOS 26.0, macOS 26.0, *) {
+            ToolbarItem(placement: .primaryAction) { WallClock(size: 15) }
+                .sharedBackgroundVisibility(.hidden)
+        } else {
+            ToolbarItem(placement: .primaryAction) { WallClock(size: 15) }
+        }
+    }
+
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {
         if showsBoardInBar {
-            ToolbarItem(placement: .principal) { barBoardHeader }
-            ToolbarItem(placement: .primaryAction) { WallClock(size: 15) }
+            // The principal slot, given an explicit width. It is the one
+            // placement iOS 26 draws without wrapping in a glass capsule, but
+            // it sizes to its content and centres, so `maxWidth: .infinity`
+            // had nothing to expand into and leading alignment did nothing.
+            // Handing it the bar's width less the back button and the clock
+            // gives it the slack to push EVENT and HEAT to the left edge.
+            // `.navigation` was the obvious alternative and is worse: it takes
+            // a capsule of its own and lets the meet title back in beside it.
+            ToolbarItem(placement: .principal) {
+                barBoardHeader.frame(width: max(0, width - 200), alignment: .leading)
+            }
+            clockItem
         } else if let subtitle {
             // The title alone is `navigationTitle`; with a subtitle it becomes a
             // two-line principal item, which is the only place iOS 17 has for one.

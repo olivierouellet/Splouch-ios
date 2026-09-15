@@ -77,12 +77,17 @@ struct BoardHeader: View {
         // too many — the table's first stripe is edge enough.
     }
 
-    private func labelled(_ label: String, _ value: String) -> some View {
-        VStack(spacing: compact ? 0 : 3) {
-            Text(label).font(faces.text(compact ? 8 : 10)).foregroundStyle(palette.headerLabel)
-            Text(value.isEmpty ? " " : value).font(faces.clock(compact ? 17 : 26)).foregroundStyle(palette.headerValue)
+    @ViewBuilder private func labelled(_ label: String, _ value: String) -> some View {
+        let name = Text(label).font(faces.text(compact ? 10 : 10)).foregroundStyle(palette.headerLabel)
+        let number = Text(value.isEmpty ? " " : value)
+            .font(faces.clock(compact ? 17 : 26)).foregroundStyle(palette.headerValue)
+        if compact {
+            // A navigation bar is one row high, so the label sits beside its
+            // number rather than over it.
+            HStack(alignment: .firstTextBaseline, spacing: 4) { name; number }.fixedSize()
+        } else {
+            VStack(spacing: 3) { name; number }.fixedSize()
         }
-        .fixedSize()
     }
 }
 
