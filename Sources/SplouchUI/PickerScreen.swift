@@ -53,8 +53,10 @@ struct PickerScreen: View {
                     }
                     .buttonStyle(.plain)
                 } else if app.meets.isEmpty, !app.loading {
-                    Text(picker?.strings["no_meets"] ?? strings.mobile("no_meets"))
-                        .foregroundStyle(Ink.faint)
+                    // P-04 on the platform's empty state. The words stay the
+                    // server's (T-05); only the presentation is the system's.
+                    ContentUnavailableView(picker?.strings["no_meets"] ?? strings.mobile("no_meets"),
+                                           systemImage: "calendar.badge.exclamationmark")
                         .padding(.top, 40)
                 } else {
                     LazyVStack(spacing: 12) {
@@ -103,15 +105,10 @@ struct PickerScreen: View {
 
     /// A connection error is about the device, so it is native (T-05).
     private var unreachable: some View {
-        VStack(spacing: 16) {
-            Text(Native.serverUnreachable).foregroundStyle(Ink.faint).multilineTextAlignment(.center)
-            Button { Task { await app.load() } } label: {
-                Text(Native.retry)
-                    .padding(.horizontal, 18).padding(.vertical, 8)
-                    .background(Ink.card, in: Capsule())
-                    .overlay(Capsule().stroke(Ink.border))
-            }
-            .buttonStyle(.plain)
+        ContentUnavailableView {
+            Label(Native.serverUnreachable, systemImage: "wifi.exclamationmark")
+        } actions: {
+            Button(Native.retry) { Task { await app.load() } }
         }
         .padding(.top, 40)
     }

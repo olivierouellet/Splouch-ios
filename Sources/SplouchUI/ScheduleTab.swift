@@ -4,8 +4,6 @@ import SplouchCore
 /// The Schedule tab (app.md §5.1).
 struct ScheduleTab: View {
     let ctx: MeetContext
-    @Environment(\.palette) private var palette
-    @Environment(\.faces) private var faces
     @Environment(\.scenePhase) private var scenePhase
     /// S-06: once per appearance, re-armed on returning to the foreground.
     @State private var scrolledToCurrent = false
@@ -19,12 +17,24 @@ struct ScheduleTab: View {
                     if ctx.schedule != nil, heats.isEmpty {
                         // S-07: on a Pi an empty list means no meet file is loaded;
                         // on a cloud the meet is there but carries no schedule yet.
-                        emptyState(ctx.strings.mobile(ctx.kind == .pi ? "no_meet" : "no_schedule"))
+                        unavailable(ctx.strings.mobile(ctx.kind == .pi ? "no_meet" : "no_schedule"),
+                                    symbol: "calendar")
                     } else if ctx.schedule == nil {
-                        if ctx.scheduleFailed { emptyState(Native.serverUnreachable) } else { ProgressView().padding(40) }
+                        if ctx.scheduleFailed {
+                            unavailable(Native.serverUnreachable, symbol: "wifi.exclamationmark",
+                                        actionLabel: Native.retry) { Task { await ctx.refresh() } }
+                        } else {
+                            ProgressView().padding(40)
+                        }
                     } else if visible.isEmpty {
-                        // S-19: no swimmer matches these filters.
-                        emptyState(ctx.strings.mobile(ctx.filter.upcomingOnly && !ctx.filter.isFiltering ? "no_upcoming" : "no_matches"))
+                        // S-19: no swimmer matches these filters. Offer the way
+                        // out only when there is something to clear — "nothing
+                        // upcoming" is not a filter the reset would undo.
+                        unavailable(ctx.strings.mobile(ctx.filter.upcomingOnly && !ctx.filter.isFiltering ? "no_upcoming" : "no_matches"),
+                                    symbol: "magnifyingglass",
+                                    actionLabel: ctx.filter.isFiltering ? ctx.strings.mobile("reset_filters") : nil) {
+                            ctx.filter.reset()
+                        }
                     } else {
                         ForEach(visible, id: \.heat.id) { v in
                             HeatCard(heat: v, labels: ctx.labels, eventName: ctx.eventName(v.heat.eventName, parts: v.heat.eventNameParts))
@@ -46,10 +56,22 @@ struct ScheduleTab: View {
         }
     }
 
-    private func emptyState(_ text: String) -> some View {
-        Text(text).font(faces.text(15)).foregroundStyle(palette.thText).padding(40)
+    /// The platform's empty state. The words stay the server's (T-05) and each
+    /// is one line, so it becomes the title and nothing is invented to fill a
+    /// description. The frame gives it the scroll view's height to centre in —
+    /// the list still scrolls, so A-05's pull-to-refresh survives an empty tab.
+    private func unavailable(_ text: String, symbol: String,
+                             actionLabel: String? = nil,
+                             action: @escaping () -> Void = {}) -> some View {
+        ContentUnavailableView {
+            Label(text, systemImage: symbol)
+        } actions: {
+            if let actionLabel { Button(actionLabel, action: action) }
+        }
+        .containerRelativeFrame(.vertical)
     }
 }
+
 
 extension ScheduleHeat {
     var id: String { event + "/" + heat }
