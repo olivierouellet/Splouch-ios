@@ -15,7 +15,44 @@ struct FilterSheet: View {
 
     var body: some View {
         NavigationStack {
+            // Settings first, then what has been chosen, then the field that
+            // adds to it. The field was at the top and every keystroke pushed
+            // the whole sheet down the screen; last, the suggestions open into
+            // the empty space under it and nothing above them moves.
+            //
+            // Last also puts the field against the keyboard, which covered all
+            // but the first result. Scrolling it up does not help — the sheet
+            // is shorter than the screen, so there is no scroll range to use.
+            // Instead the two sections above stand down while a query is being
+            // typed: neither is any use mid-search, and without them the field
+            // rises to the top and the results fill the space above the
+            // keyboard. Nothing is pushed below the fold, which is what putting
+            // the field last was for.
             List {
+                if !typing {
+                Section {
+                    // S-16, S-17. Two independent switches, so not a segmented
+                    // control — but `.button` toggle style puts them on one row
+                    // instead of two full-width rows, and FlowLayout wraps them
+                    // rather than clipping when a translation runs long.
+                    FlowLayout(spacing: 8) {
+                        pill(strings.mobile("show_all_heats"), isOn: $ctx.filter.showAllHeats)
+                        pill(strings.mobile("upcoming_only"), isOn: $ctx.filter.upcomingOnly)
+                    }
+                    .padding(.vertical, 4)
+                    Button(role: .destructive) { confirmReset = true } label: {
+                        Text(strings.mobile("reset_filters"))
+                    }
+                    .disabled(ctx.filter == ScheduleFilter())
+                }
+                Section {
+                    if ctx.filter.isFiltering {
+                        chips
+                    } else {
+                        Text(strings.mobile("no_filters")).foregroundStyle(.secondary)
+                    }
+                }
+                }
                 // The field is a row in the sheet, not `.searchable`.
                 //
                 // `.searchable` is built to filter the content on screen, and
@@ -24,8 +61,7 @@ struct FilterSheet: View {
                 // confirm button swapped for a cancel X — over a body that had
                 // nothing new to show, which read as a second window drawn to
                 // look like the first. The job here is entry, the way Mail
-                // takes a recipient, so it stays put and the suggestions open
-                // underneath it.
+                // takes a recipient.
                 Section {
                     entryField
                     if typing {
@@ -37,22 +73,8 @@ struct FilterSheet: View {
                         }
                     }
                 }
-                Section {
-                    if ctx.filter.isFiltering {
-                        chips
-                    } else {
-                        Text(strings.mobile("no_filters")).foregroundStyle(.secondary)
-                    }
-                }
-                Section {
-                    Toggle(strings.mobile("show_all_heats"), isOn: $ctx.filter.showAllHeats)   // S-16
-                    Toggle(strings.mobile("upcoming_only"), isOn: $ctx.filter.upcomingOnly)   // S-17
-                    Button(role: .destructive) { confirmReset = true } label: {
-                        Text(strings.mobile("reset_filters"))
-                    }
-                    .disabled(ctx.filter == ScheduleFilter())
-                }
             }
+            .animation(.default, value: typing)
             .navigationTitle(strings.mobile("filter"))
             .toolbar {
                 // A checkmark, the way Settings confirms a choice. It only
@@ -71,6 +93,24 @@ struct FilterSheet: View {
             .confirmationDialog(strings.mobile("reset_confirm"), isPresented: $confirmReset, titleVisibility: .visible) {
                 Button(strings.mobile("reset_filters"), role: .destructive) { ctx.filter.reset() }
             }
+        }
+    }
+
+    /// A switch drawn as a capsule. Still a Toggle, so VoiceOver announces it
+    /// as one rather than as a button.
+    ///
+    /// On is filled and off is outlined, rather than leaving both to the
+    /// `.bordered` default — that draws the label in the accent either way, so
+    /// a switch that was off still read as on.
+    @ViewBuilder private func pill(_ title: String, isOn: Binding<Bool>) -> some View {
+        let toggle = Toggle(title, isOn: isOn)
+            .toggleStyle(.button)
+            .buttonBorderShape(.capsule)
+            .font(.subheadline)
+        if isOn.wrappedValue {
+            toggle.buttonStyle(.borderedProminent)
+        } else {
+            toggle.buttonStyle(.bordered).tint(Color.secondary)
         }
     }
 
