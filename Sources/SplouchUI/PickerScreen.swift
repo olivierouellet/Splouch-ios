@@ -281,6 +281,8 @@ struct MeetCard: View {
             Image(systemName: "chevron.right")
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(.tertiary)
+                // Decoration: the row is already a button.
+                .accessibilityHidden(true)
         }
         .padding(.vertical, 4)
         .opacity(meet.offline ? 0.75 : 1)

@@ -102,6 +102,7 @@ struct FilterSheet: View {
     private var entryField: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                .accessibilityHidden(true)
             TextField(strings.mobile("search_placeholder"), text: $query)
                 .focused($searching)
                 .autocorrectionDisabled()
@@ -123,7 +124,11 @@ struct FilterSheet: View {
                     suggestions = []
                     searching = false
                 } label: {
+                    // 17pt of glyph, 44pt of target: the HIG minimum, which an
+                    // icon button sized to its symbol never meets.
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(Native.cancel)
@@ -169,6 +174,8 @@ struct FilterSheet: View {
             HStack {
                 Image(systemName: term.kind == .club ? "building.2" : "person")
                     .foregroundStyle(.secondary)
+                    // The line under the name already says swimmer or club.
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading) {
                     Text(s.name).foregroundStyle(.primary)
                     Text([strings.mobile(term.kind == .club ? "club" : "swimmer"), term.kind == .swimmer ? s.club : ""]
@@ -190,11 +197,21 @@ struct FilterSheet: View {
             ForEach(ctx.filter.terms, id: \.self) { term in
                 HStack(spacing: 4) {
                     Image(systemName: term.kind == .club ? "building.2" : "person").font(.caption)
+                        .accessibilityHidden(true)
                     Text(term.name).font(.subheadline)
                     Button { ctx.filter.remove(term) } label: {
+                        // The target is 44pt and the negative padding takes it
+                        // back out of the layout, so the chip stays chip-sized
+                        // while the tap area is the one the HIG asks for.
+                        // Chips sit shoulder to shoulder here, so a 17pt target
+                        // meant removing the wrong swimmer.
                         Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                            .padding(-6)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("\(Native.remove), \(term.name)")
                 }
                 .padding(.horizontal, 10).padding(.vertical, 6)
                 .background(.quaternary, in: Capsule())

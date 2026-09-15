@@ -81,13 +81,20 @@ struct BoardHeader: View {
         let name = Text(label).font(faces.text(compact ? 10 : 10)).foregroundStyle(palette.headerLabel)
         let number = Text(value.isEmpty ? " " : value)
             .font(faces.clock(compact ? 17 : 26)).foregroundStyle(palette.headerValue)
-        if compact {
-            // A navigation bar is one row high, so the label sits beside its
-            // number rather than over it.
-            HStack(alignment: .firstTextBaseline, spacing: 4) { name; number }.fixedSize()
-        } else {
-            VStack(spacing: 3) { name; number }.fixedSize()
+        // The word and its number are one thing to read, and a header with no
+        // number yet is nothing to read at all — otherwise VoiceOver stops on
+        // "EVENT" and says no more.
+        Group {
+            if compact {
+                // A navigation bar is one row high, so the label sits beside
+                // its number rather than over it.
+                HStack(alignment: .firstTextBaseline, spacing: 4) { name; number }.fixedSize()
+            } else {
+                VStack(spacing: 3) { name; number }.fixedSize()
+            }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityHidden(value.isEmpty)
     }
 }
 
@@ -157,11 +164,35 @@ struct BoardTable: View {
                        minHeight: isLandscape ? 0 : portraitRow,
                        maxHeight: isLandscape ? .infinity : nil)
                 .background(i % 2 == 0 ? palette.rowOdd : palette.rowEven)
+                // A lane is one thing. Left as six separate Texts, VoiceOver
+                // read "1", "Sara Leblanc", "CAMO", "2:24.10" as four unrelated
+                // elements with nothing tying them to a lane.
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(spoken(row))
             }
         }
         // Exactly the height in landscape, so rows with no minimum actually
         // divide it; in portrait the rows above set it, and overflow scrolls.
         .frame(height: isLandscape ? height : nil)
+    }
+
+    /// The row as one sentence, in the server's own column words (T-04) so it
+    /// is spoken in the meet's language rather than the app's. An empty lane
+    /// says only its number, which is the truth about it.
+    private func spoken(_ row: BoardRow) -> String {
+        func pair(_ key: String, _ value: String) -> String? {
+            value.isEmpty ? nil : [labels[key], value].compactMap { $0 }.joined(separator: " ")
+        }
+        var parts = [pair("lane", row.laneLabel)]
+        if columns.name {
+            parts.append(row.name.isEmpty ? nil : row.name)
+            parts.append(row.alt.isEmpty ? nil : row.alt)
+        }
+        if columns.club { parts.append(pair("club", row.club)) }
+        parts.append(pair("time", row.time))
+        if columns.delta { parts.append(pair("delta", row.delta)) }
+        if columns.place { parts.append(pair("place", row.place)) }
+        return parts.compactMap { $0 }.joined(separator: ", ")
     }
 
     private func header(size: CGFloat) -> some View {

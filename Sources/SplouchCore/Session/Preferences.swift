@@ -20,6 +20,15 @@ public struct Preferences: Sendable, Codable, Equatable {
     /// T-09: the device's style, long until the user picks short. There is no
     /// "follow the meet" state — see the note on `LabelResolver.labels`.
     public var labelStyle: LabelStyle
+
+    /// T-09's short/long control is withdrawn from the UI, so every meet renders
+    /// the long labels whatever is stored.
+    ///
+    /// The stored value is read through this rather than overwritten, so a user
+    /// who had chosen `short` keeps that choice and gets it back if the control
+    /// returns. To revert: offer the picker again (PickerScreen.toolbar) and
+    /// return `labelStyle` here.
+    public var effectiveLabelStyle: LabelStyle { .long }
     /// P-11: nil is the default cloud.
     public var server: ServerAddress?
     public var savedServers: [SavedServer]

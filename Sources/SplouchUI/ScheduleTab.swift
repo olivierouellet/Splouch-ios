@@ -115,23 +115,30 @@ struct HeatCard: View {
         let name = eventName.isEmpty ? nil :
             Text(eventName).font(faces.text(17 * typeScale)).foregroundStyle(palette.rowText)
 
-        if stacked {
-            VStack(alignment: .leading, spacing: 2) {
+        // A header, so the VoiceOver rotor can jump heat to heat rather than
+        // walking every lane — on the screen whose whole purpose is finding one
+        // swimmer among several hundred.
+        Group {
+            if stacked {
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        time
+                        eventHeat
+                        Spacer(minLength: 0)
+                    }
+                    name?.fixedSize(horizontal: false, vertical: true)
+                }
+            } else {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     time
                     eventHeat
-                    Spacer(minLength: 0)
+                    name?.fitOneLine(minimumScale: 0.7)
+                    Spacer()
                 }
-                name?.fixedSize(horizontal: false, vertical: true)
-            }
-        } else {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                time
-                eventHeat
-                name?.fitOneLine(minimumScale: 0.7)
-                Spacer()
             }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
     }
 
     @ViewBuilder private func laneRow(_ lane: ScheduleLane) -> some View {

@@ -48,7 +48,7 @@ public final class MeetContext {
         self.settings = settings
         self.stringsLoader = stringsLoader
         self.language = preferences.language
-        self.labelStyle = preferences.labelStyle
+        self.labelStyle = preferences.effectiveLabelStyle
         self.session = MeetSession(address: api.address, kind: kind, meetID: meetID, settings: settings,
                                    vidStore: vidStore, connector: connector, timing: timing)
         let lang = preferences.language ?? settings.locale
@@ -57,7 +57,7 @@ public final class MeetContext {
         self.colors = ThemeColors(settings.themeColors)
         self.fonts = ThemeFonts(settings.themeFonts)
         self.labels = LabelResolver.labels(settings: settings, language: preferences.language,
-                                           style: preferences.labelStyle, table: strings)
+                                           style: preferences.effectiveLabelStyle, table: strings)
         session.onReload = { [weak self] in Task { await self?.refresh() } }
         session.onScheduleUpdate = { [weak self] in Task { await self?.loadSchedule() } }
         session.onReconnected = { [weak self] in Task { await self?.checkMeet() } }

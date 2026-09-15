@@ -56,10 +56,14 @@ struct LanguageSheet: View {
                 Spacer()
                 if app.preferences.language == code {
                     Image(systemName: "checkmark").foregroundStyle(.tint)
+                        .accessibilityHidden(true)
                 }
             }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        // As in ServerSheet: the checkmark carries the state and a glyph is
+        // silent, so the trait says it instead.
+        .accessibilityAddTraits(app.preferences.language == code ? [.isSelected] : [])
     }
 }

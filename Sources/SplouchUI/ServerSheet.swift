@@ -112,11 +112,15 @@ struct ServerSheet: View {
                 Spacer()
                 if address == app.server {
                     Image(systemName: "checkmark").foregroundStyle(.tint)
+                        .accessibilityHidden(true)
                 }
             }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        // The checkmark is the only thing saying which server is in use, and a
+        // glyph says nothing out loud. The trait does.
+        .accessibilityAddTraits(address == app.server ? [.isSelected] : [])
     }
 
     /// P-13: a typo fails here, not at the first blank board.
