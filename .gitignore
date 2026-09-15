@@ -1,4 +1,5 @@
 .build/
 .DS_Store
-*.xcodeproj
+# The Xcode project and its shared scheme are tracked — a clone has to be able
+# to build the app target (README, emulator.md). Only per-user state is not.
 xcuserdata/
