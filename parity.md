@@ -16,18 +16,21 @@ scope for a native client; everything else starts `deferred`.
 `Level` is copied from `app.md` v1 for triage only. **`app.md` is authoritative** —
 if the two ever disagree, that document wins and this one is stale.
 
-**Where things stand (2026-09-13).** `SplouchCore` is tested with `swift test`;
+**Where things stand (2026-09-14).** `SplouchCore` is tested with `swift test`;
 `SplouchUI` and the app target (`App/Splouch.xcodeproj`) build with Xcode 26.6 and
 were run on the iOS 26.5 simulator against a local Pi (recorded session) and a local
 cloud fed by that Pi's relay. Seen working on screen: picker with cards, empty state,
-disclaimer and unreachable state; the shell and tab bar; the scoreboard with names,
+disclaimer and unreachable state; the shell on the system tab bar and navigation bar,
+pushing and popping to the picker; the scoreboard with names,
 the ticking race clock over both the Pi and the throttled relay, splits with delta and
 place, the join replay; results by lane; the schedule with the current heat marked; the
 Pi's no-schedule state; the Pi's schedule from `GET /schedule.json`; the filter
-sheet and its toggles; the picker menu; the dark picker. **Not yet exercised on
-screen**: the server sheet and Bonjour list (menu items do not take scripted taps),
-the language and label pickers, landscape, the lane pulse, the lock flash,
-pull-to-refresh, backgrounding. Debug builds honour `SPLOUCH_SERVER`, `SPLOUCH_MEET`
+sheet on the system search field and its toggles; the picker menu; the dark picker;
+landscape, where the tab bar compacts itself and the board table reaches both edges.
+**Not yet exercised on screen**: the server sheet and Bonjour list (menu items do not
+take scripted taps), the language and label pickers, the lane pulse, the lock flash,
+pull-to-refresh, backgrounding, and a light-themed meet (whose sheets and alerts now
+follow the board rather than the picker's dark). Debug builds honour `SPLOUCH_SERVER`, `SPLOUCH_MEET`
 and `SPLOUCH_TAB` in the launch environment and `scripts/sim-tap.sh` taps the
 simulator (README).
 
@@ -43,7 +46,7 @@ language controls reuse all of it.
 | `P-01` | List of meets as cards: name, date, location, sport | must | `done` | `PickerScreen` + `MeetCard` over `AppModel.meets` (Sources/SplouchUI/PickerScreen.swift) |
 | `P-02` | Per-meet picker image on the card, when the meet supplies one | should | `done` | `MeetCard` loads `GET /picker_image/{id}` when `has_picker_image` |
 | `P-03` | Offline meets stay listed, marked with a dimmed status dot | must | `done` | `MeetCard`: dimmed dot and 70% opacity when `offline` |
-| `P-04` | Empty state when no meets are active | must | `done` | `picker.strings["no_meets"]` |
+| `P-04` | Empty state when no meets are active | must | `done` | `ContentUnavailableView` titled `picker.strings["no_meets"]`. The server's words are the title and nothing is invented to fill a description (T-05) |
 | `P-05` | Picker branding: title, logo, logo above or below the title | should | `done` | `PickerScreen.branding`: title, logo above or below |
 | `P-06` | Unofficial-results disclaimer under the list | must | `done` | `PickerScreen.footer` renders `strings["results_disclaimer"]` under the list |
 | `P-07` | Privacy note, shown whenever attendance counting is on for this server | must | `done` | `PickerScreen.footer`, gated on `analytics_enabled` |
@@ -59,13 +62,13 @@ language controls reuse all of it.
 
 | ID | Feature | Level | Status | Notes |
 | --- | --- | --- | --- | --- |
-| `A-01` | Three tabs — Scoreboard, Results, Schedule — each with icon and label | must | `done` | `MeetShell.tabBar`: `mobile.scoreboard/results/schedule` with SF Symbols |
-| `A-02` | Back affordance to the meet picker | must | `done` | `MeetShell.topBar` back button (`mobile.back_to_meets`) → `SplouchRootView` stops the session |
-| `A-03` | Horizontal swipe moves between adjacent tabs, and the movement is visible — the tabs follow the finger and settle on release | must | `done` | `TabView` with `.page` style on iOS: the platform pager, full-width, drag-tracking (app.md §0.4) |
+| `A-01` | Three tabs — Scoreboard, Results, Schedule — each with icon and label | must | `done` | `MeetShell.tabs`: a plain SwiftUI `TabView`, which is `UITabBarController` underneath — so it is the system bar (iOS 26's floating glass one, the classic bar below that), with the selection states and VoiceOver tab traits that come with it. Labels are `mobile.scoreboard/results/schedule`, icons SF Symbols. T-01 reaches it through `.tint` (the meet's `time`) and `.toolbarBackground` (its `header_bg`); the unselected item has no SwiftUI hook and stays the system grey |
+| `A-02` | Back affordance to the meet picker | must | `done` | The meet is a `navigationDestination` on the picker's `NavigationStack`, so the affordance is the system back button plus the interactive edge swipe. Both pop through one binding in `SplouchRootView`, which is where the session is stopped; A-09 reaches the same path with `dismiss()`. `mobile.back_to_meets` is no longer used — the platform labels and localises its own back button |
+| `A-03` | Horizontal swipe moves between adjacent tabs, and the movement is visible — the tabs follow the finger and settle on release | must | `diverges` | **Tap-only on iOS, on purpose.** iOS tab bars switch on tap: no Apple app swipes between tab-bar sections, and the HIG reserves swipe paging for peer pages carrying a page control. The web needed its 28px edge strips only because its tabs were same-origin iframes; a native tab bar needs nothing. Android keeps its `HorizontalPager` — there the pager *is* the Material idiom, so its `done` row is honest and this one is not a regression against it. Dropping the pager also removed the full-width `sideInset` machinery every board row re-applied by hand, and unblocked A-02's real push (a slide used to leave the pager measuring itself mid-animation). **app.md §0.4 still needs the matching edit**: the native equivalent of the edge strips is the platform's own gesture for moving between peer sections, which is a pager on Android and a tap on iOS |
 | `A-04` | The selected tab survives a relaunch | should | `done` | `@SceneStorage("splouch.tab")` |
 | `A-05` | Pull-to-refresh re-fetches config and rejoins the sockets | should | `done` | every tab's scroll view is `.refreshable { await ctx.refresh() }` → re-fetch config, `apply(settings:)`, re-join |
 | `A-06` | Content clears notch, Dynamic Island, and home indicator | must (free natively) | `done` | safe-area layout; only the background ignores it |
-| `A-07` | Portrait stacks label under icon; landscape drops labels to save height | should | `done` | `MeetShell.tabBar` drops labels when width > height |
+| `A-07` | Portrait stacks label under icon; landscape drops labels to save height | should | `done` | The system tab bar compacts itself in landscape — icon beside label rather than above it — so there is no `isLandscape` branch in the bar any more. `isLandscape` survives only for `L-16`'s table |
 | `A-08` | Window and home-screen title is the meet's `app_window_title`, falling back to its `name` | web-only | `n/a` | web-only — an app satisfies it by existing (app.md §0.3) |
 | `A-09` | Meet goes offline mid-session → return to the picker | must | `done` | `MeetContext.checkMeet()` fetches `/meet/{id}/config` on reconnect (`MeetSession.onReconnected`), foreground (`foregrounded()`), pull-to-refresh and `reload`; 404 → `gone` → `MeetShell` pops. A Pi never sets `gone`. Tests: MeetContextTests |
 
@@ -136,24 +139,24 @@ language controls reuse all of it.
 | `S-04` | Alternating card backgrounds, computed over *visible* cards so filtering keeps the stripe | should | `done` | `VisibleHeat.stripe` → `rowOdd`/`rowEven` |
 | `S-05` | The heat the meet is on is highlighted in the list | must | `done` | `VisibleHeat.isCurrent` → accent bar; `MeetContext.currentHeat` from either socket |
 | `S-06` | The list auto-scrolls to the current heat once per appearance | must | `done` | `ScheduleTab.scrolledToCurrent`, re-armed on appear and on `scenePhase == .active` |
-| `S-07` | Empty state when no meet file is loaded | must | `done` | `mobile.no_meet` on a Pi with empty `heats`, `mobile.no_schedule` on a cloud |
+| `S-07` | Empty state when no meet file is loaded | must | `done` | `ContentUnavailableView` titled `mobile.no_meet` on a Pi with empty `heats`, `mobile.no_schedule` on a cloud. It keeps the scroll view, so A-05's pull-to-refresh still works on an empty tab |
 
 ## 5.2 Filtering
 
 | ID | Feature | Level | Status | Notes |
 | --- | --- | --- | --- | --- |
 | `S-08` | Full-screen filter sheet, opened from a button in the top bar | must | `done` | `FilterSheet` from the top-bar button |
-| `S-09` | Typeahead search over swimmers and clubs, off a local index | must | `done` | `SuggestionIndex` built from the `S-01` start list — no request. `GET /search_suggestions` was removed from both servers (2026-09-13); it only ever read `lane.name`, `lane.club` and `lane.swimmers[].name`, all of which the schedule payload already carries, and answering from the server's list could suggest a name our lanes did not have yet. Rebuilt on every re-fetch (`S-21`). No debounce: the wait only ever spared the server. Match is substring of the folded query against a precomputed folded key (lowercase → NFD → expand the 17 letters with no canonical decomposition → drop above U+007F), so `Île-des-Sœurs` is reachable as `ile-des-soeurs`; the field never autocapitalises. Tests: FoldTests, SuggestionIndexTests |
+| `S-09` | Typeahead search over swimmers and clubs, off a local index | must | `done` | The platform's search field (`.searchable`, pinned open) over a `SuggestionIndex` built from the `S-01` start list — no request. `GET /search_suggestions` was removed from both servers (2026-09-13); it only ever read `lane.name`, `lane.club` and `lane.swimmers[].name`, all of which the schedule payload already carries, and answering from the server's list could suggest a name our lanes did not have yet. Rebuilt on every re-fetch (`S-21`). No debounce: the wait only ever spared the server. Match is substring of the folded query against a precomputed folded key (lowercase → NFD → expand the 17 letters with no canonical decomposition → drop above U+007F), so `Île-des-Sœurs` is reachable as `ile-des-soeurs`; the field never autocapitalises. Tests: FoldTests, SuggestionIndexTests |
 | `S-10` | Suggestions show type (swimmer/club), name, and club; already-added ones are marked and inert | should | `done` | icon per type, name, club; added ones checked and disabled. Swimmers first, then clubs, capped at 20 |
 | `S-11` | Active filters appear as chips; tapping a chip's × removes it | must | `done` | chips in a `FlowLayout`, × removes |
-| `S-12` | A count badge on the filter button shows how many filters are active | should | `done` | badge on the filter button |
+| `S-12` | A count badge on the filter button shows how many filters are active | should | `done` | badge on the filter button, now a navigation-bar toolbar item shown only on the Schedule tab |
 | `S-13` | Filters are OR-ed: a lane matches if it hits *any* club or swimmer filter | must | `done` | `ScheduleView.laneMatches` ORs every term (Schedule/ScheduleFilter.swift). Tests: ScheduleFilterTests |
 | `S-14` | A swimmer filter matches relay members, not just the lane's display name | must | `done` | `ScheduleView.laneMatches` checks `lane.swimmers[].name` as well as `lane.name` |
 | `S-15` | With filters on, non-matching lanes are hidden and heats with no match disappear | must | `done` | `ScheduleView.visible` |
 | `S-16` | All heats toggle: keep every heat visible, still filtering the lanes inside | should | `done` | `Toggle` on `filter.showAllHeats` |
 | `S-17` | Upcoming toggle: hide every heat listed *ahead* of the current one, keeping that one | should | `done` | `Toggle` on `filter.upcomingOnly`; `ScheduleView.visible` cuts by index and changes nothing when the current heat is unknown |
 | `S-18` | Reset clears filters and both toggles, behind a confirmation | should | `done` | `confirmationDialog` with `mobile.reset_confirm` |
-| `S-19` | Distinct empty states for "no swimmers match these filters" and "no search results" | should | `done` | `mobile.no_matches` vs `mobile.no_search_results`, both served |
+| `S-19` | Distinct empty states for "no swimmers match these filters" and "no search results" | should | `done` | `mobile.no_matches` on a `ContentUnavailableView` in the Schedule tab, offering `mobile.reset_filters` as its action when there is something to clear; `mobile.no_search_results` as a row in the filter sheet's search results. Both served |
 | `S-20` | Filters live only for the session — not persisted | should | `done` | `ScheduleFilter` lives on `MeetContext`, discarded with it |
 
 ## 5.3 Refresh
