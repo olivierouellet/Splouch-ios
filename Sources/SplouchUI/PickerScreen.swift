@@ -15,78 +15,95 @@ struct PickerScreen: View {
     private var strings: StringTable { app.strings }
     private var picker: PickerConfig? { app.picker }
 
-    /// The web picker's own palette (`cloud/templates/picker.html`): the list
-    /// has no meet to theme it, so it looks the same everywhere.
-    private enum Ink {
-        static let bg = Color(hex: "#0d0d0d")
-        static let text = Color(hex: "#e0e0e0")
-        static let title = Color(hex: "#888888")
-        static let card = Color(hex: "#1a1a1a")
-        static let border = Color(hex: "#2e2e2e")
-        static let meta = Color(hex: "#666666")
-        static let faint = Color(hex: "#444444")
-        static let live = Color(hex: "#4CAF50")
-    }
-
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
+        // A grouped list rather than a ScrollView of hand-drawn cards. The rows
+        // were `RoundedRectangle.stroke(border)` — a `border: 1px solid #2e2e2e`
+        // carried over from `picker.html` — around content the platform draws
+        // better itself: cell backgrounds, separators, press states, and the
+        // insets every other iOS list uses.
+        List {
+            Section {
                 branding
-                if !app.isDefaultServer {
-                    // A user who switched and forgot must be able to see it (P-11 note).
-                    Label(app.serverName, systemImage: "server.rack")
-                        .font(.footnote).foregroundStyle(Ink.meta)
-                }
-                if let notice = app.contractNotice {
-                    // P-14: a notice naming both versions, never a gate.
-                    Label(notice, systemImage: "exclamationmark.triangle")
-                        .font(.footnote).foregroundStyle(Ink.meta)
-                }
-                if app.unreachable {
-                    unreachable
-                } else if app.isPi {
-                    Button { Task { await openPi() } } label: {
-                        Label(Native.openBoard, systemImage: "sportscourt")
-                            .padding(.horizontal, 18).padding(.vertical, 10)
-                            .background(Ink.card, in: Capsule())
-                            .overlay(Capsule().stroke(Ink.border))
-                    }
-                    .buttonStyle(.plain)
-                } else if app.meets.isEmpty, !app.loading {
-                    // P-04 on the platform's empty state. The words stay the
-                    // server's (T-05); only the presentation is the system's.
-                    ContentUnavailableView(picker?.strings["no_meets"] ?? strings.mobile("no_meets"),
-                                           systemImage: "calendar.badge.exclamationmark")
-                        .padding(.top, 40)
-                } else {
-                    LazyVStack(spacing: 12) {
-                        ForEach(app.meets) { meet in
-                            Button { Task { await open(meet) } } label: {
-                                MeetCard(meet: meet, imageURL: meet.hasPickerImage ? app.api.pickerImageURL(meetID: meet.id) : nil,
-                                         unnamed: picker?.strings["unnamed_meet"] ?? strings.mobile("unnamed_meet"),
-                                         offline: strings.mobile("offline"),
-                                         card: Ink.card, border: Ink.border, text: Ink.text, meta: Ink.meta, live: Ink.live)
-                            }
-                            .buttonStyle(CardButtonStyle())
-                            .disabled(opening)
-                        }
-                    }
-                }
-                footer
             }
-            .padding()
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+
+            // P-11: a user who switched and forgot must be able to see it.
+            // P-14: a notice naming both versions, never a gate.
+            if !app.isDefaultServer || app.contractNotice != nil {
+                Section {
+                    if !app.isDefaultServer {
+                        Label(app.serverName, systemImage: "server.rack")
+                    }
+                    if let notice = app.contractNotice {
+                        Label(notice, systemImage: "exclamationmark.triangle")
+                    }
+                }
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            }
+
+            meets
+            footer
         }
-        .background(Ink.bg.ignoresSafeArea())
-        .foregroundStyle(Ink.text)
-        .tint(Ink.text)
-        // The picker has no meet to theme it, so it keeps the web picker's
-        // dark whatever the device is set to. A meet's own screens follow the
-        // board instead — see MeetShell.
-        .preferredColorScheme(.dark)
+        .groupedList()
         .refreshable { await app.load() }   // P-09
-        .overlay { if app.loading && app.meets.isEmpty { ProgressView().tint(Ink.meta) } }
+        .overlay { if app.loading && app.meets.isEmpty { ProgressView() } }
         .toolbar { toolbar }
         .sheet(isPresented: $showServers) { ServerSheet(app: app) }
+        // The picker has no meet to theme it, so it keeps the web picker's dark
+        // whatever the device is set to. A meet's own screens follow the board
+        // instead — see MeetShell. The greys are the system's grouped-background
+        // ones rather than the stylesheet's hex, so they track Increase Contrast
+        // and match every other app on the device.
+        .preferredColorScheme(.dark)
+    }
+
+    @ViewBuilder private var meets: some View {
+        if app.unreachable {
+            Section {
+                // A connection error is about the device, so it is native (T-05).
+                Unavailable(text: Native.serverUnreachable, symbol: "wifi.exclamationmark",
+                            actionLabel: Native.retry) { Task { await app.load() } }
+            }
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+        } else if app.isPi {
+            Section {
+                Button { Task { await openPi() } } label: {
+                    Label(Native.openBoard, systemImage: "sportscourt")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.capsule)
+                .controlSize(.large)
+                .disabled(opening)
+            }
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+        } else if app.meets.isEmpty, !app.loading {
+            Section {
+                // P-04 on the platform's empty state. The words stay the
+                // server's (T-05); only the presentation is the system's.
+                Unavailable(text: picker?.strings["no_meets"] ?? strings.mobile("no_meets"),
+                            symbol: "calendar.badge.exclamationmark")
+            }
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+        } else {
+            Section {
+                ForEach(app.meets) { meet in
+                    Button { Task { await open(meet) } } label: {
+                        MeetCard(meet: meet,
+                                 imageURL: meet.hasPickerImage ? app.api.pickerImageURL(meetID: meet.id) : nil,
+                                 unnamed: picker?.strings["unnamed_meet"] ?? strings.mobile("unnamed_meet"),
+                                 offline: strings.mobile("offline"))
+                    }
+                    .buttonStyle(CardButtonStyle())
+                    .disabled(opening)
+                }
+            }
+        }
     }
 
     // P-05
@@ -100,35 +117,30 @@ struct PickerScreen: View {
                 .font(.title2.weight(.regular))
                 .textCase(.uppercase)
                 .tracking(1.5)
-                .foregroundStyle(Ink.title)
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
             if !(picker?.logoAbove ?? false) { logo }
         }
-        .padding(.top)
-    }
-
-    /// A connection error is about the device, so it is native (T-05).
-    private var unreachable: some View {
-        ContentUnavailableView {
-            Label(Native.serverUnreachable, systemImage: "wifi.exclamationmark")
-        } actions: {
-            Button(Native.retry) { Task { await app.load() } }
-        }
-        .padding(.top, 40)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
     }
 
     // P-06, P-07: served, never compiled in.
     @ViewBuilder private var footer: some View {
         if let p = picker {
-            VStack(spacing: 8) {
+            Section {
                 if let d = p.strings["results_disclaimer"], !d.isEmpty {
-                    Text(d).font(.footnote).foregroundStyle(Ink.meta).multilineTextAlignment(.center)
+                    Text(d).foregroundStyle(.secondary)
                 }
                 if p.analyticsEnabled, let n = p.strings["privacy_note"], !n.isEmpty {
-                    Text(n).font(.footnote).foregroundStyle(Ink.faint).multilineTextAlignment(.center)
+                    Text(n).foregroundStyle(.tertiary)
                 }
             }
-            .padding(.top, 24)
+            .font(.footnote)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
         }
     }
 
@@ -162,20 +174,32 @@ struct PickerScreen: View {
     }
 }
 
-/// P-01, P-02, P-03.
+private extension View {
+    /// `.insetGrouped` is iOS-only; on macOS the picker is checked for
+    /// compilation, not looked at.
+    @ViewBuilder func groupedList() -> some View {
+        #if os(iOS)
+        self.listStyle(.insetGrouped)
+        #else
+        self.listStyle(.sidebar)
+        #endif
+    }
+}
+
+/// P-01, P-02, P-03. One meet as a list row: no card, no border, no padding of
+/// its own — the list draws all three.
 struct MeetCard: View {
     let meet: MeetSummary
     let imageURL: URL?
     let unnamed: String
     /// The server's word for a retained meet with no relay (`mobile.offline`).
     var offline: String = ""
-    var card: Color = Color(hex: "#1a1a1a")
-    var border: Color = Color(hex: "#2e2e2e")
-    var text: Color = Color(hex: "#e0e0e0")
-    var meta: Color = Color(hex: "#666666")
-    var live: Color = Color(hex: "#4CAF50")
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulsing = false
+
+    /// The one colour here that is the product rather than the chrome, so it is
+    /// the only one not taken from the system palette.
+    private static let liveGreen = Color(hex: "#4CAF50")
 
     var body: some View {
         HStack(spacing: 12) {
@@ -186,9 +210,9 @@ struct MeetCard: View {
             // empty tile the image shows while it loads.
             Group {
                 if let imageURL {
-                    AsyncImage(url: imageURL) { $0.resizable().scaledToFill() } placeholder: { border }
+                    AsyncImage(url: imageURL) { $0.resizable().scaledToFill() } placeholder: { placeholder }
                 } else {
-                    border
+                    placeholder
                 }
             }
             .frame(width: 64, height: 64)
@@ -196,47 +220,49 @@ struct MeetCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 // The name wraps rather than shrinking. On one line with a 0.5
                 // floor a long name hit that floor in portrait — half of
-                // `.headline`, about 8.5pt — because the card is narrow there.
-                // The card grows by a line instead; landscape is wide enough
-                // that nothing changes.
+                // `.headline`, about 8.5pt — because the row is narrow there.
                 Text(meet.name.isEmpty ? unnamed : meet.name)
-                    .font(.headline).foregroundStyle(text)
+                    .font(.headline)
                     .lineLimit(2)
                     .minimumScaleFactor(0.8)
                     .fixedSize(horizontal: false, vertical: true)
                 let details = [meet.meetDate, meet.location, meet.offline ? offline : ""].filter { !$0.isEmpty }
                 if !details.isEmpty {
-                    Text(details.joined(separator: " · ")).font(.subheadline).foregroundStyle(meta)
+                    Text(details.joined(separator: " · ")).font(.subheadline).foregroundStyle(.secondary)
                 }
                 if !meet.sport.isEmpty {
-                    Text(meet.sport).font(.caption).foregroundStyle(meta)
+                    Text(meet.sport).font(.caption).foregroundStyle(.secondary)
                 }
             }
-            Spacer()
-            Image(systemName: "chevron.right").foregroundStyle(meta)
+            Spacer(minLength: 8)
+            // The disclosure glyph at the weight and colour the system draws it,
+            // since an async open cannot be a NavigationLink.
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.tertiary)
         }
-        .padding(14)
-        .background(card, in: RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(border))
+        .padding(.vertical, 4)
         .opacity(meet.offline ? 0.75 : 1)
     }
+
+    private var placeholder: some View { Color.secondary.opacity(0.15) }
 
     /// A live meet breathes; a retained one is a hollow ring and holds still.
     /// Both are the same 8pt frame and only `opacity`/`scaleEffect` move, so a
     /// pulsing dot never shifts the image or the text beside it.
     @ViewBuilder private var liveDot: some View {
         if meet.offline {
-            Circle().strokeBorder(meta, lineWidth: 1).frame(width: 8, height: 8)
+            Circle().strokeBorder(.secondary, lineWidth: 1).frame(width: 8, height: 8)
         } else {
             Circle()
-                .fill(live)
+                .fill(Self.liveGreen)
                 .frame(width: 8, height: 8)
-                .shadow(color: live.opacity(0.7), radius: 3)
+                .shadow(color: Self.liveGreen.opacity(0.7), radius: 3)
                 .opacity(pulsing ? 1 : 0.45)
                 .scaleEffect(pulsing ? 1 : 0.78)
                 // Core Animation drives this, unlike the board's per-frame
                 // TimelineView pulse (L-12) — that one has to start and stop
-                // with a lane, this one runs for the life of the card.
+                // with a lane, this one runs for the life of the row.
                 .animation(reduceMotion ? nil : .easeInOut(duration: 0.85).repeatForever(autoreverses: true),
                            value: pulsing)
                 .onAppear { pulsing = true }

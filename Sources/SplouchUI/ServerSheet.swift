@@ -62,11 +62,6 @@ struct ServerSheet: View {
                 ToolbarItem(placement: .cancellationAction) { cancelButton }
             }
         }
-        // No tint of its own: this is always a sheet over the picker, whose
-        // `.tint(Ink.text)` reaches it through the environment. Inside a Button
-        // in a List, `.primary` and `.secondary` are levels of the current
-        // foreground style rather than absolute colours, so the server name and
-        // its URL resolve to that same near-white.
         .onAppear { bonjour.start() }
         .onDisappear { bonjour.stop() }
     }
@@ -80,6 +75,10 @@ struct ServerSheet: View {
         }
     }
 
+    /// `.buttonStyle(.plain)` is load-bearing: inside a Button in a List the
+    /// default style makes `.primary` and `.secondary` levels of the accent
+    /// rather than absolute colours, so the server name and its URL would both
+    /// come out tinted. Only the checkmark should take the accent.
     private func row(_ name: String, _ address: ServerAddress) -> some View {
         Button {
             Task {
@@ -93,9 +92,13 @@ struct ServerSheet: View {
                     Text(address.url.absoluteString).font(.footnote).foregroundStyle(.secondary)
                 }
                 Spacer()
-                if address == app.server { Image(systemName: "checkmark") }
+                if address == app.server {
+                    Image(systemName: "checkmark").foregroundStyle(.tint)
+                }
             }
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
     }
 
     /// P-13: a typo fails here, not at the first blank board.
