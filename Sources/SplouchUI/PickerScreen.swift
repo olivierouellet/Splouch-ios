@@ -13,6 +13,15 @@ struct PickerScreen: View {
     @State private var showServers = false
     @State private var showLanguages = false
 
+    /// Landscape on a phone is a compact height, which is the one axis the
+    /// branding has to give ground on.
+    #if os(iOS)
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+    private var shortScreen: Bool { verticalSizeClass == .compact }
+    #else
+    private var shortScreen: Bool { false }
+    #endif
+
     private var strings: StringTable { app.strings }
     private var picker: PickerConfig? { app.picker }
 
@@ -48,6 +57,9 @@ struct PickerScreen: View {
             footer
         }
         .groupedList()
+        // The grouped list's own top inset is generous, which is right in
+        // portrait and costly on the axis that has no height to spare.
+        .trimmedTop(shortScreen)
         .refreshable { await app.load() }   // P-09
         .overlay { if app.loading && app.meets.isEmpty { ProgressView() } }
         .toolbar { toolbar }
@@ -109,22 +121,31 @@ struct PickerScreen: View {
     }
 
     // P-05
+    //
+    // In landscape this block was taking the top third of the screen with the
+    // logo floating in the middle of it and the meet list pushed to the bottom
+    // edge. Two reasons, both fixed here: an operator who sets a logo and no
+    // title still got an empty `.title2` line holding its full height, and the
+    // 80pt logo box plus its padding is sized for the axis that has room.
     @ViewBuilder private var branding: some View {
         let title = picker?.title ?? app.serverName
+        let above = picker?.logoAbove ?? false
         let logo = (picker?.hasLogo ?? false) ? AsyncImage(url: app.api.pickerLogoURL()) { $0.resizable().scaledToFit() } placeholder: { EmptyView() }
-            .frame(maxHeight: 80) : nil
-        VStack(spacing: 8) {
-            if picker?.logoAbove ?? false { logo }
-            Text(title)
-                .font(.title2.weight(.regular))
-                .textCase(.uppercase)
-                .tracking(1.5)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-            if !(picker?.logoAbove ?? false) { logo }
+            .frame(maxHeight: shortScreen ? 44 : 80) : nil
+        VStack(spacing: shortScreen ? 4 : 8) {
+            if above { logo }
+            if !title.isEmpty {
+                Text(title)
+                    .font(.title2.weight(.regular))
+                    .textCase(.uppercase)
+                    .tracking(1.5)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            if !above { logo }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
+        .padding(.vertical, shortScreen ? 2 : 8)
     }
 
     // P-06, P-07: served, never compiled in.
@@ -187,6 +208,14 @@ struct PickerScreen: View {
 }
 
 private extension View {
+    @ViewBuilder func trimmedTop(_ trim: Bool) -> some View {
+        if trim {
+            self.contentMargins(.top, 0, for: .scrollContent)
+        } else {
+            self
+        }
+    }
+
     /// `.insetGrouped` is iOS-only; on macOS the picker is checked for
     /// compilation, not looked at.
     @ViewBuilder func groupedList() -> some View {
