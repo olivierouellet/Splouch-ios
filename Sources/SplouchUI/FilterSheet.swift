@@ -2,7 +2,7 @@ import SwiftUI
 import SplouchCore
 
 /// S-08 to S-19: the full-screen filter sheet. Its words are the server's
-/// (`mobile`, T-05); only the Done button is the platform's.
+/// (`mobile`, T-05); only the confirming checkmark is the platform's.
 struct FilterSheet: View {
     @Bindable var ctx: MeetContext
     @Environment(\.dismiss) private var dismiss
@@ -11,15 +11,24 @@ struct FilterSheet: View {
     @State private var confirmReset = false
 
     private var strings: StringTable { ctx.strings }
-    /// Searching replaces the sheet's contents, the way a search over a list
-    /// does everywhere else on the platform.
-    private var searching: Bool { !query.trimmingCharacters(in: .whitespaces).isEmpty }
+    private var typing: Bool { !query.trimmingCharacters(in: .whitespaces).isEmpty }
 
     var body: some View {
         NavigationStack {
             List {
-                if searching {
-                    Section {
+                // The field is a row in the sheet, not `.searchable`.
+                //
+                // `.searchable` is built to filter the content on screen, and
+                // this field does not: it adds a term to a list. So tapping it
+                // pushed the system's search presentation — the title and the
+                // confirm button swapped for a cancel X — over a body that had
+                // nothing new to show, which read as a second window drawn to
+                // look like the first. The job here is entry, the way Mail
+                // takes a recipient, so it stays put and the suggestions open
+                // underneath it.
+                Section {
+                    entryField
+                    if typing {
                         if suggestions.isEmpty {
                             Text(strings.mobile("no_search_results")).foregroundStyle(.secondary)   // S-19
                         }
@@ -27,47 +36,29 @@ struct FilterSheet: View {
                             suggestionRow(s)
                         }
                     }
-                } else {
-                    Section {
-                        if ctx.filter.isFiltering {
-                            chips
-                        } else {
-                            Text(strings.mobile("no_filters")).foregroundStyle(.secondary)
-                        }
-                    }
-                    Section {
-                        Toggle(strings.mobile("show_all_heats"), isOn: $ctx.filter.showAllHeats)   // S-16
-                        Toggle(strings.mobile("upcoming_only"), isOn: $ctx.filter.upcomingOnly)   // S-17
-                        Button(role: .destructive) { confirmReset = true } label: {
-                            Text(strings.mobile("reset_filters"))
-                        }
-                        .disabled(ctx.filter == ScheduleFilter())
+                }
+                Section {
+                    if ctx.filter.isFiltering {
+                        chips
+                    } else {
+                        Text(strings.mobile("no_filters")).foregroundStyle(.secondary)
                     }
                 }
+                Section {
+                    Toggle(strings.mobile("show_all_heats"), isOn: $ctx.filter.showAllHeats)   // S-16
+                    Toggle(strings.mobile("upcoming_only"), isOn: $ctx.filter.upcomingOnly)   // S-17
+                    Button(role: .destructive) { confirmReset = true } label: {
+                        Text(strings.mobile("reset_filters"))
+                    }
+                    .disabled(ctx.filter == ScheduleFilter())
+                }
             }
-            // The platform's search field, which brings its own Cancel, clear
-            // button and keyboard handling.
-            .searchable(text: $query, placement: Self.searchPlacement, prompt: strings.mobile("search_placeholder"))
-            .autocorrectionDisabled()
-            #if os(iOS)
-            .textInputAutocapitalization(.never)   // a name search, folded either way
-            #endif
-            // S-09: no debounce — the old ~220ms wait spared the server, and
-            // over a local index it is only lag.
-            .onChange(of: query) { _, q in suggestions = ctx.suggestions.search(q) }
-            // S-21: a new start list rebuilt the index under us.
-            .onChange(of: ctx.schedule) { _, _ in suggestions = ctx.suggestions.search(query) }
             .navigationTitle(strings.mobile("filter"))
             .toolbar {
-                // A checkmark, the way Settings confirms a choice, rather than
-                // the word. It only dismisses: every control here already
-                // writes straight to `ctx.filter`, so the schedule is filtered
-                // before this is tapped — the mark confirms what is already
-                // true rather than committing anything.
-                //
-                // The other glyph in this corner is not ours: while the search
-                // field is active the system replaces this with its own circled
-                // X, which cancels the search rather than closing the sheet.
+                // A checkmark, the way Settings confirms a choice. It only
+                // dismisses: every control here already writes straight to
+                // `ctx.filter`, so the schedule is filtered before this is
+                // tapped and the mark confirms what is already true.
                 ToolbarItem(placement: .confirmationAction) {
                     Button { dismiss() } label: {
                         Label(Native.done, systemImage: "checkmark")
@@ -83,14 +74,31 @@ struct FilterSheet: View {
         }
     }
 
-    /// Pinned open: this sheet is a filter, so hiding the field until the list
-    /// is dragged down would hide the point of the screen.
-    private static var searchPlacement: SearchFieldPlacement {
-        #if os(iOS)
-        .navigationBarDrawer(displayMode: .always)
-        #else
-        .automatic
-        #endif
+    private var entryField: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+            TextField(strings.mobile("search_placeholder"), text: $query)
+                .autocorrectionDisabled()
+                #if os(iOS)
+                .textInputAutocapitalization(.never)   // a name search, folded either way
+                #endif
+                // S-09: no debounce — the old ~220ms wait spared the server, and
+                // over a local index it is only lag.
+                .onChange(of: query) { _, q in suggestions = ctx.suggestions.search(q) }
+                // S-21: a new start list rebuilt the index under us.
+                .onChange(of: ctx.schedule) { _, _ in suggestions = ctx.suggestions.search(query) }
+            if typing {
+                // The clear button `.searchable` gave for free, by hand.
+                Button {
+                    query = ""
+                    suggestions = []
+                } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Native.cancel)
+            }
+        }
     }
 
     // S-10: type, name, club; already-added ones are marked and inert.
