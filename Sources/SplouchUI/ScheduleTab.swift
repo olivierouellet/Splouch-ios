@@ -135,10 +135,10 @@ struct HeatCard: View {
     @ViewBuilder private func laneRow(_ lane: ScheduleLane) -> some View {
         let number = Text(String(lane.lane)).font(faces.text(13 * typeScale))
             .foregroundStyle(palette.thText).frame(width: laneColumn, alignment: .trailing)
-        let name = Text(ScheduleView.displayName(lane)).font(faces.text(14 * typeScale))
+        let name = Text(ScheduleView.displayName(lane)).font(faces.text(17 * typeScale))
             .foregroundStyle(palette.scheduleName)
         let club = lane.club.isEmpty ? nil :
-            Text(lane.club).font(faces.text(12 * typeScale)).foregroundStyle(palette.scheduleClub)
+            Text(lane.club).font(faces.text(17 * typeScale)).foregroundStyle(palette.scheduleClub)
         // Never wrapped: a seed time broken across two lines reads as two times.
         let seed = lane.seedTime.isEmpty ? nil :
             Text(lane.seedTime).font(faces.timing(12 * typeScale)).foregroundStyle(palette.scheduleTime)
