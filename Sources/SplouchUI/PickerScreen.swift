@@ -128,21 +128,36 @@ struct PickerScreen: View {
     }
 
     // P-06, P-07: served, never compiled in.
+    //
+    // The two are not the same kind of text and were being drawn as though
+    // they were — both footnote-sized, both greyed, both trailing off the
+    // bottom of the list. P-06 is the only thing standing between a live feed
+    // and a spectator taking it for a result, so it gets a block of its own at
+    // full contrast. P-07 really is fine print, and stays fine print, just
+    // large enough to read.
     @ViewBuilder private var footer: some View {
         if let p = picker {
-            Section {
-                if let d = p.strings["results_disclaimer"], !d.isEmpty {
-                    Text(d).foregroundStyle(.secondary)
-                }
-                if p.analyticsEnabled, let n = p.strings["privacy_note"], !n.isEmpty {
-                    Text(n).foregroundStyle(.tertiary)
+            if let d = p.strings["results_disclaimer"], !d.isEmpty {
+                Section {
+                    Text(d)
+                        .font(.subheadline)
+                        .foregroundStyle(.primary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
                 }
             }
-            .font(.footnote)
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity)
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
+            if p.analyticsEnabled, let n = p.strings["privacy_note"], !n.isEmpty {
+                Section {
+                    Text(n)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+            }
         }
     }
 
