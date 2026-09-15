@@ -85,6 +85,11 @@ struct FilterSheet: View {
     }
 
     // S-10: type, name, club; already-added ones are marked and inert.
+    //
+    // `.buttonStyle(.plain)` for the same reason ServerSheet's rows use it:
+    // inside a Button in a List the default style makes `.primary` and
+    // `.secondary` levels of the accent rather than absolute colours, so a
+    // swimmer's name came out blue — reading as a link rather than a result.
     private func suggestionRow(_ s: Suggestion) -> some View {
         let term = s.term
         let added = ctx.filter.contains(term)
@@ -105,7 +110,9 @@ struct FilterSheet: View {
                 Spacer()
                 if added { Image(systemName: "checkmark").foregroundStyle(.secondary) }
             }
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
         .disabled(added)
     }
 
