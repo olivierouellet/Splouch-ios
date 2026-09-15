@@ -48,22 +48,29 @@ struct BoardHeader: View {
     let heat: String
     let eventName: String
     let labels: [String: String]
+    /// Landscape puts this row inside the navigation bar, beside the back
+    /// button, rather than under it — the bar was otherwise a band of empty
+    /// space with one button in the corner. Everything shrinks to fit a bar.
+    var compact = false
+    /// The bar shows the clock as its own trailing item: one centred item
+    /// holding all four squeezed them until the clock truncated to an ellipsis.
+    var showsClock = true
     @Environment(\.palette) private var palette
     @Environment(\.faces) private var faces
 
     var body: some View {
-        HStack(alignment: .center, spacing: 16) {
+        HStack(alignment: .center, spacing: compact ? 12 : 16) {
             labelled(labels["event"] ?? "", event)
             labelled(labels["heat"] ?? "", heat)
             Text(eventName)
-                .font(faces.text(16))
+                .font(faces.text(compact ? 13 : 16))
                 .foregroundStyle(palette.headerValue)
                 .fitOneLine(minimumScale: 0.6)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            WallClock()
+                .frame(maxWidth: .infinity, alignment: .center)
+            if showsClock { WallClock(size: compact ? 15 : 22) }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, compact ? 0 : 12)
+        .padding(.vertical, compact ? 0 : 8)
         // No background and no hairline: this used to be a bar of its own, with
         // a `border-bottom` carried over from the web shell. It now sits under
         // the real navigation bar, and two stacked bars for one screen is one
@@ -71,16 +78,18 @@ struct BoardHeader: View {
     }
 
     private func labelled(_ label: String, _ value: String) -> some View {
-        VStack(spacing: 0) {
-            Text(label).font(faces.text(10)).foregroundStyle(palette.headerLabel)
-            Text(value.isEmpty ? " " : value).font(faces.clock(26)).foregroundStyle(palette.headerValue)
+        VStack(spacing: compact ? 0 : 3) {
+            Text(label).font(faces.text(compact ? 8 : 10)).foregroundStyle(palette.headerLabel)
+            Text(value.isEmpty ? " " : value).font(faces.clock(compact ? 17 : 26)).foregroundStyle(palette.headerValue)
         }
+        .fixedSize()
     }
 }
 
 /// L-03: device local time, `HH:MM`, ticking every second. Always 24-hour, as
 /// the board is, whatever the locale's clock preference.
 struct WallClock: View {
+    var size: CGFloat = 22
     @Environment(\.palette) private var palette
     @Environment(\.faces) private var faces
 
@@ -92,7 +101,7 @@ struct WallClock: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { ctx in
             Text(Self.hhmm(ctx.date))
-                .font(faces.clock(22))
+                .font(faces.clock(size))
                 .foregroundStyle(palette.headerValue)
                 .monospacedDigit()
         }
@@ -105,6 +114,10 @@ struct BoardTable: View {
     let columns: Columns
     let labels: [String: String]
     let isLandscape: Bool
+    /// How far the table holds off the floating tab bar, so the last lane is
+    /// not read against the glass.
+    static let bottomGap: CGFloat = 14
+
     /// The height the landscape rows share (L-16), measured by the caller.
     /// It cannot be measured here: the table sits inside a `ScrollView`, which
     /// proposes no height, so a `GeometryReader` in this body reported ~0 — the

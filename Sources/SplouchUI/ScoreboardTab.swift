@@ -9,15 +9,19 @@ struct ScoreboardTab: View {
     var body: some View {
         let board = ctx.session.scoreboard
         VStack(spacing: 0) {
-            BoardHeader(event: board.currentEvent, heat: board.currentHeat,
-                        eventName: ctx.eventName(board.eventName, parts: board.eventNameParts), labels: ctx.labels)
+            // Landscape hands this to the navigation bar instead (MeetShell).
+            if !isLandscape {
+                BoardHeader(event: board.currentEvent, heat: board.currentHeat,
+                            eventName: ctx.eventName(board.eventName, parts: board.eventNameParts), labels: ctx.labels)
+            }
             // The table sits in a scroll view for pull-to-refresh (A-05); in
             // landscape it is given the whole height so the rows share it (L-16).
             GeometryReader { geo in
                 ScrollView {
                     BoardTable(rows: (1...board.numLanes).map { BoardRow($0, board[lane: $0]) },
                                columns: Columns(ctx.settings), labels: ctx.labels,
-                               isLandscape: isLandscape, height: geo.size.height)
+                               isLandscape: isLandscape,
+                                   height: max(0, geo.size.height - BoardTable.bottomGap))
                 }
                 .refreshable { await ctx.refresh() }
             }

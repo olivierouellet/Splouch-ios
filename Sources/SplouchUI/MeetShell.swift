@@ -140,10 +140,33 @@ struct MeetShell: View {
         return parts.isEmpty ? nil : parts.joined(separator: " \u{00B7} ")
     }
 
+    /// Landscape is short of height and the navigation bar was mostly empty —
+    /// a back button in the corner and nothing beside it, with the board's own
+    /// EVENT / HEAT / clock row stacked underneath. On a board tab the bar
+    /// takes that row instead, which buys back its whole height.
+    private var showsBoardInBar: Bool { isLandscape && tab.wrappedValue != .schedule }
+
+    @ViewBuilder private var barBoardHeader: some View {
+        if tab.wrappedValue == .results {
+            let snapshot = ctx.session.results
+            BoardHeader(event: snapshot?.event ?? "", heat: snapshot?.heat ?? "",
+                        eventName: snapshot.map { ctx.eventName($0.eventName, parts: $0.eventNameParts) } ?? "",
+                        labels: ctx.labels, compact: true, showsClock: false)
+        } else {
+            let board = ctx.session.scoreboard
+            BoardHeader(event: board.currentEvent, heat: board.currentHeat,
+                        eventName: ctx.eventName(board.eventName, parts: board.eventNameParts),
+                        labels: ctx.labels, compact: true, showsClock: false)
+        }
+    }
+
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {
-        // The title alone is `navigationTitle`; with a subtitle it becomes a
-        // two-line principal item, which is the only place iOS 17 has for one.
-        if let subtitle {
+        if showsBoardInBar {
+            ToolbarItem(placement: .principal) { barBoardHeader }
+            ToolbarItem(placement: .primaryAction) { WallClock(size: 15) }
+        } else if let subtitle {
+            // The title alone is `navigationTitle`; with a subtitle it becomes a
+            // two-line principal item, which is the only place iOS 17 has for one.
             ToolbarItem(placement: .principal) {
                 VStack(spacing: 0) {
                     Text(ctx.title).font(.headline).fitOneLine()
