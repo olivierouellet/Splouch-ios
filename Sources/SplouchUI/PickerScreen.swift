@@ -11,6 +11,7 @@ struct PickerScreen: View {
     let openPi: () async -> Void
 
     @State private var showServers = false
+    @State private var showLanguages = false
 
     private var strings: StringTable { app.strings }
     private var picker: PickerConfig? { app.picker }
@@ -51,6 +52,7 @@ struct PickerScreen: View {
         .overlay { if app.loading && app.meets.isEmpty { ProgressView() } }
         .toolbar { toolbar }
         .sheet(isPresented: $showServers) { ServerSheet(app: app) }
+        .sheet(isPresented: $showLanguages) { LanguageSheet(app: app) }
         // The picker has no meet to theme it, so it keeps the web picker's dark
         // whatever the device is set to. A meet's own screens follow the board
         // instead — see MeetShell. The greys are the system's grouped-background
@@ -151,14 +153,9 @@ struct PickerScreen: View {
                 Button { showServers = true } label: {
                     Label(Native.server, systemImage: "server.rack")
                 }
-                Picker(selection: Binding(get: { app.preferences.language ?? "" },
-                                          set: { v in Task { await app.setLanguage(v.isEmpty ? nil : v) } })) {
-                    Text(strings.mobile("language_auto")).tag("")
-                    ForEach(app.locales, id: \.code) { Text($0.name).tag($0.code) }
-                } label: {
+                Button { showLanguages = true } label: {
                     Label(strings.mobile("language"), systemImage: "globe")
                 }
-                .pickerStyle(.menu)
                 Picker(selection: Binding(get: { app.preferences.labelStyle },
                                           set: { app.setLabelStyle($0) })) {
                     Text(strings.mobile("prefs_short")).tag(SplouchCore.LabelStyle.short)

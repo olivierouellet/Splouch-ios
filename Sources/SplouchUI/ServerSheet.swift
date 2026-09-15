@@ -36,24 +36,42 @@ struct ServerSheet: View {
                         ForEach(bonjour.found) { f in row(f.name, f.address) }
                     }
                 }
-                Section(Native.addServer) {
-                    TextField(Native.serverPlaceholder, text: $typed)
-                        .textContentType(.URL)
-                        .autocorrectionDisabled()
-                        #if os(iOS)
-                        .keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
-                        #endif
-                        .onSubmit { Task { await add() } }
-                    Button { Task { await add() } } label: {
-                        HStack {
-                            Text(checking ? Native.checking : Native.addServer)
-                            if checking { ProgressView().padding(.leading, 8) }
+                // One row, not three. The section header already says "Add
+                // server", so a button repeating it underneath was the same
+                // words twice and a row that did nothing until the field was
+                // filled. The field submits itself — return key, or the arrow
+                // that appears once there is something to send — and the
+                // footer carries the progress and the error.
+                Section {
+                    HStack(spacing: 8) {
+                        TextField(Native.serverPlaceholder, text: $typed)
+                            .textContentType(.URL)
+                            .autocorrectionDisabled()
+                            #if os(iOS)
+                            .keyboardType(.URL)
+                            .textInputAutocapitalization(.never)
+                            .submitLabel(.go)
+                            #endif
+                            .onSubmit { Task { await add() } }
+                        if checking {
+                            ProgressView()
+                        } else if !typed.trimmingCharacters(in: .whitespaces).isEmpty {
+                            Button { Task { await add() } } label: {
+                                Image(systemName: "arrow.up.circle.fill")
+                                    .font(.title2)
+                                    .symbolRenderingMode(.hierarchical)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(Native.addServer)
                         }
                     }
-                    .disabled(typed.trimmingCharacters(in: .whitespaces).isEmpty || checking)
-                    if let checkError {
-                        Text(checkError).font(.footnote).foregroundStyle(.red)
+                } header: {
+                    Text(Native.addServer)
+                } footer: {
+                    if checking {
+                        Text(Native.checking)
+                    } else if let checkError {
+                        Text(checkError).foregroundStyle(.red)
                     }
                 }
             }
