@@ -11,47 +11,60 @@ struct FilterSheet: View {
     @State private var confirmReset = false
 
     private var strings: StringTable { ctx.strings }
+    /// Searching replaces the sheet's contents, the way a search over a list
+    /// does everywhere else on the platform.
+    private var searching: Bool { !query.trimmingCharacters(in: .whitespaces).isEmpty }
 
     var body: some View {
         NavigationStack {
             List {
-                Section {
-                    TextField(strings.mobile("search_placeholder"), text: $query)
-                        .autocorrectionDisabled()
-                        #if os(iOS)
-                        .textInputAutocapitalization(.never)   // a name search, folded either way
-                        #endif
-                        // S-09: no debounce — the old ~220ms wait spared the
-                        // server, and over a local index it is only lag.
-                        .onChange(of: query) { _, q in suggestions = ctx.suggestions.search(q) }
-                        // S-21: a new start list rebuilt the index under us.
-                        .onChange(of: ctx.schedule) { _, _ in suggestions = ctx.suggestions.search(query) }
-                    if suggestions.isEmpty, !query.trimmingCharacters(in: .whitespaces).isEmpty {
-                        Text(strings.mobile("no_search_results")).foregroundStyle(.secondary)   // S-19
+                if searching {
+                    Section {
+                        if suggestions.isEmpty {
+                            Text(strings.mobile("no_search_results")).foregroundStyle(.secondary)   // S-19
+                        }
+                        ForEach(Array(suggestions.enumerated()), id: \.offset) { _, s in
+                            suggestionRow(s)
+                        }
                     }
-                    ForEach(Array(suggestions.enumerated()), id: \.offset) { _, s in
-                        suggestionRow(s)
+                } else {
+                    Section {
+                        if ctx.filter.isFiltering {
+                            chips
+                        } else {
+                            Text(strings.mobile("no_filters")).foregroundStyle(.secondary)
+                        }
                     }
-                }
-                Section {
-                    if ctx.filter.isFiltering {
-                        chips
-                    } else {
-                        Text(strings.mobile("no_filters")).foregroundStyle(.secondary)
+                    Section {
+                        Toggle(strings.mobile("show_all_heats"), isOn: $ctx.filter.showAllHeats)   // S-16
+                        Toggle(strings.mobile("upcoming_only"), isOn: $ctx.filter.upcomingOnly)   // S-17
+                        Button(role: .destructive) { confirmReset = true } label: {
+                            Text(strings.mobile("reset_filters"))
+                        }
+                        .disabled(ctx.filter == ScheduleFilter())
                     }
-                }
-                Section {
-                    Toggle(strings.mobile("show_all_heats"), isOn: $ctx.filter.showAllHeats)   // S-16
-                    Toggle(strings.mobile("upcoming_only"), isOn: $ctx.filter.upcomingOnly)   // S-17
-                    Button(role: .destructive) { confirmReset = true } label: {
-                        Text(strings.mobile("reset_filters"))
-                    }
-                    .disabled(ctx.filter == ScheduleFilter())
                 }
             }
+            // The platform's search field, which brings its own Cancel, clear
+            // button and keyboard handling.
+            .searchable(text: $query, placement: Self.searchPlacement, prompt: strings.mobile("search_placeholder"))
+            .autocorrectionDisabled()
+            #if os(iOS)
+            .textInputAutocapitalization(.never)   // a name search, folded either way
+            #endif
+            // S-09: no debounce — the old ~220ms wait spared the server, and
+            // over a local index it is only lag.
+            .onChange(of: query) { _, q in suggestions = ctx.suggestions.search(q) }
+            // S-21: a new start list rebuilt the index under us.
+            .onChange(of: ctx.schedule) { _, _ in suggestions = ctx.suggestions.search(query) }
             .navigationTitle(strings.mobile("filter"))
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) { doneButton }
+                // It only dismisses: every control here already writes straight
+                // to `ctx.filter`, so the schedule is filtered before this is
+                // tapped.
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(Native.done) { dismiss() }
+                }
             }
             // S-18: the dialog brings the platform's own Cancel.
             .confirmationDialog(strings.mobile("reset_confirm"), isPresented: $confirmReset, titleVisibility: .visible) {
@@ -60,17 +73,14 @@ struct FilterSheet: View {
         }
     }
 
-    /// A green checkmark rather than the platform's close role, whose `X` reads
-    /// as "discard" over a sheet whose whole content is the filters. The same
-    /// button on every OS version, so the gesture does not change under the user.
-    /// It only dismisses: every control here already writes straight to
-    /// `ctx.filter`, so the schedule is filtered before this is tapped.
-    private var doneButton: some View {
-        Button { dismiss() } label: {
-            Label(Native.done, systemImage: "checkmark.circle.fill")
-                .labelStyle(.iconOnly)
-        }
-        .tint(.green)
+    /// Pinned open: this sheet is a filter, so hiding the field until the list
+    /// is dragged down would hide the point of the screen.
+    private static var searchPlacement: SearchFieldPlacement {
+        #if os(iOS)
+        .navigationBarDrawer(displayMode: .always)
+        #else
+        .automatic
+        #endif
     }
 
     // S-10: type, name, club; already-added ones are marked and inert.
