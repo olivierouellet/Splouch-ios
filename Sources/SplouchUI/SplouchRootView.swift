@@ -15,40 +15,23 @@ public struct SplouchRootView: View {
     }
 
     public var body: some View {
-        ZStack {
-            if let meet {
-                MeetShell(ctx: meet, app: app) {
-                    if meet.gone { openError = Native.meetGone }   // A-09
-                    Task { await meet.stop() }
-                    self.meet = nil
-                }
-                // A fade, not a slide: the meet screen carries the paged
-                // TabView (A-03), whose UIPageViewController measures itself
-                // while the transition is still moving and keeps the content
-                // offset it read mid-slide. Opening a meet with the device
-                // already in landscape then left the board a few points off,
-                // the neighbouring page's leading edge showing down the right
-                // until the pager was nudged. Nothing here may animate its
-                // geometry; opacity is safe.
-                .transition(.opacity)   // paired with the picker's, below
-            } else {
-                NavigationStack {
-                    PickerScreen(app: app, opening: opening) { summary in
-                        await open { try await app.open(summary) }
-                    } openPi: {
-                        await open { try await app.openPi() }
-                    }
-                    #if os(iOS)
-                    .toolbarTitleDisplayMode(.inline)
-                    #endif
-                }
-                // The picker has no pager and could still slide, but a screen
-                // sliding against one that fades reads as a glitch rather than
-                // a direction. The pair cross-fades both ways instead.
-                .transition(.opacity)
+        // A-02: the meet is pushed onto the picker's stack, so the way back is
+        // the system's own back button and edge swipe rather than a chevron
+        // parked in the tab bar. Both routes pop through `showingMeet`, which
+        // is the single place the session is torn down.
+        NavigationStack {
+            PickerScreen(app: app, opening: opening) { summary in
+                await open { try await app.open(summary) }
+            } openPi: {
+                await open { try await app.openPi() }
+            }
+            #if os(iOS)
+            .toolbarTitleDisplayMode(.inline)
+            #endif
+            .navigationDestination(isPresented: showingMeet) {
+                if let meet { MeetShell(ctx: meet, app: app) }
             }
         }
-        .animation(.default, value: meet == nil)
         .preferredColorScheme(.dark)   // the picker is the web picker's dark; a meet themes itself
         .task {
             await app.start()
@@ -65,6 +48,18 @@ public struct SplouchRootView: View {
         }
         // No actions: the platform supplies its own OK.
         .alert(openError ?? "", isPresented: Binding(get: { openError != nil }, set: { if !$0 { openError = nil } })) {}
+    }
+
+    private var showingMeet: Binding<Bool> {
+        Binding(get: { meet != nil }, set: { if !$0 { close() } })
+    }
+
+    /// Popped, by the back button, the edge swipe, or A-09's `dismiss()`.
+    private func close() {
+        guard let meet else { return }
+        if meet.gone { openError = Native.meetGone }   // A-09
+        Task { await meet.stop() }
+        self.meet = nil
     }
 
     private func open(_ make: () async throws -> MeetContext) async {

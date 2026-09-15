@@ -50,7 +50,6 @@ struct BoardHeader: View {
     let labels: [String: String]
     @Environment(\.palette) private var palette
     @Environment(\.faces) private var faces
-    @Environment(\.sideInset) private var sideInset
 
     var body: some View {
         HStack(alignment: .center, spacing: 16) {
@@ -63,7 +62,7 @@ struct BoardHeader: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             WallClock()
         }
-        .padding(.horizontal, 12 + sideInset)
+        .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(palette.headerBg)
         .overlay(alignment: .bottom) { palette.headerBorder.frame(height: 1) }
@@ -113,7 +112,6 @@ struct BoardTable: View {
     let height: CGFloat
     @Environment(\.palette) private var palette
     @Environment(\.faces) private var faces
-    @Environment(\.sideInset) private var sideInset
 
     var body: some View {
         let rowFont = isLandscape ? max(11, min(32, height * 0.42 / CGFloat(max(1, rows.count)))) : 17
@@ -148,7 +146,7 @@ struct BoardTable: View {
         }
         .font(faces.text(max(10, size * 0.55)))
         .foregroundStyle(palette.thText)
-        .padding(.horizontal, 8 + sideInset)
+        .padding(.horizontal, 8)
         .padding(.vertical, 4)
         .background(palette.thBg)
     }
@@ -171,7 +169,6 @@ struct PortraitRow: View {
     let columns: Columns
     @Environment(\.palette) private var palette
     @Environment(\.faces) private var faces
-    @Environment(\.sideInset) private var sideInset
 
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
@@ -201,7 +198,7 @@ struct PortraitRow: View {
                 }
             }
         }
-        .padding(.horizontal, 10 + sideInset)
+        .padding(.horizontal, 10)
         .padding(.vertical, 6)
     }
 }
@@ -213,7 +210,6 @@ struct LandscapeRow: View {
     let size: CGFloat
     @Environment(\.palette) private var palette
     @Environment(\.faces) private var faces
-    @Environment(\.sideInset) private var sideInset
 
     var body: some View {
         HStack(spacing: 8) {
@@ -239,7 +235,7 @@ struct LandscapeRow: View {
                     .frame(width: 50, alignment: .trailing)
             }
         }
-        .padding(.horizontal, 8 + sideInset)
+        .padding(.horizontal, 8)
     }
 }
 
