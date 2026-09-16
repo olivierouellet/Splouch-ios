@@ -355,8 +355,9 @@ struct LaneNumber: View {
     }
 }
 
-/// L-11: running is dimmed; a stop plays a one-shot flash from white to the
-/// timing colour, keyed on the edge generation so a second finish replays it.
+/// L-11: running is dimmed; a stop plays a one-shot flash from the row's own
+/// text colour to the timing colour, keyed on the edge generation so a second
+/// finish replays it.
 struct TimeCell: View {
     let text: String
     let style: TimeStyle
@@ -383,10 +384,21 @@ struct TimeCell: View {
             }
     }
 
+    // Both of these were fixed greys — `Color(white: 0.63)` and `.white` — from
+    // a board that was only ever dark. A light theme (`white.toml` ships one)
+    // turns the first into pale grey on near-white and the second into a flash
+    // that cannot be seen at all, which is the one moment on the board that has
+    // to be.
+    //
+    // `rowText` at 70% lands within a couple of percent of the old grey on the
+    // dark board, because it dims against the row it sits on rather than
+    // against an assumed black; and the flash starts from whatever the row
+    // writes its text in, which is the highest-contrast colour the theme has
+    // against that row whichever way round it is.
     private var color: Color {
         switch style {
-        case .running: Color(white: 0.63)
-        case .locked: flashing ? .white : palette.time
+        case .running: palette.rowText.opacity(0.7)
+        case .locked: flashing ? palette.rowText : palette.time
         case .plain: palette.time
         }
     }

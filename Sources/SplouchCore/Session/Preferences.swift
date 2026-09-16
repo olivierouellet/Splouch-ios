@@ -13,6 +13,21 @@ public struct SavedServer: Sendable, Codable, Equatable, Identifiable {
     }
 }
 
+/// Light or dark for the app's own chrome (P-15). A meet themes itself (app.md
+/// §7), so this governs the picker and the sheets over it; inside a meet the
+/// board's own background decides, which is why there is no "follow the meet"
+/// case here and no way to force a board light that an operator set dark.
+///
+/// `dark` rather than `auto` by default: the picker was pinned dark since the
+/// web page it came from, and a spectator who never opens this menu should see
+/// the app they saw yesterday.
+public enum Appearance: String, Sendable, Codable, CaseIterable {
+    case dark
+    case light
+    /// Follow the device.
+    case auto
+}
+
 /// Per-device choices. Filters are deliberately not here (S-20).
 public struct Preferences: Sendable, Codable, Equatable {
     /// T-08: nil follows each meet's locale (T-06).
@@ -29,14 +44,17 @@ public struct Preferences: Sendable, Codable, Equatable {
     /// returns. To revert: offer the picker again (PickerScreen.toolbar) and
     /// return `labelStyle` here.
     public var effectiveLabelStyle: LabelStyle { .long }
+    /// P-15: the app's own light/dark, `dark` until the user says otherwise.
+    public var appearance: Appearance
     /// P-11: nil is the default cloud.
     public var server: ServerAddress?
     public var savedServers: [SavedServer]
 
-    public init(language: String? = nil, labelStyle: LabelStyle = .long, server: ServerAddress? = nil,
-                savedServers: [SavedServer] = []) {
+    public init(language: String? = nil, labelStyle: LabelStyle = .long, appearance: Appearance = .dark,
+                server: ServerAddress? = nil, savedServers: [SavedServer] = []) {
         self.language = language
         self.labelStyle = labelStyle
+        self.appearance = appearance
         self.server = server
         self.savedServers = savedServers
     }
@@ -49,6 +67,9 @@ public struct Preferences: Sendable, Codable, Equatable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         language = try c.decodeIfPresent(String.self, forKey: .language)
         labelStyle = try c.decodeIfPresent(LabelStyle.self, forKey: .labelStyle) ?? .long
+        // Stored before the control existed: the app was pinned dark, so that is
+        // what those devices were seeing and what they keep.
+        appearance = try c.decodeIfPresent(Appearance.self, forKey: .appearance) ?? .dark
         server = try c.decodeIfPresent(ServerAddress.self, forKey: .server)
         savedServers = try c.decodeIfPresent([SavedServer].self, forKey: .savedServers) ?? []
     }

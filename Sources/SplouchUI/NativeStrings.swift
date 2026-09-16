@@ -20,4 +20,10 @@ enum Native {
     static var serverUnreachable: String { String(localized: "server_unreachable", bundle: .module) }
     static var notSplouch: String { String(localized: "not_splouch", bundle: .module) }
     static var invalidAddress: String { String(localized: "invalid_address", bundle: .module) }
+    // P-15. Light and dark are about the device, not about anything a web page
+    // shows, so the words are the app's (T-05) and the server serves none.
+    static var appearance: String { String(localized: "appearance", bundle: .module) }
+    static var appearanceDark: String { String(localized: "appearance_dark", bundle: .module) }
+    static var appearanceLight: String { String(localized: "appearance_light", bundle: .module) }
+    static var appearanceAuto: String { String(localized: "appearance_auto", bundle: .module) }
 }

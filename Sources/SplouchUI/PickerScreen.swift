@@ -65,12 +65,10 @@ struct PickerScreen: View {
         .toolbar { toolbar }
         .sheet(isPresented: $showServers) { ServerSheet(app: app) }
         .sheet(isPresented: $showLanguages) { LanguageSheet(app: app) }
-        // The picker has no meet to theme it, so it keeps the web picker's dark
-        // whatever the device is set to. A meet's own screens follow the board
-        // instead — see MeetShell. The greys are the system's grouped-background
-        // ones rather than the stylesheet's hex, so they track Increase Contrast
-        // and match every other app on the device.
-        .preferredColorScheme(.dark)
+        // The greys are the system's grouped-background ones rather than the
+        // stylesheet's hex, so they track Increase Contrast, match every other
+        // app on the device, and follow whichever scheme P-15 resolves to —
+        // which SplouchRootView owns for the whole window.
     }
 
     @ViewBuilder private var meets: some View {
@@ -192,6 +190,18 @@ struct PickerScreen: View {
                 Button { showLanguages = true } label: {
                     Label(strings.mobile("language"), systemImage: "globe")
                 }
+                // P-15. A menu Picker rather than a sheet of its own: three
+                // fixed choices the app owns, unlike the server list and the
+                // language list, which are both served and both open-ended.
+                Picker(selection: Binding(get: { app.preferences.appearance },
+                                          set: { app.setAppearance($0) })) {
+                    Text(Native.appearanceDark).tag(SplouchCore.Appearance.dark)
+                    Text(Native.appearanceLight).tag(SplouchCore.Appearance.light)
+                    Text(Native.appearanceAuto).tag(SplouchCore.Appearance.auto)
+                } label: {
+                    Label(Native.appearance, systemImage: "circle.lefthalf.filled")
+                }
+                .pickerStyle(.menu)
                 // T-09's short/long control, withdrawn: every meet renders the
                 // long labels (Preferences.effectiveLabelStyle). Kept rather
                 // than deleted so putting it back is uncommenting this and

@@ -64,10 +64,6 @@ struct MeetShell: View {
             .background(palette.bg.ignoresSafeArea())
             .environment(\.palette, palette)
             .environment(\.faces, faces)
-            // A meet themes itself (app.md §7), so the system chrome over it —
-            // sheets, alerts, the menu — follows the board rather than the
-            // picker's dark. The picker keeps its own scheme.
-            .preferredColorScheme(RGBA(hex: ctx.colors.bg).isDark ? .dark : .light)
             .navigationTitle(ctx.title)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)

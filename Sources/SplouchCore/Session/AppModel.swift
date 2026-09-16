@@ -161,6 +161,15 @@ public final class AppModel {
         await load()
     }
 
+    /// P-15. Device-local and immediate: nothing is re-fetched, the window just
+    /// redraws in the chosen scheme.
+    public func setAppearance(_ appearance: Appearance) {
+        var p = preferences
+        p.appearance = appearance
+        preferences = p
+        preferencesStore.save(p)
+    }
+
     public func setLabelStyle(_ style: LabelStyle) {
         var p = preferences
         p.labelStyle = style

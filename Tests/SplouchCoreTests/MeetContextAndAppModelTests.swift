@@ -220,6 +220,24 @@ import Testing
         #expect(store.load().language == "fr")
         app.setLabelStyle(.long)
         #expect(store.load().labelStyle == .long)
+        // P-15: dark until the user says otherwise, then persisted.
+        #expect(store.load().appearance == .dark)
+        app.setAppearance(.auto)
+        #expect(app.preferences.appearance == .auto)
+        #expect(store.load().appearance == .auto)
+    }
+
+    /// P-15: preferences written before the control existed carry no key, and
+    /// those devices were seeing a pinned-dark app, so that is what they keep.
+    @Test func storedPreferencesWithoutAnAppearanceStayDark() throws {
+        let older = Data(#"{"labelStyle":"long","savedServers":[]}"#.utf8)
+        #expect(try JSONDecoder().decode(Preferences.self, from: older).appearance == .dark)
+        let light = Data(#"{"appearance":"light","savedServers":[]}"#.utf8)
+        #expect(try JSONDecoder().decode(Preferences.self, from: light).appearance == .light)
+        // And it survives a round trip rather than being dropped on the way out.
+        let round = try JSONDecoder().decode(Preferences.self,
+                                             from: try JSONEncoder().encode(Preferences(appearance: .auto)))
+        #expect(round.appearance == .auto)
     }
 
     @Test func languageListStartsFromTheSnapshotAndSurvivesAFailedRefresh() async {
