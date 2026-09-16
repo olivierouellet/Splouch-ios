@@ -80,6 +80,30 @@ import Testing
         ]
     }
 
+    /// The seed column is sized from the widest time on screen, so the club
+    /// beside it lands in the same place on every row.
+    @Test func widestSeedTimeSizesTheColumn() {
+        func heat(_ times: [String]) -> ScheduleHeat {
+            ScheduleHeat(event: "1", heat: "1", eventName: "", eventNameParts: nil, time: "",
+                         lanes: times.enumerated().map { i, t in
+                             ScheduleLane(lane: i + 1, name: "N", club: "C", seedTime: t, swimmers: [])
+                         })
+        }
+        func widest(_ heats: [ScheduleHeat]) -> String {
+            ScheduleView.widestSeedTime(ScheduleView.visible(heats, filter: ScheduleFilter(), current: nil))
+        }
+        // Across cards, not within one: the column spans the whole screen.
+        #expect(widest([heat(["NT", "57.40"]), heat(["1:04.219"])]) == "1:04.219")
+        // "NT" is the widest thing there is when nothing else has a time, so a
+        // meet with no seed times reserves two characters rather than eight.
+        #expect(widest([heat(["NT", "NT"])]) == "NT")
+        // Nothing on screen carries one: no column at all.
+        #expect(widest([heat(["", ""])]) == "")
+        #expect(widest([]) == "")
+        // A lane with no time still sits in the column the others set.
+        #expect(widest([heat(["", "1:02.41"])]) == "1:02.41")
+    }
+
     @Test func noFilterShowsEverythingWithStripes() {
         let v = ScheduleView.visible(heats, filter: ScheduleFilter(), current: nil)
         #expect(v.count == 4)

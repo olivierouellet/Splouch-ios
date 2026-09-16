@@ -11,6 +11,10 @@ struct ScheduleTab: View {
     var body: some View {
         let heats = ctx.schedule?.heats ?? []
         let visible = ScheduleView.visible(heats, filter: ctx.filter, current: ctx.currentHeat)
+        // One seed column for the whole screen, not one per card: a spectator
+        // scrolling past a hundred heats reads the times as a column, and a
+        // width that changed card to card would undo that.
+        let seedTemplate = ScheduleView.widestSeedTime(visible)
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 0) {
@@ -37,7 +41,8 @@ struct ScheduleTab: View {
                         }
                     } else {
                         ForEach(visible, id: \.heat.id) { v in
-                            HeatCard(heat: v, labels: ctx.labels, eventName: ctx.eventName(v.heat.eventName, parts: v.heat.eventNameParts))
+                            HeatCard(heat: v, labels: ctx.labels, eventName: ctx.eventName(v.heat.eventName, parts: v.heat.eventNameParts),
+                                     seedTemplate: seedTemplate)
                                 .id(v.heat.id)
                         }
                     }
@@ -67,6 +72,9 @@ struct HeatCard: View {
     let heat: VisibleHeat
     let labels: [String: String]
     let eventName: String
+    /// The widest seed time on screen, which sizes the seed column. Empty when
+    /// no lane has one — see `seedColumn`.
+    let seedTemplate: String
     @Environment(\.palette) private var palette
     @Environment(\.faces) private var faces
     /// The schedule is the screen a spectator reads hardest — hunting one name
@@ -141,6 +149,45 @@ struct HeatCard: View {
         .accessibilityAddTraits(.isHeader)
     }
 
+    /// The seed time in a column of its own, as wide as the widest one on screen
+    /// and with its value at the trailing edge.
+    ///
+    /// The club and the time used to be packed against the right edge at their
+    /// natural widths, so the club's position followed the width of the time
+    /// beside it and the codes zig-zagged down the card. A lane with no time
+    /// reads "NT", six characters narrower than "1:04.219", which threw its
+    /// club that much further out; but "57.40" against "1:04.219" was already
+    /// enough to break the column on any ordinary heat. Sizing from a hidden
+    /// copy of the longest string rather than a constant keeps the column as
+    /// narrow as the meet actually needs — a schedule of "NT" reserves two
+    /// characters, not eight.
+    ///
+    /// Never wrapped: a seed time broken across two lines reads as two times.
+    ///
+    /// 14pt, the club's size, because the two were one size in the stylesheet
+    /// this screen came from (12 each) and the pass that lifted the row to
+    /// platform body sizes moved the club and missed the time.
+    @ViewBuilder private func seedColumn(_ lane: ScheduleLane) -> some View {
+        if !seedTemplate.isEmpty {
+            let font = faces.timing(14 * typeScale)
+            Text(seedTemplate)
+                .font(font)
+                .lineLimit(1)
+                .fixedSize()
+                // Out of the drawing and out of the accessibility tree: it is
+                // a ruler, and VoiceOver reading every lane's column width
+                // before its time would be worse than the misalignment.
+                .hidden()
+                .overlay(alignment: .trailing) {
+                    Text(lane.seedTime)
+                        .font(font)
+                        .foregroundStyle(palette.scheduleTime)
+                        .lineLimit(1)
+                        .fixedSize()
+                }
+        }
+    }
+
     @ViewBuilder private func laneRow(_ lane: ScheduleLane) -> some View {
         let number = Text(String(lane.lane)).font(faces.text(15 * typeScale))
             .foregroundStyle(palette.thText).frame(width: laneColumn, alignment: .trailing)
@@ -148,16 +195,7 @@ struct HeatCard: View {
             .foregroundStyle(palette.scheduleName)
         let club = lane.club.isEmpty ? nil :
             Text(lane.club).font(faces.text(14 * typeScale)).foregroundStyle(palette.scheduleClub)
-        // Never wrapped: a seed time broken across two lines reads as two times.
-        //
-        // 14, the club's size, because the two were one size in the stylesheet
-        // this screen came from (12 each) and the pass that lifted the row to
-        // platform body sizes moved the club and missed the time. It sat two
-        // points under the code beside it for no reason anyone chose, and it is
-        // the half of the pair a spectator is actually comparing.
-        let seed = lane.seedTime.isEmpty ? nil :
-            Text(lane.seedTime).font(faces.timing(14 * typeScale)).foregroundStyle(palette.scheduleTime)
-                .lineLimit(1).fixedSize()
+        let seed = seedColumn(lane)
 
         if stacked {
             VStack(alignment: .leading, spacing: 2) {

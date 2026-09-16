@@ -135,6 +135,17 @@ public enum ScheduleView {
         return out
     }
 
+    /// The widest seed time among the cards on screen, as the string to size the
+    /// seed column from. Empty when no lane on screen carries one, which is the
+    /// signal to draw no column at all.
+    ///
+    /// Longest by character count rather than by measured width: every face the
+    /// timing slot can take is monospaced (`Faces.bundled`, and the fallback is
+    /// `.system(design: .monospaced)`), so the longest string is the widest one.
+    public static func widestSeedTime(_ visible: [VisibleHeat]) -> String {
+        visible.lazy.flatMap(\.lanes).map(\.seedTime).max { $0.count < $1.count } ?? ""
+    }
+
     /// S-03: relay members' first names joined by `·`, falling back to each
     /// member's full name, then the lane's display name, then `—`.
     public static func displayName(_ lane: ScheduleLane) -> String {
