@@ -62,10 +62,26 @@ struct BoardHeader: View {
         HStack(alignment: .center, spacing: compact ? 12 : 16) {
             labelled(labels["event"] ?? "", event)
             labelled(labels["heat"] ?? "", heat)
+            // Portrait wraps rather than truncating. The name is the longest
+            // thing in the row and portrait is the narrow axis: a composed
+            // relay name runs to 46 characters — "4x200 m quatre nages relais
+            //   —  Garçons Sénior" — against room for about 29 at the 0.6
+            // floor, so one line dropped the gender and the age group
+            // entirely, not a word or two off the end. The limit is 2, not a
+            // wrap with no ceiling, so the board below keeps a known height.
+            // Landscape stays on one line whatever it costs: that copy lives
+            // in the navigation bar, which is one row high (see MeetShell).
             Text(eventName)
                 .font(faces.text(compact ? 13 : 16))
                 .foregroundStyle(palette.headerValue)
-                .fitOneLine(minimumScale: 0.6)
+                .lineLimit(compact ? 1 : 2)
+                .minimumScaleFactor(0.6)
+                .truncationMode(.tail)
+                .multilineTextAlignment(.center)
+                // A wrapped line is taller than the font, and an HStack hands
+                // a Text its ideal height unless it is told to take the height
+                // the width it got actually needs.
+                .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .center)
             if showsClock { WallClock(size: compact ? 15 : 22) }
         }
