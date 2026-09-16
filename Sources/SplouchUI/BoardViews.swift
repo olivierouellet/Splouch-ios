@@ -156,9 +156,38 @@ struct BoardTable: View {
     @Environment(\.palette) private var palette
     @Environment(\.faces) private var faces
 
+    /// How tall a row's type may be, as a fraction of the height that row is
+    /// given. It was 0.42, which left well over half of every row as leading:
+    /// on a six-lane board in landscape the rows are 55pt tall and the numbers a
+    /// spectator came to read were set at 23. A `LandscapeRow` has no vertical
+    /// padding at all, so this — not padding — is the whole of what held them
+    /// down. 0.55 still leaves room for a name with an alt line under it
+    /// (0.85 + 0.55 of the row font, so 77% of the row).
+    private static let typeShare: CGFloat = 0.55
+    /// Below this the column titles cost more height than their words are worth,
+    /// so the table drops them and gives the band back to the lanes.
+    private static let headerFloor: CGFloat = 14
+
+    /// The row font, and whether the titles survive at that size. Sized once with
+    /// the header's band withheld; if that comes out cramped the header goes and
+    /// the rows are sized again over the whole height.
+    private func landscapeType() -> (rowFont: CGFloat, showsHeader: Bool) {
+        let count = CGFloat(max(1, rows.count))
+        func font(_ available: CGFloat) -> CGFloat {
+            max(11, min(32, available * Self.typeShare / count))
+        }
+        let withHeader = font(height - Self.headerBand)
+        if withHeader >= Self.headerFloor { return (withHeader, true) }
+        return (font(height), false)
+    }
+
+    /// What `header(size:)` costs: its own line plus 4pt above and below.
+    private static let headerBand: CGFloat = 26
+
     var body: some View {
         let count = CGFloat(max(1, rows.count))
-        let rowFont = isLandscape ? max(11, min(32, height * 0.42 / count)) : 17
+        let landscape = landscapeType()
+        let rowFont = isLandscape ? landscape.rowFont : 17
         // Portrait rows share the height the way the landscape table does, with
         // 52pt as the floor rather than the fixed size. They used to be exactly
         // 52pt under a Spacer, so a six-lane board left a band of bare
@@ -167,7 +196,7 @@ struct BoardTable: View {
         // that is what a table does. A board fills its board.
         let portraitRow = max(52, height / count)
         VStack(spacing: 0) {
-            if isLandscape { header(size: rowFont) }
+            if isLandscape, landscape.showsHeader { header(size: rowFont) }
             ForEach(Array(rows.enumerated()), id: \.offset) { i, row in
                 Group {
                     if isLandscape {
@@ -216,8 +245,8 @@ struct BoardTable: View {
             cell(columns.laneHeader ? labels["lane"] : nil, width: 44)
             if columns.name { cell(columns.nameHeader ? labels["name"] : nil, flex: true) }
             if columns.club { cell(columns.clubHeader ? labels["club"] : nil, width: 140) }
-            cell(columns.timeHeader ? labels["time"] : nil, width: 120, trailing: true)
-            if columns.delta { cell(columns.deltaHeader ? labels["delta"] : nil, width: 90, trailing: true) }
+            cell(columns.timeHeader ? labels["time"] : nil, width: 130, trailing: true)
+            if columns.delta { cell(columns.deltaHeader ? labels["delta"] : nil, width: 110, trailing: true) }
             if columns.place { cell(columns.placeHeader ? labels["place"] : nil, width: 50, trailing: true) }
         }
         .font(faces.text(max(10, size * 0.55)))
@@ -240,6 +269,14 @@ struct BoardTable: View {
 
 /// L-15: lane number spanning the left; name with club right-aligned on line
 /// one; time, delta and place on line two; `#` before a place, nothing without.
+///
+/// The club, the delta and the place read at the name's size rather than four
+/// or five points under it. They were sized as annotations on a row whose only
+/// real content was the name and the time, but on a results board the club and
+/// the place are half of what a spectator is there for, and a delta nobody can
+/// read from a seat is a column of wasted width. Colour still carries the
+/// hierarchy — the club stays `th_text` against the name's `row_text` — so
+/// matching their sizes does not make them compete.
 struct PortraitRow: View {
     let row: BoardRow
     let columns: Columns
@@ -261,15 +298,15 @@ struct PortraitRow: View {
                     }
                     Spacer(minLength: 8)
                     if columns.club {
-                        Text(row.club).font(faces.text(13)).foregroundStyle(palette.thText).fitOneLine()
+                        Text(row.club).font(faces.text(17)).foregroundStyle(palette.thText).fitOneLine()
                     }
                 }
                 HStack(spacing: 12) {
                     TimeCell(text: row.time, style: row.timeStyle, size: 20)
-                    if columns.delta { DeltaCell(text: row.delta, better: row.deltaBetter, size: 14) }
+                    if columns.delta { DeltaCell(text: row.delta, better: row.deltaBetter, size: 17) }
                     Spacer()
                     if columns.place, !row.place.isEmpty {
-                        Text("#" + row.place).font(faces.text(16, weight: .bold)).foregroundStyle(palette.headerLabel)
+                        Text("#" + row.place).font(faces.text(18, weight: .bold)).foregroundStyle(palette.headerLabel)
                     }
                 }
             }
@@ -280,6 +317,13 @@ struct PortraitRow: View {
 }
 
 /// L-16: a full table row.
+///
+/// The time, the delta and the place are set from the row font the way the name
+/// is, rather than two thirds of it. A six-lane board in landscape has height to
+/// spare — the row font only claims 42% of what a row is given — and the three
+/// numbers a spectator came to read were the smallest things on it. The place
+/// takes the full row font: it is one character, it is the answer, and it has a
+/// column to itself. Time and delta gained 10pt of column each to hold it.
 struct LandscapeRow: View {
     let row: BoardRow
     let columns: Columns
@@ -300,14 +344,14 @@ struct LandscapeRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             if columns.club {
-                Text(row.club).font(faces.text(size * 0.68)).foregroundStyle(palette.thText).fitOneLine().frame(width: 140, alignment: .leading)
+                Text(row.club).font(faces.text(size * 0.85)).foregroundStyle(palette.thText).fitOneLine().frame(width: 140, alignment: .leading)
             }
-            TimeCell(text: row.time, style: row.timeStyle, size: size * 0.72).frame(width: 120, alignment: .trailing)
+            TimeCell(text: row.time, style: row.timeStyle, size: size * 0.85).frame(width: 130, alignment: .trailing)
             if columns.delta {
-                DeltaCell(text: row.delta, better: row.deltaBetter, size: size * 0.58).frame(width: 90, alignment: .trailing)
+                DeltaCell(text: row.delta, better: row.deltaBetter, size: size * 0.85).frame(width: 110, alignment: .trailing)
             }
             if columns.place {
-                Text(row.place).font(faces.text(size * 0.8, weight: .bold)).foregroundStyle(palette.headerLabel)
+                Text(row.place).font(faces.text(size, weight: .bold)).foregroundStyle(palette.headerLabel)
                     .frame(width: 50, alignment: .trailing)
             }
         }
@@ -416,5 +460,10 @@ struct DeltaCell: View {
             .font(faces.timing(size))
             .monospacedDigit()
             .foregroundStyle(better == true ? palette.deltaBetter : palette.deltaWorse)
+            // Its column is fixed and it is now set at the name's size, so a
+            // four-lane board at the row-font cap could ask for more width than
+            // the column has. Shrink rather than wrap: a delta on two lines is
+            // not a delta.
+            .fitOneLine(minimumScale: 0.7)
     }
 }
