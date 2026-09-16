@@ -128,12 +128,15 @@ struct HeatCard: View {
         // swimmer among several hundred.
         Group {
             if stacked {
+                // Every line gets the full width. The scheduled time used to
+                // sit beside "Event N — Heat M" here too, and at these sizes it
+                // took a third of the card and left the heading to wrap in what
+                // was left — "EVENT" / "12 —" / "HEAT 1" down a narrow gutter.
+                // Given the whole width the heading breaks once, at a space,
+                // the way a heading should.
                 VStack(alignment: .leading, spacing: 2) {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        time
-                        eventHeat
-                        Spacer(minLength: 0)
-                    }
+                    time?.fixedSize(horizontal: false, vertical: true)
+                    eventHeat.fixedSize(horizontal: false, vertical: true)
                     name?.fixedSize(horizontal: false, vertical: true)
                 }
             } else {
@@ -201,9 +204,12 @@ struct HeatCard: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     number
-                    // Wraps rather than shrinking: at these sizes the name is
-                    // the whole point of the row.
-                    name.lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                    // Wraps rather than shrinking, and to as many lines as it
+                    // takes: at these sizes the name is the whole point of the
+                    // row. A two-line cap was still ellipsising "TREMBLAY,
+                    // Jean-Chri…" at the largest sizes, which is this reflow
+                    // failing at the one job it exists for.
+                    name.fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 0)
                 }
                 HStack(alignment: .firstTextBaseline, spacing: 8) {

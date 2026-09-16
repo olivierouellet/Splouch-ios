@@ -84,9 +84,22 @@ public struct Faces: Equatable, Sendable {
         family = f.family; digits = f.digits; timing = f.timing
     }
 
+    /// `fixedSize:` rather than `size:`, which is not a detail: `Font.custom(_:size:)`
+    /// scales with Dynamic Type all by itself, and `.system(size:weight:design:)`
+    /// below does not. So a bundled face grew with the setting and the fallback
+    /// stood still — and the Schedule tab, which applies its own `typeScale`
+    /// multiplier on top (see `HeatCard`), scaled a bundled face by the *square*
+    /// of the setting. At the largest accessibility size that is 2.67 × 2.67 ≈
+    /// 7×: a 14pt seed time came out around 100pt and its column measured 518pt
+    /// on a 402pt screen, which pushed every card off the side of the display.
+    /// The board's sizes are computed from the height its rows have to share
+    /// (L-16) and were never meant to move either.
+    ///
+    /// Both paths are now fixed, so a size means the same thing whichever face
+    /// the server names, and scaling is the caller's to do and only once.
     public static func font(_ name: String, size: CGFloat, weight: Font.Weight = .regular) -> Font {
         if let ps = bundled[name] ?? bundled.first(where: { $0.key.caseInsensitiveCompare(name) == .orderedSame })?.value {
-            return .custom(ps, size: size)
+            return .custom(ps, fixedSize: size)
         }
         return .system(size: size, weight: weight, design: .monospaced)
     }
