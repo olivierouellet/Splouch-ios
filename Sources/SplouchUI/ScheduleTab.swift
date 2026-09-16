@@ -119,7 +119,12 @@ struct HeatCard: View {
     }
 
     @ViewBuilder private var header: some View {
-        let eventHeat = Text("\(labels["event"] ?? "") \(heat.heat.event) \u{2014} \(labels["heat"] ?? "") \(heat.heat.heat)")
+        // Two spaces where the em dash was. The dash was punctuation between two
+        // things that are not a range or a pair — it cost four characters of the
+        // event name beside it and said nothing the gap does not. Twice the
+        // within-pair gap is what groups "EV 12" against "HT 3" in a monospaced
+        // face, so the reading is the same and the line is shorter.
+        let eventHeat = Text("\(labels["event"] ?? "") \(heat.heat.event)  \(labels["heat"] ?? "") \(heat.heat.heat)")
             .font(faces.text(17 * typeScale, weight: .semibold)).foregroundStyle(palette.scheduleEvent)
         let name = eventName.isEmpty ? nil :
             Text(eventName).font(faces.text(17 * typeScale)).foregroundStyle(palette.rowText)
