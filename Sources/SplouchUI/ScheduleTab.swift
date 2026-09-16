@@ -41,7 +41,7 @@ struct ScheduleTab: View {
                         }
                     } else {
                         ForEach(visible, id: \.heat.id) { v in
-                            HeatCard(heat: v, labels: ctx.labels, eventName: ctx.eventName(v.heat.eventName, parts: v.heat.eventNameParts),
+                            HeatCard(heat: v, labels: ctx.shortLabels, eventName: ctx.eventName(v.heat.eventName, parts: v.heat.eventNameParts),
                                      seedTemplate: seedTemplate)
                                 .id(v.heat.id)
                         }
@@ -70,10 +70,13 @@ extension ScheduleHeat {
 /// S-01 to S-05: one heat as a card.
 struct HeatCard: View {
     let heat: VisibleHeat
+    /// Short forms: the heading says "EV 12 — HT 3", not "EVENT 12 — HEAT 3".
+    /// The pair is repeated once per card and the words buy nothing the numbers
+    /// beside them do not already say.
     let labels: [String: String]
     let eventName: String
     /// The widest seed time on screen, which sizes the seed column. Empty when
-    /// no lane has one — see `seedColumn`.
+    /// no lane has one — see `timingColumn`.
     let seedTemplate: String
     @Environment(\.palette) private var palette
     @Environment(\.faces) private var faces
@@ -116,8 +119,6 @@ struct HeatCard: View {
     }
 
     @ViewBuilder private var header: some View {
-        let time = heat.heat.time.isEmpty ? nil :
-            Text(heat.heat.time).font(faces.timing(13 * typeScale)).foregroundStyle(palette.scheduleTime)
         let eventHeat = Text("\(labels["event"] ?? "") \(heat.heat.event) \u{2014} \(labels["heat"] ?? "") \(heat.heat.heat)")
             .font(faces.text(17 * typeScale, weight: .semibold)).foregroundStyle(palette.scheduleEvent)
         let name = eventName.isEmpty ? nil :
@@ -128,23 +129,32 @@ struct HeatCard: View {
         // swimmer among several hundred.
         Group {
             if stacked {
-                // Every line gets the full width. The scheduled time used to
-                // sit beside "Event N — Heat M" here too, and at these sizes it
-                // took a third of the card and left the heading to wrap in what
-                // was left — "EVENT" / "12 —" / "HEAT 1" down a narrow gutter.
-                // Given the whole width the heading breaks once, at a space,
-                // the way a heading should.
+                // Every line gets the full width. The heading and the scheduled
+                // time shared one here too, and at these sizes the time took a
+                // third of the card and left the heading to wrap in what was
+                // left — "EV" / "12 —" / "HT 1" down a narrow gutter. The time
+                // keeps the trailing column so it still reads down the card
+                // with the seed times; it just no longer takes the heading's
+                // width to do it.
                 VStack(alignment: .leading, spacing: 2) {
-                    time?.fixedSize(horizontal: false, vertical: true)
                     eventHeat.fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 0) {
+                        Spacer(minLength: 0)
+                        timingColumn(heat.heat.time, size: 13)
+                    }
                     name?.fixedSize(horizontal: false, vertical: true)
                 }
             } else {
+                // The scheduled time moved from the front of this row to the
+                // trailing column the seed times sit in, so a card reads as two
+                // columns rather than three loose runs of text: what the heat is
+                // on the left, when it swims on the right, level with every time
+                // below it.
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    time
                     eventHeat
                     name?.fitOneLine(minimumScale: 0.7)
-                    Spacer()
+                    Spacer(minLength: 8)
+                    timingColumn(heat.heat.time, size: 13)
                 }
             }
         }
@@ -152,8 +162,9 @@ struct HeatCard: View {
         .accessibilityAddTraits(.isHeader)
     }
 
-    /// The seed time in a column of its own, as wide as the widest one on screen
-    /// and with its value at the trailing edge.
+    /// The timing column: as wide as the widest seed time on screen, with its
+    /// value at the trailing edge. Both a lane's seed time and a heading's
+    /// scheduled time sit in it, so every time on a card shares one right edge.
     ///
     /// The club and the time used to be packed against the right edge at their
     /// natural widths, so the club's position followed the width of the time
@@ -170,24 +181,32 @@ struct HeatCard: View {
     /// 14pt, the club's size, because the two were one size in the stylesheet
     /// this screen came from (12 each) and the pass that lifted the row to
     /// platform body sizes moved the club and missed the time.
-    @ViewBuilder private func seedColumn(_ lane: ScheduleLane) -> some View {
-        if !seedTemplate.isEmpty {
-            let font = faces.timing(14 * typeScale)
-            Text(seedTemplate)
-                .font(font)
+    /// One value in that column, at the size its own row wants: 14 for a lane's
+    /// seed time, 13 for a heading's scheduled time. Only the ruler is measured,
+    /// so the two sizes still share one right edge.
+    @ViewBuilder private func timingColumn(_ value: String, size: CGFloat) -> some View {
+        if !value.isEmpty || !seedTemplate.isEmpty {
+            let text = Text(value)
+                .font(faces.timing(size * typeScale))
+                .foregroundStyle(palette.scheduleTime)
                 .lineLimit(1)
                 .fixedSize()
-                // Out of the drawing and out of the accessibility tree: it is
-                // a ruler, and VoiceOver reading every lane's column width
-                // before its time would be worse than the misalignment.
-                .hidden()
-                .overlay(alignment: .trailing) {
-                    Text(lane.seedTime)
-                        .font(font)
-                        .foregroundStyle(palette.scheduleTime)
-                        .lineLimit(1)
-                        .fixedSize()
-                }
+            if seedTemplate.isEmpty {
+                // No lane on screen has a seed time, so there is no column to
+                // keep — a heading's time is then the only one here and can sit
+                // at its own width.
+                text
+            } else {
+                Text(seedTemplate)
+                    .font(faces.timing(14 * typeScale))
+                    .lineLimit(1)
+                    .fixedSize()
+                    // Out of the drawing and out of the accessibility tree: it
+                    // is a ruler, and VoiceOver reading every row's column width
+                    // before its time would be worse than the misalignment.
+                    .hidden()
+                    .overlay(alignment: .trailing) { text }
+            }
         }
     }
 
@@ -198,7 +217,7 @@ struct HeatCard: View {
             .foregroundStyle(palette.scheduleName)
         let club = lane.club.isEmpty ? nil :
             Text(lane.club).font(faces.text(14 * typeScale)).foregroundStyle(palette.scheduleClub)
-        let seed = seedColumn(lane)
+        let seed = timingColumn(lane.seedTime, size: 14)
 
         if stacked {
             VStack(alignment: .leading, spacing: 2) {

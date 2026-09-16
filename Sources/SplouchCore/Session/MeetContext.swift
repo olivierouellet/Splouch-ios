@@ -19,6 +19,11 @@ public final class MeetContext {
     public private(set) var settings: MeetSettings
     public private(set) var strings: StringTable
     public private(set) var labels: [String: String]
+    /// The same table in its short forms — `EV` / `HT`, `ÉP` / `SÉR`. The board's
+    /// column headers want the long words (T-04), but the Schedule tab repeats
+    /// "Event N — Heat M" once per card, where the short pair says the same
+    /// thing and leaves the width for the event name and the scheduled time.
+    public private(set) var shortLabels: [String: String]
     public private(set) var colors: ThemeColors
     public private(set) var fonts: ThemeFonts
     /// nil until loaded; empty `heats` is "loaded, no schedule yet" (S-07).
@@ -54,10 +59,13 @@ public final class MeetContext {
         let lang = preferences.language ?? settings.locale
         self.strings = stringsLoader.table(for: lang)
         self.labels = [:]
+        self.shortLabels = [:]
         self.colors = ThemeColors(settings.themeColors)
         self.fonts = ThemeFonts(settings.themeFonts)
         self.labels = LabelResolver.labels(settings: settings, language: preferences.language,
                                            style: preferences.effectiveLabelStyle, table: strings)
+        self.shortLabels = LabelResolver.labels(settings: settings, language: preferences.language,
+                                                style: .short, table: strings)
         session.onReload = { [weak self] in Task { await self?.refresh() } }
         session.onScheduleUpdate = { [weak self] in Task { await self?.loadSchedule() } }
         session.onReconnected = { [weak self] in Task { await self?.checkMeet() } }
@@ -185,6 +193,7 @@ public final class MeetContext {
 
     private func rebuildLabels() {
         labels = LabelResolver.labels(settings: settings, language: language, style: labelStyle, table: strings)
+        shortLabels = LabelResolver.labels(settings: settings, language: language, style: .short, table: strings)
     }
 
     private func refreshStrings() async {
