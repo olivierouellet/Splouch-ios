@@ -40,7 +40,10 @@ import Testing
         connector.connections[0].push(Frame(event: "reload", data: .object([:])))
         #expect(await eventually { @MainActor in ctx.settings.numLanes == 6 })
         #expect(ctx.title == "Open 2")
-        #expect(ctx.colors.bg == "#123456")
+        // P-15: the palette is still decoded off the wire and still reaches
+        // `MeetSettings`, and the app still does not draw from it — the reader's
+        // choice picks between `ThemeColors.dark` and `.light` instead.
+        #expect(ctx.settings.themeColors["bg"] == "#123456")
         #expect(ctx.session.scoreboard.numLanes == 6)
         #expect(!ctx.gone)
         await ctx.stop()
@@ -225,6 +228,19 @@ import Testing
         app.setAppearance(.auto)
         #expect(app.preferences.appearance == .auto)
         #expect(store.load().appearance == .auto)
+    }
+
+    /// P-15: two palettes, both the server's own, and neither of them the meet's.
+    @Test func theTwoPalettesAreTheServersNotTheMeets() {
+        #expect(ThemeColors.dark.bg == "#0d0d0d")
+        #expect(ThemeColors.light.bg == "#f8f8f8")
+        // Every key the struct models has a value in both, so neither can fall
+        // through to the other's default and render a light row in a dark board.
+        #expect(Set(ThemeColors.lightDefaults.keys) == Set(ThemeColors.defaults.keys))
+        #expect(ThemeColors.light.rowText == "#111111")
+        #expect(ThemeColors.dark.rowText == "#e0e0e0")
+        // A meet that names its own colours changes neither.
+        #expect(ThemeColors.dark == ThemeColors())
     }
 
     /// P-15: preferences written before the control existed carry no key, and

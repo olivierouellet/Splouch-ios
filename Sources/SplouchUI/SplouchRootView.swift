@@ -34,12 +34,9 @@ public struct SplouchRootView: View {
                 if let meet { MeetShell(ctx: meet, app: app) }
             }
         }
-        // P-15, and the one place the window's scheme is decided. It used to be
-        // set twice — the picker pinned `.dark` and the shell asked to follow
-        // the board — and the picker's pin, sitting on the stack the shell is
-        // pushed into, won. A meet themed light drew light rows inside a black
-        // navigation bar, a black tab bar and a black background, with the
-        // board's own dark header text on top of it.
+        // P-15, and the one place the window's scheme is decided — the board
+        // reads it back out of the environment for its own palette, so the bars,
+        // the rows and the sheets cannot disagree.
         .preferredColorScheme(scheme)
         .sensoryFeedback(.success, trigger: openCount)
         .task {
@@ -59,13 +56,12 @@ public struct SplouchRootView: View {
         .alert(openError ?? "", isPresented: Binding(get: { openError != nil }, set: { if !$0 { openError = nil } })) {}
     }
 
-    /// Inside a meet the board decides: a meet themes itself (app.md §7), so the
-    /// chrome over it — bars, sheets, alerts — follows the board's background
-    /// rather than a device preference that would fight it. Outside one there is
-    /// no board to follow, so it is the user's choice, and `auto` is nil: the
-    /// device's own.
+    /// P-15, everywhere: the picker, the board and the chrome over both. The meet
+    /// used to decide inside itself, from `settings.theme_colors` — which meant a
+    /// reader who chose Light got it until they opened a meet, which is where
+    /// they were going. `auto` is nil: the device answers, and iOS is free to
+    /// change that with the time of day.
     private var scheme: ColorScheme? {
-        if let meet { return RGBA(hex: meet.colors.bg).isDark ? .dark : .light }
         switch app.preferences.appearance {
         case .dark: return .dark
         case .light: return .light

@@ -24,7 +24,6 @@ public final class MeetContext {
     /// "Event N — Heat M" once per card, where the short pair says the same
     /// thing and leaves the width for the event name and the scheduled time.
     public private(set) var shortLabels: [String: String]
-    public private(set) var colors: ThemeColors
     public private(set) var fonts: ThemeFonts
     /// nil until loaded; empty `heats` is "loaded, no schedule yet" (S-07).
     public private(set) var schedule: Schedule?
@@ -60,7 +59,6 @@ public final class MeetContext {
         self.strings = stringsLoader.table(for: lang)
         self.labels = [:]
         self.shortLabels = [:]
-        self.colors = ThemeColors(settings.themeColors)
         self.fonts = ThemeFonts(settings.themeFonts)
         self.labels = LabelResolver.labels(settings: settings, language: preferences.language,
                                            style: preferences.effectiveLabelStyle, table: strings)
@@ -182,7 +180,6 @@ public final class MeetContext {
     private func apply(settings new: MeetSettings, rejoin: Bool) {
         let changed = new != settings
         settings = new
-        colors = ThemeColors(new.themeColors)
         fonts = ThemeFonts(new.themeFonts)
         if language == nil, strings.language != new.locale {
             strings = stringsLoader.table(for: new.locale)

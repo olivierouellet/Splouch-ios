@@ -56,7 +56,11 @@ struct MeetShell: View {
     private var tab: Binding<MeetTab> {
         Binding(get: { MeetTab(rawValue: tabRaw) ?? .scoreboard }, set: { tabRaw = $0.rawValue })
     }
-    private var palette: Palette { Palette(ctx.colors) }
+    @Environment(\.colorScheme) private var colorScheme
+    /// P-15: the reader's choice, not the meet's. `colorScheme` is whatever
+    /// `SplouchRootView` resolved the preference to — including `auto`, where the
+    /// device answers and iOS is free to change it at dusk.
+    private var palette: Palette { Palette(colorScheme == .dark ? .dark : .light) }
     private var faces: Faces { Faces(ctx.fonts) }
 
     var body: some View {
