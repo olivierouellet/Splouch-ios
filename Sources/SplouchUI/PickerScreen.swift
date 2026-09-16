@@ -78,7 +78,7 @@ struct PickerScreen: View {
             Section {
                 // A connection error is about the device, so it is native (T-05).
                 Unavailable(text: Native.serverUnreachable, symbol: "wifi.exclamationmark",
-                            actionLabel: Native.retry) { Task { await app.load() } }
+                            actionLabel: Native.retry, fillsContainer: false) { Task { await app.load() } }
             }
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
@@ -100,7 +100,7 @@ struct PickerScreen: View {
                 // P-04 on the platform's empty state. The words stay the
                 // server's (T-05); only the presentation is the system's.
                 Unavailable(text: picker?.strings["no_meets"] ?? strings.mobile("no_meets"),
-                            symbol: "calendar.badge.exclamationmark")
+                            symbol: "calendar.badge.exclamationmark", fillsContainer: false)
             }
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)

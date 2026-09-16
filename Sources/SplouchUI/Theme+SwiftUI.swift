@@ -112,22 +112,36 @@ public extension RGBA {
 
 /// The platform's empty state, drawn the same way wherever a tab has nothing
 /// to show. The words stay the server's (T-05) and each is a single line, so it
-/// becomes the title and nothing is invented to fill a description. The frame
-/// gives it the scroll view's height to centre in, which leaves the list
-/// scrollable so A-05's pull-to-refresh still works on an empty tab.
+/// becomes the title and nothing is invented to fill a description.
+///
+/// Inside a `ScrollView` it takes the container's height to centre in, which
+/// leaves the view scrollable so A-05's pull-to-refresh still works on an empty
+/// tab. Inside a `List` it must not: a list row is a self-sizing collection view
+/// cell, so the height it reports is part of what `containerRelativeFrame`
+/// measures against. Each layout pass grew the row by the inset it had just
+/// added, and after a hundred of them UIKit's feedback-loop debugger traps —
+/// the app died on the picker's own "server unreachable" row, so a launch with
+/// no network never got as far as showing the error. A list bounces whatever
+/// its content's height, so pull-to-refresh survives the fixed frame.
 struct Unavailable: View {
     let text: String
     let symbol: String
     var actionLabel: String?
+    /// True in a `ScrollView`, false in a `List` — see the note above.
+    var fillsContainer = true
     var action: () -> Void = {}
 
     var body: some View {
-        ContentUnavailableView {
+        let view = ContentUnavailableView {
             Label(text, systemImage: symbol)
         } actions: {
             if let actionLabel { Button(actionLabel, action: action) }
         }
-        .containerRelativeFrame(.vertical)
+        if fillsContainer {
+            view.containerRelativeFrame(.vertical)
+        } else {
+            view.frame(maxWidth: .infinity, minHeight: 220)
+        }
     }
 }
 
