@@ -55,6 +55,10 @@ struct BoardHeader: View {
     /// The bar shows the clock as its own trailing item: one centred item
     /// holding all four squeezed them until the clock truncated to an ellipsis.
     var showsClock = true
+
+    /// What this costs a portrait board, measured on an iPhone 17. `MeetShell`
+    /// decides from it whether the lanes still fit underneath.
+    static let portraitBand: CGFloat = 58
     @Environment(\.palette) private var palette
     @Environment(\.faces) private var faces
 
@@ -146,6 +150,25 @@ struct BoardTable: View {
     /// not read against the glass.
     static let bottomGap: CGFloat = 14
 
+    /// The height the lanes share: the whole scroll area, less the clearance.
+    ///
+    /// Not less `safeAreaInsets.bottom`. On iOS 26 the scroll area runs under
+    /// the floating tab bar, and every attempt to hold the lanes above it —
+    /// stopping the table short, or padding the last lane's stripe past its
+    /// content — traded a bare band or a visibly deeper last lane for the
+    /// clearance. The lanes are equal and they fill: the bar floats over the
+    /// foot of the last one, and getting that lane back is the tab bar's job,
+    /// not the table's.
+    static func tableHeight(in geo: GeometryProxy) -> CGFloat {
+        max(0, geo.size.height - bottomGap)
+    }
+
+
+    /// How far the portrait type may be shrunk to keep a heat on one screen.
+    /// Past this the table overflows and scrolls, which is the honest answer:
+    /// twelve lanes of relay at 8pt would fit and be unreadable.
+    static let portraitTypeFloor: CGFloat = 0.72
+
     /// The height the landscape rows share (L-16), measured by the caller.
     /// It cannot be measured here: the table sits inside a `ScrollView`, which
     /// proposes no height, so a `GeometryReader` in this body reported ~0 — the
@@ -184,17 +207,41 @@ struct BoardTable: View {
     /// What `header(size:)` costs: its own line plus 4pt above and below.
     private static let headerBand: CGFloat = 26
 
+    /// A lane's natural height, and the same lane carrying a relay name. Both
+    /// come off the rulers below, and are 0 until the first layout has run.
+    @State private var laneIdeal: CGFloat = 0
+    @State private var laneIdealWithAlt: CGFloat = 0
+
     var body: some View {
         let count = CGFloat(max(1, rows.count))
         let landscape = landscapeType()
         let rowFont = isLandscape ? landscape.rowFont : 17
-        // Portrait rows share the height the way the landscape table does, with
-        // 52pt as the floor rather than the fixed size. They used to be exactly
-        // 52pt under a Spacer, so a six-lane board left a band of bare
-        // background below the last lane and the stripes stopped mid-screen —
-        // a table sized to its content, which is what the web page did because
-        // that is what a table does. A board fills its board.
-        let portraitRow = max(52, height / count)
+        // Portrait rows share the height the way the landscape table does. They
+        // used to be exactly 52pt under a Spacer, so a six-lane board left a
+        // band of bare background below the last lane and the stripes stopped
+        // mid-screen — a table sized to its content, which is what the web page
+        // did because that is what a table does. A board fills its board.
+        //
+        // The 52pt floor that replaced it is now gone too. It was what stopped
+        // twelve lanes fitting: twelve of them want 624pt against the 603 a
+        // phone has, and the miss was the floor, not the type. The share each
+        // row gets is the floor, and the type shrinks to meet it.
+        let portraitRow = height / count
+        // What the rows in *this* heat want — a relay with alt names needs a
+        // third line, so the same twelve lanes ask for 780pt rather than 600.
+        //
+        // The relay name is what goes first, before any type shrinks: it is the
+        // one line on the row that is not a swimmer, a time or a place, and a
+        // team name set at 9pt to keep it helps nobody. Dropped, the row is back
+        // to two lines and everything on it stays the size it should be.
+        // Until the rulers have reported, a row wants exactly its share: the
+        // first frame draws at full size and settles a frame later, which beats
+        // guessing a number that is right on one phone and wrong on the rest.
+        let wantPlain = laneIdeal > 0 ? laneIdeal : portraitRow
+        let wantAlt = laneIdealWithAlt > 0 ? laneIdealWithAlt : wantPlain
+        let showsAlt = rows.contains { !$0.alt.isEmpty } && portraitRow >= wantAlt
+        let portraitWant = showsAlt ? wantAlt : wantPlain
+        let portraitScale = min(1, max(Self.portraitTypeFloor, portraitRow / portraitWant))
         VStack(spacing: 0) {
             if isLandscape, landscape.showsHeader { header(size: rowFont) }
             ForEach(Array(rows.enumerated()), id: \.offset) { i, row in
@@ -202,7 +249,7 @@ struct BoardTable: View {
                     if isLandscape {
                         LandscapeRow(row: row, columns: columns, size: rowFont)
                     } else {
-                        PortraitRow(row: row, columns: columns)
+                        PortraitRow(row: row, columns: columns, scale: portraitScale, showsAlt: showsAlt)
                     }
                 }
                 .frame(maxWidth: .infinity,
@@ -219,6 +266,30 @@ struct BoardTable: View {
         // Exactly the height in landscape, so rows with no minimum actually
         // divide it; in portrait the rows above set it, and overflow scrolls.
         .frame(height: isLandscape ? height : nil)
+        .background(alignment: .top) { rulers }
+        .preference(key: LaneIdealKey.self, value: portraitWant)
+    }
+
+    /// One lane drawn at full size and never shown, so the table can ask how
+    /// tall a row is instead of being told. It lives in a `background`, which is
+    /// handed the table's width and proposes nothing back, so measuring it
+    /// cannot move the table that measured it — the feedback a `GeometryReader`
+    /// among the rows would have made.
+    @ViewBuilder private var rulers: some View {
+        if !isLandscape, let first = rows.first {
+            VStack(spacing: 0) {
+                PortraitRow(row: first, columns: columns, scale: 1, showsAlt: false)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { laneIdeal = $0 }
+                if let relay = rows.first(where: { !$0.alt.isEmpty }) {
+                    PortraitRow(row: relay, columns: columns, scale: 1, showsAlt: true)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { laneIdealWithAlt = $0 }
+                }
+                Spacer(minLength: 0)
+            }
+            .hidden()
+        }
     }
 
     /// The row as one sentence, in the server's own column words (T-04) so it
@@ -280,40 +351,60 @@ struct BoardTable: View {
 struct PortraitRow: View {
     let row: BoardRow
     let columns: Columns
+    /// 1 when the heat fits at the sizes below, less when the lanes have to
+    /// share the screen more tightly. Everything in the row scales together so
+    /// the hierarchy holds at any count — see `BoardTable.portraitTypeFloor`.
+    var scale: CGFloat = 1
+    /// False once the lanes are too tight to spend a line on the relay's name.
+    var showsAlt = true
     @Environment(\.palette) private var palette
     @Environment(\.faces) private var faces
 
     var body: some View {
-        HStack(alignment: .center, spacing: 10) {
-            LaneNumber(text: row.laneLabel, pulse: row.pulse, size: 22).frame(width: 34)
+        HStack(alignment: .center, spacing: 10 * scale) {
+            LaneNumber(text: row.laneLabel, pulse: row.pulse, size: 22 * scale).frame(width: 34 * scale)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline) {
                     if columns.name {
                         VStack(alignment: .leading, spacing: 0) {
-                            Text(row.name).font(faces.text(17)).foregroundStyle(palette.rowText).fitOneLine()
-                            if !row.alt.isEmpty {
-                                Text(row.alt).font(faces.text(12)).foregroundStyle(palette.thText).fitOneLine()   // L-06
+                            Text(row.name).font(faces.text(17 * scale)).foregroundStyle(palette.rowText).fitOneLine()
+                            if !row.alt.isEmpty, showsAlt {
+                                Text(row.alt).font(faces.text(12 * scale)).foregroundStyle(palette.thText).fitOneLine()   // L-06
                             }
                         }
                     }
                     Spacer(minLength: 8)
                     if columns.club {
-                        Text(row.club).font(faces.text(17)).foregroundStyle(palette.thText).fitOneLine()
+                        Text(row.club).font(faces.text(17 * scale)).foregroundStyle(palette.thText).fitOneLine()
                     }
                 }
-                HStack(spacing: 12) {
-                    TimeCell(text: row.time, style: row.timeStyle, size: 20)
-                    if columns.delta { DeltaCell(text: row.delta, better: row.deltaBetter, size: 17) }
+                HStack(spacing: 12 * scale) {
+                    TimeCell(text: row.time, style: row.timeStyle, size: 20 * scale)
+                    if columns.delta { DeltaCell(text: row.delta, better: row.deltaBetter, size: 17 * scale) }
                     Spacer()
                     if columns.place, !row.place.isEmpty {
-                        Text("#" + row.place).font(faces.text(18, weight: .bold)).foregroundStyle(palette.headerLabel)
+                        Text("#" + row.place).font(faces.text(18 * scale, weight: .bold)).foregroundStyle(palette.headerLabel)
                     }
                 }
             }
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .padding(.vertical, 6 * scale)
     }
+}
+
+/// What one lane wants on this phone, at this text size, with these words in
+/// it — measured, never assumed. Travels up to the tab, which is the only view
+/// that also knows what the board's own header band costs.
+struct LaneIdealKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
+}
+
+/// Whether the lanes need the navigation bar to take the header row off them.
+struct BoardNeedsBarKey: PreferenceKey {
+    static let defaultValue = false
+    static func reduce(value: inout Bool, nextValue: () -> Bool) { value = value || nextValue() }
 }
 
 /// L-16: a full table row.

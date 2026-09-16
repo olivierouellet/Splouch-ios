@@ -52,6 +52,10 @@ struct MeetShell: View {
     /// Width of the shell, so the landscape header can be given a real width to
     /// align inside (see `toolbar`).
     @State private var width: CGFloat = 0
+    /// Portrait: the lanes have asked for the header row. The tab decides it —
+    /// it is the only view that can measure both a lane and the header band —
+    /// and it arrives here as a preference.
+    @State private var boardNeedsBar = false
 
     private var tab: Binding<MeetTab> {
         Binding(get: { MeetTab(rawValue: tabRaw) ?? .scoreboard }, set: { tabRaw = $0.rawValue })
@@ -78,6 +82,7 @@ struct MeetShell: View {
                 isLandscape = $0.width > $0.height
                 width = $0.width
             }
+            .onPreferenceChange(BoardNeedsBarKey.self) { boardNeedsBar = $0 }
             .sheet(isPresented: $showFilter) { FilterSheet(ctx: ctx) }
             .onAppear {
                 network.start()
@@ -116,10 +121,10 @@ struct MeetShell: View {
     // iOS a tab bar switches on tap — see the parity.md note.
     private var tabs: some View {
         TabView(selection: tab) {
-            ScoreboardTab(ctx: ctx, isLandscape: isLandscape)
+            ScoreboardTab(ctx: ctx, isLandscape: isLandscape, headerInBar: showsBoardInBar)
                 .tabItem { label(.scoreboard) }
                 .tag(MeetTab.scoreboard)
-            ResultsTab(ctx: ctx, isLandscape: isLandscape)
+            ResultsTab(ctx: ctx, isLandscape: isLandscape, headerInBar: showsBoardInBar)
                 .tabItem { label(.results) }
                 .tag(MeetTab.results)
             ScheduleTab(ctx: ctx)
@@ -150,19 +155,30 @@ struct MeetShell: View {
     /// a back button in the corner and nothing beside it, with the board's own
     /// EVENT / HEAT / clock row stacked underneath. On a board tab the bar
     /// takes that row instead, which buys back its whole height.
-    private var showsBoardInBar: Bool { isLandscape && tab.wrappedValue != .schedule }
+    ///
+    /// Portrait does it too, but only on need (below): there the bar is already
+    /// carrying the meet's title, so the trade is a real one and not worth
+    /// making for a board that fits without it.
+    private var showsBoardInBar: Bool {
+        tab.wrappedValue != .schedule && (isLandscape || boardNeedsBar)
+    }
 
+
+    /// Short labels, because this is a bar: "EV 12  HT 3", not "EVENT 12
+    /// HEAT 3". The words buy nothing the numbers do not already say and the
+    /// width they cost is the event name's, which is the one thing here that
+    /// can run long.
     @ViewBuilder private var barBoardHeader: some View {
         if tab.wrappedValue == .results {
             let snapshot = ctx.session.results
             BoardHeader(event: snapshot?.event ?? "", heat: snapshot?.heat ?? "",
                         eventName: snapshot.map { ctx.eventName($0.eventName, parts: $0.eventNameParts) } ?? "",
-                        labels: ctx.labels, compact: true, showsClock: false)
+                        labels: ctx.shortLabels, compact: true, showsClock: false)
         } else {
             let board = ctx.session.scoreboard
             BoardHeader(event: board.currentEvent, heat: board.currentHeat,
                         eventName: ctx.eventName(board.eventName, parts: board.eventNameParts),
-                        labels: ctx.labels, compact: true, showsClock: false)
+                        labels: ctx.shortLabels, compact: true, showsClock: false)
         }
     }
 
@@ -189,9 +205,18 @@ struct MeetShell: View {
             // `.navigation` was the obvious alternative and is worse: it takes
             // a capsule of its own and lets the meet title back in beside it.
             ToolbarItem(placement: .principal) {
-                barBoardHeader.frame(width: max(0, width - 200), alignment: .leading)
+                // Less to reserve in portrait: the bar there holds a back
+                // button and the clock, not a back button, the clock and the
+                // slack a landscape bar has.
+                barBoardHeader.frame(width: max(0, width - (isLandscape ? 200 : 100)), alignment: .leading)
             }
-            clockItem
+            // Landscape keeps the clock; portrait does not. The row is only up
+            // here in portrait because the board ran out of height, and the bar
+            // it moved into is 402pt wide, not 874 — the wall clock is the one
+            // thing on it that is not about this heat, and the event name is the
+            // one thing that runs long. The status bar is still showing the
+            // time two points above it.
+            if isLandscape { clockItem }
         } else if let subtitle {
             // The title alone is `navigationTitle`; with a subtitle it becomes a
             // two-line principal item, which is the only place iOS 17 has for one.
