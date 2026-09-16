@@ -149,8 +149,14 @@ struct HeatCard: View {
         let club = lane.club.isEmpty ? nil :
             Text(lane.club).font(faces.text(14 * typeScale)).foregroundStyle(palette.scheduleClub)
         // Never wrapped: a seed time broken across two lines reads as two times.
+        //
+        // 14, the club's size, because the two were one size in the stylesheet
+        // this screen came from (12 each) and the pass that lifted the row to
+        // platform body sizes moved the club and missed the time. It sat two
+        // points under the code beside it for no reason anyone chose, and it is
+        // the half of the pair a spectator is actually comparing.
         let seed = lane.seedTime.isEmpty ? nil :
-            Text(lane.seedTime).font(faces.timing(12 * typeScale)).foregroundStyle(palette.scheduleTime)
+            Text(lane.seedTime).font(faces.timing(14 * typeScale)).foregroundStyle(palette.scheduleTime)
                 .lineLimit(1).fixedSize()
 
         if stacked {
