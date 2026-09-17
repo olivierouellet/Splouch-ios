@@ -79,8 +79,21 @@ public extension MeetSettings {
             themeFonts: json.strings("theme_fonts"),
             locale: json["locale"]?.text ?? "en",
             labels: json.strings("labels"),
-            labelStyle: json["label_style"]?.string
+            labelStyle: json["label_style"]?.string,
+            console: ConsoleInfo(json: json["console"])
         )
+    }
+}
+
+public extension ConsoleInfo {
+    /// A-11 defaults to a console that times, and every way the field can fail
+    /// to say otherwise lands there: absent (a server older than the field),
+    /// `null`, or anything that is not an object. `timed` itself is read with
+    /// the same default, so a malformed value — `"false"`, `0` — shows the tab
+    /// rather than removing it on a guess.
+    init(json: JSONValue?) {
+        guard let json, json.object != nil else { self.init(); return }
+        self.init(key: json.str("key"), timed: json.flag("timed", default: true))
     }
 }
 

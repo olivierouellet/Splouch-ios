@@ -71,6 +71,29 @@ public struct MeetConfig: Sendable, Equatable {
     public var settings: MeetSettings
 }
 
+/// `settings.console` (api.md §5.4, §6.1): which console is driving this meet.
+///
+/// A meet run without one — a club time trial, a console whose cable never
+/// turned up — is driven by hand from the Pi's `/manual` page, so no time, no
+/// place and no `results_snapshot` ever arrive for it. That is what `timed`
+/// says, and A-11 takes the Results tab down rather than leave it waiting from
+/// the first heat to the last.
+public struct ConsoleInfo: Sendable, Equatable {
+    /// The operator's choice — `"cts_gen6"`, `"manual"`, a plugin's own key.
+    /// Diagnostic only: nothing branches on it. The server derives `timed` from
+    /// the decoder itself, so a plugin console driven by hand answers `timed`
+    /// correctly while its key is one this app has never heard of (api.md §5.4).
+    public var key: String
+    /// Whether this console produces times at all. Defaults to `true`: a server
+    /// too old to send `console` is a server with a console.
+    public var timed: Bool
+
+    public init(key: String = "", timed: Bool = true) {
+        self.key = key
+        self.timed = timed
+    }
+}
+
 /// The meet's display config — the `settings` block of api.md §5.4, also what a
 /// Pi's `GET /config` carries at top level.
 public struct MeetSettings: Sendable, Equatable {
@@ -94,6 +117,8 @@ public struct MeetSettings: Sendable, Equatable {
     public var labels: [String: String]
     /// `"short"` or `"long"`; nil when the server predates the field.
     public var labelStyle: String?
+    /// Which console drives the meet, and whether it times (A-11).
+    public var console: ConsoleInfo
 
     public init(
         numLanes: Int = 8,
@@ -103,7 +128,7 @@ public struct MeetSettings: Sendable, Equatable {
         showTimeHeader: Bool = true, showDeltaHeader: Bool = true, showPositionHeader: Bool = true,
         themeColors: [String: String] = [:], themeFonts: [String: String] = [:],
         locale: String = "en", labels: [String: String] = [:],
-        labelStyle: String? = nil
+        labelStyle: String? = nil, console: ConsoleInfo = ConsoleInfo()
     ) {
         self.numLanes = numLanes
         self.showName = showName; self.showClub = showClub; self.showDelta = showDelta
@@ -114,6 +139,7 @@ public struct MeetSettings: Sendable, Equatable {
         self.themeColors = themeColors; self.themeFonts = themeFonts
         self.locale = locale; self.labels = labels
         self.labelStyle = labelStyle
+        self.console = console
     }
 }
 

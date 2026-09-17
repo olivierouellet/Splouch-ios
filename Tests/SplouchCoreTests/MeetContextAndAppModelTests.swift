@@ -49,6 +49,38 @@ import Testing
         await ctx.stop()
     }
 
+    // A-11: the Results tab is gated on the config the client already fetches,
+    // so it must follow the operator switching consoles mid-meet — in either
+    // direction — without an app restart.
+    @Test func consoleChangesMidMeetFlipTheResultsTab() async {
+        let stub = StubServer()
+        stub.route("/meet/m1/schedule", json: #"{"heats":[]}"#)
+        stub.route("/meet/m1/config", json: #"{"name":"Open","settings":{"console":{"key":"manual","timed":false}}}"#)
+        let connector = FakeConnector()
+        let ctx = make(stub: stub, connector: connector)
+        // The meet was opened before the flag was read: a console, by default.
+        #expect(ctx.showsResults)
+        ctx.start()
+        _ = await eventually { connector.openCount == 3 }
+
+        // C-08 `reload` — the Pi re-registers and broadcasts it when the
+        // operator switches, so the tab goes while the app is open.
+        connector.connections[0].push(Frame(event: "reload", data: .object([:])))
+        #expect(await eventually { @MainActor in !ctx.showsResults })
+
+        // The console turns up at last: the same fetch brings the tab back, on
+        // the A-09 path this time (reconnect / foreground).
+        stub.route("/meet/m1/config", json: #"{"name":"Open","settings":{"console":{"key":"cts_gen6","timed":true}}}"#)
+        ctx.foregrounded()
+        #expect(await eventually { @MainActor in ctx.showsResults })
+
+        // And back off again through pull-to-refresh (A-05).
+        stub.route("/meet/m1/config", json: #"{"name":"Open","settings":{"console":{"key":"manual","timed":false}}}"#)
+        await ctx.refresh()
+        #expect(!ctx.showsResults)
+        await ctx.stop()
+    }
+
     @Test func reconnectAndForegroundRecheckTheMeet() async {
         let stub = StubServer()
         stub.route("/meet/m1/schedule", json: #"{"heats":[]}"#)

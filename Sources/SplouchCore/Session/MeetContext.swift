@@ -74,6 +74,14 @@ public final class MeetContext {
     public var effectiveLabelStyle: LabelStyle { labelStyle }
     public var currentHeat: HeatRef? { session.currentHeat }
 
+    /// A-11: a meet with no timing console has no Results tab at all. Read off
+    /// `settings`, which every config fetch replaces — `checkMeet()` on
+    /// reconnect and foreground, `refresh()` on pull-to-refresh and `reload` —
+    /// so an operator who plugs a console in mid-meet, or unplugs one, is
+    /// followed live without a restart. The key is never consulted: `timed` is
+    /// the whole question (api.md §5.4).
+    public var showsResults: Bool { settings.console.timed }
+
     /// Opens the sockets, loads the schedule, revalidates the strings.
     public func start() {
         session.start()

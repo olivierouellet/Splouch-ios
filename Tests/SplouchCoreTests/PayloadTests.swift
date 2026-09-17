@@ -64,6 +64,40 @@ import Testing
         #expect(s == MeetSettings())
         #expect(s.numLanes == 8)
         #expect(s.labelStyle == nil)
+        // A-11: a server too old to send `console` is a server with a console.
+        #expect(s.console == ConsoleInfo(key: "", timed: true))
+    }
+
+    // A-11 / api.md §5.4: `timed` is the whole question and `key` is diagnostic.
+    @Test func consoleIsReadForItsTimedFlagAndNeverItsKey() {
+        let manual = MeetSettings(json: json(#"{"console":{"key":"manual","timed":false}}"#))
+        #expect(manual.console.timed == false)
+        #expect(manual.console.key == "manual")
+
+        let cts = MeetSettings(json: json(#"{"console":{"key":"cts_gen6","timed":true}}"#))
+        #expect(cts.console.timed)
+
+        // A local plugin driven by hand: an unknown key, and no times. A client
+        // matching on `key == "manual"` would call this one timed.
+        let plugin = MeetSettings(json: json(#"{"console":{"key":"clubhouse_buttons","timed":false}}"#))
+        #expect(plugin.console.timed == false)
+
+        // A plugin that does time, whose key this app has never heard of.
+        let timedPlugin = MeetSettings(json: json(#"{"console":{"key":"ares21","timed":true}}"#))
+        #expect(timedPlugin.console.timed)
+    }
+
+    // Anything short of a clear "false" shows the tab, rather than removing it
+    // on a guess: absent, null, not an object, or a `timed` of the wrong type.
+    @Test func malformedConsoleDefaultsToTimed() {
+        #expect(MeetSettings(json: json(#"{}"#)).console.timed)
+        #expect(MeetSettings(json: json(#"{"console":null}"#)).console.timed)
+        #expect(MeetSettings(json: json(#"{"console":"manual"}"#)).console.timed)
+        #expect(MeetSettings(json: json(#"{"console":[]}"#)).console.timed)
+        #expect(MeetSettings(json: json(#"{"console":{}}"#)).console.timed)
+        #expect(MeetSettings(json: json(#"{"console":{"key":"manual"}}"#)).console.timed)
+        #expect(MeetSettings(json: json(#"{"console":{"timed":"false"}}"#)).console.timed)
+        #expect(MeetSettings(json: json(#"{"console":{"timed":0}}"#)).console.timed)
     }
 
     @Test func piDisplayConfigReadsTopLevelSettings() {
@@ -73,6 +107,10 @@ import Testing
         #expect(c.settings.numLanes == 10)
         #expect(c.settings.labels["lane"] == "CL")
         #expect(c.displayStrings["waiting_server"] == "…")
+        // A-11 on a Pi: `console` sits at the top level beside the rest (§6.1).
+        #expect(c.settings.console.timed)
+        let manual = PiDisplayConfig(json: json(#"{"meet_title":"Time trial","console":{"key":"manual","timed":false}}"#))
+        #expect(manual.settings.console.timed == false)
     }
 
     @Test func resultsSnapshotReadsSortAndLanes() {

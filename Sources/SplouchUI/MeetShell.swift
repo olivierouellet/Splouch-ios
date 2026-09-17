@@ -1,16 +1,13 @@
 import SwiftUI
 import SplouchCore
 
-enum MeetTab: Int, CaseIterable {
+/// A-04 stores a choice, not a number: the raw value is the tab's own name, so
+/// a stored selection survives the tab *set* changing under it (A-11) instead
+/// of meaning a different tab once one is removed.
+enum MeetTab: String, CaseIterable {
     case scoreboard, results, schedule
 
-    var key: String {
-        switch self {
-        case .scoreboard: "scoreboard"
-        case .results: "results"
-        case .schedule: "schedule"
-        }
-    }
+    var key: String { rawValue }
 
     var symbol: String {
         switch self {
@@ -32,17 +29,17 @@ struct MeetShell: View {
     @Bindable var ctx: MeetContext
     let app: AppModel
 
-    // A-04: platform state restoration.
-    @SceneStorage("splouch.tab") private var tabRaw = MeetShell.initialTab
+    // A-04: platform state restoration, keyed by the tab's name.
+    @SceneStorage("splouch.tab") private var tabKey = MeetShell.initialTab
 
     /// Debug builds honour `SPLOUCH_TAB=scoreboard|results|schedule` in the
     /// launch environment, so a tab can be screenshotted without tapping.
-    private static var initialTab: Int {
+    private static var initialTab: String {
         #if DEBUG
         if let name = ProcessInfo.processInfo.environment["SPLOUCH_TAB"],
-           let t = MeetTab.allCases.first(where: { $0.key == name }) { return t.rawValue }
+           let t = MeetTab(rawValue: name) { return t.key }
         #endif
-        return MeetTab.scoreboard.rawValue
+        return MeetTab.scoreboard.key
     }
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dismiss) private var dismiss
@@ -57,8 +54,25 @@ struct MeetShell: View {
     /// and it arrives here as a preference.
     @State private var boardNeedsBar = false
 
+    /// A-11: the Results tab exists only for a meet whose console times.
+    /// Nothing else is conditional — the Scoreboard is exactly as useful (it is
+    /// what the operator is driving by hand) and the Schedule is the whole
+    /// start list either way.
+    private var visibleTabs: [MeetTab] {
+        ctx.showsResults ? MeetTab.allCases : MeetTab.allCases.filter { $0 != .results }
+    }
+
+    /// The stored choice, or the Scoreboard when it names a tab this meet does
+    /// not have. The fallback is what catches a spectator standing on Results
+    /// when the console is unplugged; a spectator on Schedule is untouched,
+    /// because the choice was stored by name and the Schedule is still there.
+    private var selection: MeetTab {
+        let stored = MeetTab(rawValue: tabKey) ?? .scoreboard
+        return visibleTabs.contains(stored) ? stored : .scoreboard
+    }
+
     private var tab: Binding<MeetTab> {
-        Binding(get: { MeetTab(rawValue: tabRaw) ?? .scoreboard }, set: { tabRaw = $0.rawValue })
+        Binding(get: { selection }, set: { tabKey = $0.key })
     }
     @Environment(\.colorScheme) private var colorScheme
     /// P-15: the reader's choice, not the meet's. `colorScheme` is whatever
@@ -77,7 +91,7 @@ struct MeetShell: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar { toolbar }
-            .sensoryFeedback(.selection, trigger: tabRaw)
+            .sensoryFeedback(.selection, trigger: tabKey)
             .onGeometryChange(for: CGSize.self) { $0.size } action: {
                 isLandscape = $0.width > $0.height
                 width = $0.width
@@ -88,7 +102,7 @@ struct MeetShell: View {
                 network.start()
                 #if DEBUG
                 if let env = ProcessInfo.processInfo.environment["SPLOUCH_TAB"],
-                   let t = MeetTab.allCases.first(where: { $0.key == env }) { tabRaw = t.rawValue }
+                   let t = MeetTab(rawValue: env) { tabKey = t.key }
                 #endif
             }
             .onDisappear { network.stop() }
@@ -103,8 +117,17 @@ struct MeetShell: View {
                 if online { ctx.session.wake() }
             }
             // R-10: returning to the tab re-joins.
-            .onChange(of: tabRaw) { _, raw in
-                if MeetTab(rawValue: raw) == .results { ctx.session.resultsTabShown() }
+            .onChange(of: tabKey) { _, key in
+                if MeetTab(rawValue: key) == .results { ctx.session.resultsTabShown() }
+            }
+            // A-11: the console changed under us — the config fetch that found
+            // out is one this shell already makes (reconnect, foreground,
+            // pull-to-refresh, `reload`), so the tab bar follows live. Write the
+            // move back rather than deriving it alone: a spectator moved off
+            // Results should stay where they were put if a console is plugged
+            // in later, not be yanked back mid-tap.
+            .onChange(of: ctx.showsResults) { _, _ in
+                if MeetTab(rawValue: tabKey) != selection { tabKey = selection.key }
             }
             // A-09: the meet is gone, so pop the way the back button would.
             .onChange(of: ctx.gone) { _, gone in
@@ -114,7 +137,10 @@ struct MeetShell: View {
 
     // A-01: three tabs, icon and label, on the platform's own tab bar — which
     // carries A-07 with it (landscape compacts the items without our help) and
-    // brings the selection states and VoiceOver tab traits for free.
+    // brings the selection states and VoiceOver tab traits for free. A-11 makes
+    // it two when the meet has no timing console: the item is not built at all,
+    // so the bar genuinely has two, rather than three with one disabled or
+    // hidden-but-still-selectable.
     //
     // A-03 does not apply here: the web swiped between tabs because its tabs
     // were iframes, and Android swipes because that is the Material idiom. On
@@ -124,9 +150,11 @@ struct MeetShell: View {
             ScoreboardTab(ctx: ctx, isLandscape: isLandscape, headerInBar: showsBoardInBar)
                 .tabItem { label(.scoreboard) }
                 .tag(MeetTab.scoreboard)
-            ResultsTab(ctx: ctx, isLandscape: isLandscape, headerInBar: showsBoardInBar)
-                .tabItem { label(.results) }
-                .tag(MeetTab.results)
+            if ctx.showsResults {
+                ResultsTab(ctx: ctx, isLandscape: isLandscape, headerInBar: showsBoardInBar)
+                    .tabItem { label(.results) }
+                    .tag(MeetTab.results)
+            }
             ScheduleTab(ctx: ctx)
                 .tabItem { label(.schedule) }
                 .tag(MeetTab.schedule)
