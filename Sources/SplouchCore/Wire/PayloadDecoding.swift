@@ -75,6 +75,8 @@ public extension MeetSettings {
             showTimeHeader: json.flag("show_time_header", default: true),
             showDeltaHeader: json.flag("show_delta_header", default: true),
             showPositionHeader: json.flag("show_position_header", default: true),
+            showLaps: json.flag("show_laps", default: false),
+            lapDirection: json["lap_direction"]?.text ?? "up",
             themeColors: json.strings("theme_colors"),
             themeFonts: json.strings("theme_fonts"),
             locale: json["locale"]?.text ?? "en",

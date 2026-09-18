@@ -26,4 +26,13 @@ enum Native {
     static var appearanceDark: String { String(localized: "appearance_dark", bundle: .module) }
     static var appearanceLight: String { String(localized: "appearance_light", bundle: .module) }
     static var appearanceAuto: String { String(localized: "appearance_auto", bundle: .module) }
+    /// L-23, VoiceOver only. The lap count has no column of its own and no word
+    /// on the wire: `GET /i18n/{lang}`'s `labels` names the six columns and
+    /// nothing else, so there is no server string to speak it with. Sighted
+    /// readers get the colour and the moment of the swap; a screen reader would
+    /// otherwise get a bare integer after the time. The word is the app's, which
+    /// means it is in the app's three languages rather than the meet's — the one
+    /// place on the board where T-04 does not hold, and worth it against a
+    /// number nobody can identify.
+    static var laps: String { String(localized: "laps", bundle: .module) }
 }

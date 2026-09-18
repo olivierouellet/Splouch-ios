@@ -66,6 +66,28 @@ import Testing
         #expect(s.labelStyle == nil)
         // A-11: a server too old to send `console` is a server with a console.
         #expect(s.console == ConsoleInfo(key: "", timed: true))
+        // L-23 ships off, and counts up when it is on.
+        #expect(s.showLaps == false)
+        #expect(LapSettings(s) == .off)
+    }
+
+    // L-23 / api.md §5.4.
+    @Test func lapSettingsAreReadAndDefaultOffAndUp() {
+        let on = MeetSettings(json: json(#"{"show_laps":true,"lap_direction":"down"}"#))
+        #expect(LapSettings(on) == LapSettings(show: true, direction: .down))
+
+        // On, with the direction left to the default.
+        let up = MeetSettings(json: json(#"{"show_laps":true}"#))
+        #expect(LapSettings(up) == LapSettings(show: true, direction: .up))
+
+        // A direction the client does not know counts up rather than not at all.
+        let odd = MeetSettings(json: json(#"{"show_laps":true,"lap_direction":"sideways"}"#))
+        #expect(LapSettings(odd).direction == .up)
+
+        // A direction without the switch shows nothing: the direction is read
+        // either way, and `show` is the gate.
+        let off = MeetSettings(json: json(#"{"lap_direction":"down"}"#))
+        #expect(LapSettings(off).show == false)
     }
 
     // A-11 / api.md §5.4: `timed` is the whole question and `key` is diagnostic.

@@ -12,13 +12,17 @@ struct BoardRow: Equatable {
     var place = ""
     var delta = ""
     var deltaBetter: Bool?
+    /// L-23: the delta cell's other tenant, while the delta itself is empty.
+    /// Only the Scoreboard tab has one — a Results row is all finishes.
+    var lap: LapCount?
     var timeStyle: TimeStyle = .plain
     var pulse = false
 
-    init(_ i: Int, _ l: LaneRow) {
+    init(_ i: Int, _ l: LaneRow, lap: LapCount? = nil) {
         laneLabel = String(i)
         name = l.name; alt = l.alt; club = l.club; time = l.time; place = l.place
         delta = DeltaFormat.text(l.deltaSeconds); deltaBetter = l.deltaBetter
+        self.lap = lap
         timeStyle = l.timeStyle; pulse = l.pulse
     }
 
@@ -35,9 +39,17 @@ struct Columns: Equatable {
     var name, club, delta, place: Bool
     var nameHeader, clubHeader, deltaHeader, placeHeader, laneHeader, timeHeader: Bool
 
-    init(_ s: MeetSettings) {
+    /// `laps` is the Scoreboard tab's alone: L-23 shares the delta *cell* with
+    /// the lap count on the live board, and the Results tab is all finishes, so
+    /// its delta column has one tenant and keeps its title.
+    init(_ s: MeetSettings, laps: LapSettings = .off) {
         name = s.showName; club = s.showClub; delta = s.showDelta; place = s.showPosition
-        nameHeader = s.showNameHeader; clubHeader = s.showClubHeader; deltaHeader = s.showDeltaHeader
+        // L-23: with laps on, that column holds lengths for most of a heat, and
+        // a `Δ` over a column of small integers reads as a claim about them. It
+        // stays hidden once the heat settles too — a title that appeared at the
+        // finish would be the moving header L-23 exists to refuse.
+        nameHeader = s.showNameHeader; clubHeader = s.showClubHeader
+        deltaHeader = s.showDeltaHeader && !laps.show
         placeHeader = s.showPositionHeader; laneHeader = s.showLaneHeader; timeHeader = s.showTimeHeader
     }
 }
@@ -306,7 +318,15 @@ struct BoardTable: View {
         }
         if columns.club { parts.append(pair("club", row.club)) }
         parts.append(pair("time", row.time))
-        if columns.delta { parts.append(pair("delta", row.delta)) }
+        // L-23: whichever tenant the cell has. The delta keeps the server's own
+        // column word; the lap has none to keep — see `Native.laps`.
+        if columns.delta {
+            if row.delta.isEmpty, let lap = row.lap {
+                parts.append(Native.laps + " " + lap.text)
+            } else {
+                parts.append(pair("delta", row.delta))
+            }
+        }
         if columns.place { parts.append(pair("place", row.place)) }
         return parts.compactMap { $0 }.joined(separator: ", ")
     }
@@ -380,7 +400,14 @@ struct PortraitRow: View {
                 }
                 HStack(spacing: 12 * scale) {
                     TimeCell(text: row.time, style: row.timeStyle, size: 20 * scale)
-                    if columns.delta { DeltaCell(text: row.delta, better: row.deltaBetter, size: 17 * scale) }
+                    // No fixed column here — a compact row lays its second line
+                    // out in flow — so the cell is sized to what it holds and
+                    // L-23's centring has nothing to centre in. It still swaps
+                    // tenant and colour on the same rule as the table's.
+                    if columns.delta {
+                        DeltaCell(text: row.delta, better: row.deltaBetter, lap: row.lap, size: 17 * scale)
+                            .fixedSize()
+                    }
                     Spacer()
                     if columns.place, !row.place.isEmpty {
                         Text("#" + row.place).font(faces.text(18 * scale, weight: .bold)).foregroundStyle(palette.headerLabel)
@@ -439,7 +466,11 @@ struct LandscapeRow: View {
             }
             TimeCell(text: row.time, style: row.timeStyle, size: size * 0.85).frame(width: 130, alignment: .trailing)
             if columns.delta {
-                DeltaCell(text: row.delta, better: row.deltaBetter, size: size * 0.85).frame(width: 110, alignment: .trailing)
+                // The column's width is the cell's; the cell decides where in
+                // it the number sits, because the lap centres and the delta does
+                // not (L-23).
+                DeltaCell(text: row.delta, better: row.deltaBetter, lap: row.lap, size: size * 0.85)
+                    .frame(width: 110)
             }
             if columns.place {
                 Text(row.place).font(faces.text(size, weight: .bold)).foregroundStyle(palette.headerLabel)
@@ -539,22 +570,53 @@ struct TimeCell: View {
     }
 }
 
+/// One cell, two tenants (L-23). While a lane is swimming it carries that lane's
+/// lengths, centred, in the header's accent colour; at the finish the delta takes
+/// the cell back, right where every other number on the row ends, in its
+/// better/worse colour. The column header never changes — the colours and the
+/// moment of the swap are what say which tenant is on screen.
+///
+/// Which tenant it is was settled upstream, from merged state alone
+/// (`ScoreboardState.lap(lane:_:)`); this view only draws the answer. There is no
+/// animation on the handover and none on the final stretch: an earlier version
+/// pulsed that and it was taken out on purpose. A static colour change is the
+/// whole effect.
+///
+/// All four colours come off the palette — `headerLabel`, `time`, `deltaBetter`,
+/// `deltaWorse` — and none is written here. The palette is the reader's (P-15)
+/// rather than the meet's, which is this app's standing divergence from T-01;
+/// see `ThemeColors`.
 struct DeltaCell: View {
     let text: String
     let better: Bool?
+    var lap: LapCount?
     let size: CGFloat
     @Environment(\.palette) private var palette
     @Environment(\.faces) private var faces
 
+    /// The lap is the tenant only while the delta has nothing to say. Both tests
+    /// already ran upstream; this is the belt to that braces, for the frame where
+    /// the two arrive together.
+    private var showsLap: Bool { lap != nil && text.isEmpty }
+
     var body: some View {
-        Text(text)
+        Text(showsLap ? (lap?.text ?? "") : text)
             .font(faces.timing(size))
             .monospacedDigit()
-            .foregroundStyle(better == true ? palette.deltaBetter : palette.deltaWorse)
+            .foregroundStyle(colour)
             // Its column is fixed and it is now set at the name's size, so a
             // four-lane board at the row-font cap could ask for more width than
             // the column has. Shrink rather than wrap: a delta on two lines is
             // not a delta.
             .fitOneLine(minimumScale: 0.7)
+            .frame(maxWidth: .infinity, alignment: showsLap ? .center : .trailing)
+    }
+
+    private var colour: Color {
+        guard showsLap else { return better == true ? palette.deltaBetter : palette.deltaWorse }
+        // The final stretch takes the colour a stopped chrono has; every other
+        // length takes the accent the EVENT and HEAT words use, because a lap is
+        // a label on the race and not a number anyone races against.
+        return lap?.isFinal == true ? palette.time : palette.headerLabel
     }
 }

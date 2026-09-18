@@ -24,6 +24,9 @@ public struct LaneRow: Sendable, Equatable {
     public var place = ""
     public var deltaSeconds: Double?
     public var deltaBetter: Bool?
+    /// Lengths this lane has completed (`lane_splits<i>`); `0` at the top of
+    /// every heat, and `0` for a console that never raises the count at all.
+    public var splits = 0
     public var running = false
     public var timeStyle: TimeStyle = .plain
     /// The lane number cycles between row and timing colour: running, live, but
@@ -51,7 +54,12 @@ public struct ScoreboardState: Sendable, Equatable {
     public private(set) var eventName = ""
     public private(set) var eventNameParts: EventNameParts?
     public private(set) var heatTime = ""
-    public private(set) var expectedSplits: Int?
+    /// Lengths the event runs to (distance ÷ pool length). `0` when unknown —
+    /// there is then nothing to count down from (L-23).
+    public private(set) var expectedSplits = 0
+    /// Lengths one counted split is worth: `2` where the pool has touchpads at
+    /// one end only, else `1`. A property of the venue, not of the console.
+    public private(set) var splitStep = 1
     public private(set) var meetLive = false
     public private(set) var connected = false
     public private(set) var clock = RaceClock()
@@ -67,6 +75,51 @@ public struct ScoreboardState: Sendable, Equatable {
     /// Lane `i` is 1-indexed as on the wire.
     public subscript(lane i: Int) -> LaneRow { lanes[i - 1] }
 
+    // MARK: - Lap count (L-23)
+
+    /// What lane `i`'s delta cell carries while the lap is its tenant, or `nil`
+    /// when the cell belongs to the delta or to nothing.
+    ///
+    /// Derived from merged state and from nothing else — no edge, no "when this
+    /// changed". A client that joins mid-heat is handed the cached snapshot
+    /// (api.md §3) with every transition already behind it, and any rule keyed
+    /// to a change would read that replay as a heat where nothing ever happened.
+    public func lap(lane i: Int, _ settings: LapSettings) -> LapCount? {
+        guard settings.show else { return nil }
+        let lane = lanes[i - 1]
+        // The delta takes the cell back the moment it has something to say.
+        guard DeltaFormat.text(lane.deltaSeconds).isEmpty else { return nil }
+        // And the place ends the lap whatever the delta is doing: a swimmer with
+        // no seed time never gets a delta at all, so waiting for one would leave
+        // the lap under a finished swim for the rest of the heat.
+        guard lane.place.isEmpty else { return nil }
+
+        // Counting down needs a total to count down from. `expected_splits` is 0
+        // for any event whose meet file carries no distance, and the count falls
+        // back to up rather than running to a number nobody reaches.
+        let countingDown = settings.direction == .down && expectedSplits > 0
+        guard lane.splits > 0 || (countingDown && !lane.name.trimmingCharacters(in: .whitespaces).isEmpty) else {
+            // Counting up waits for the first wall — a column of noughts under a
+            // start list is noise. Counting down has the whole race to report and
+            // shows from the moment the heat loads, but it needs a swimmer to say
+            // it about: an empty lane in a short heat must not advertise lengths
+            // nobody is swimming.
+            return nil
+        }
+
+        // Clamped at 0 so a console that over-counts reads as the last length
+        // rather than a negative one.
+        let text = countingDown ? String(max(0, expectedSplits - lane.splits)) : String(lane.splits)
+        // `+ splitStep`, never `+ 1`: with touchpads at one end only the count
+        // arrives in twos and never lands on an odd length, so a `+ 1` test would
+        // never fire on exactly the setup where the deck can least easily tell.
+        // Once true it holds to the finish — the next thing the console reports
+        // *is* the finish — and on a half-padded pool it covers the last two
+        // lengths, because the swimmer is not seen in between.
+        let isFinal = expectedSplits > 0 && lane.splits + splitStep >= expectedSplits
+        return LapCount(text: text, isFinal: isFinal)
+    }
+
     // MARK: - Liveness (C-09)
 
     /// The socket (re)connected. The reference resets its running flags and the
@@ -77,6 +130,14 @@ public struct ScoreboardState: Sendable, Equatable {
         lastEvent = nil
         lastHeat = nil
         for i in lanes.indices { lanes[i].running = false }
+        // The lap count's three inputs go back to "nothing known" (L-23), the
+        // way the reference board's `reset_state` does: the join replay carries
+        // the cached snapshot and puts back whatever is still true, and a stale
+        // `expected_splits` from the last meet would otherwise count down from
+        // a distance this one does not swim.
+        expectedSplits = 0
+        splitStep = 1
+        for i in lanes.indices { lanes[i].splits = 0 }
         clock.stop()
         refreshPulses()
     }
@@ -153,12 +214,20 @@ public struct ScoreboardState: Sendable, Equatable {
             }
             if let v = fields["lane_delta_seconds" + n] { lanes[i - 1].deltaSeconds = v.double }
             if let v = fields["lane_delta_better" + n] { lanes[i - 1].deltaBetter = v.bool }
+            // L-23. `int ?? 0` rather than a guard: the server blanks the count
+            // to 0 at the top of every heat, and a value that does not decode
+            // is the same nothing.
+            if let v = fields["lane_splits" + n] { lanes[i - 1].splits = v.int ?? 0 }
         }
 
         if let v = fields["event_name"]?.text { eventName = v }
         if let v = fields["event_name_parts"] { eventNameParts = EventNameParts(json: v) }
         if let v = fields["heat_time"]?.text { heatTime = v }
-        if let v = fields["expected_splits"]?.int { expectedSplits = v }
+        // Both halves of L-23's final-stretch test describe the venue and arrive
+        // together on every heat change. A `split_step` of 0 would make the test
+        // fire a length early, so it floors at 1.
+        if let v = fields["expected_splits"]?.int { expectedSplits = max(0, v) }
+        if let v = fields["split_step"]?.int { splitStep = max(1, v) }
 
         // L-13, three cases. The first event/heat seen after a connect is a
         // baseline, not a change: a join replay must not blank the snapshot it

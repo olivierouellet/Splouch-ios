@@ -230,6 +230,30 @@
         }
       }
     },
+    "laps" : {
+      "comment" : "VoiceOver only (L-23): what the number in the delta cell is while a lane is still swimming. Spoken as \u201claps 3\u201d.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "laps"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "largos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "longueurs"
+          }
+        }
+      }
+    },
     "meet_gone" : {
       "extractionState" : "manual",
       "localizations" : {

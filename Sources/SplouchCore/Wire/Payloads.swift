@@ -109,6 +109,11 @@ public struct MeetSettings: Sendable, Equatable {
     public var showTimeHeader: Bool
     public var showDeltaHeader: Bool
     public var showPositionHeader: Bool
+    /// L-23: off by default — not every console's split count is exact.
+    public var showLaps: Bool
+    /// `"up"` (lengths completed) or `"down"` (lengths left). Anything else,
+    /// including a server that predates the field, counts up.
+    public var lapDirection: String
     public var themeColors: [String: String]
     public var themeFonts: [String: String]
     public var locale: String
@@ -126,6 +131,7 @@ public struct MeetSettings: Sendable, Equatable {
         showPosition: Bool = true, showPodium: Bool = true,
         showLaneHeader: Bool = true, showNameHeader: Bool = true, showClubHeader: Bool = true,
         showTimeHeader: Bool = true, showDeltaHeader: Bool = true, showPositionHeader: Bool = true,
+        showLaps: Bool = false, lapDirection: String = "up",
         themeColors: [String: String] = [:], themeFonts: [String: String] = [:],
         locale: String = "en", labels: [String: String] = [:],
         labelStyle: String? = nil, console: ConsoleInfo = ConsoleInfo()
@@ -136,6 +142,7 @@ public struct MeetSettings: Sendable, Equatable {
         self.showLaneHeader = showLaneHeader; self.showNameHeader = showNameHeader
         self.showClubHeader = showClubHeader; self.showTimeHeader = showTimeHeader
         self.showDeltaHeader = showDeltaHeader; self.showPositionHeader = showPositionHeader
+        self.showLaps = showLaps; self.lapDirection = lapDirection
         self.themeColors = themeColors; self.themeFonts = themeFonts
         self.locale = locale; self.labels = labels
         self.labelStyle = labelStyle
