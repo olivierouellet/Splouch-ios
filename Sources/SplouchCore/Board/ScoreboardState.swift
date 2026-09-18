@@ -267,6 +267,13 @@ public struct ScoreboardState: Sendable, Equatable {
             lanes[i].place = ""
             lanes[i].deltaSeconds = nil
             lanes[i].deltaBetter = nil
+            // L-23's cell empties with the rest of the row. Every decoder blanks
+            // `lane_splits<i>` in its own `reset_lanes()` and the zeros land in
+            // this very frame, so in practice this changes nothing — but the
+            // board already refuses to take a cleared row on trust for times,
+            // places and deltas, and the lane sharing that cell should not be
+            // the one field that waits for the server to say so.
+            lanes[i].splits = 0
             lanes[i].timeStyle = lanes[i].running ? .running : .plain
         }
     }

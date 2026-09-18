@@ -426,6 +426,33 @@ import Testing
         #expect(s.splitStep == 1)
     }
 
+    @Test func aHeatChangeClearsTheLapWithoutWaitingForTheServerToSaySo() {
+        var s = liveBoard()
+        heatOf(&s, expected: 8, step: 2)
+        s.apply(frame(#"{"lane_splits1":6}"#), at: t0)
+        #expect(s.lap(lane: 1, up)?.text == "6")
+        // Every decoder blanks `lane_splits<i>` in `reset_lanes()`, so the real
+        // heat-change frame carries the zeros. This one deliberately does not:
+        // the cleared row is L-13's rule, not a favour from the console.
+        s.apply(frame(#"{"current_heat":"2"}"#), at: t0)
+        #expect(s[lane: 1].splits == 0)
+        #expect(s.lap(lane: 1, up) == nil)
+        // And the countdown is back to the whole distance for the new heat.
+        #expect(s.lap(lane: 1, down)?.text == "8")
+    }
+
+    @Test func aHeatChangeMidSwimKeepsTheResultsAndStillDropsTheLap() {
+        var s = liveBoard()
+        heatOf(&s, expected: 8, step: 2)
+        s.apply(frame(#"{"lane_splits1":6,"lane_running1":true,"running_time":"2:00.00"}"#), at: t0)
+        // L-13's second case: the console advanced while a lane was running, so
+        // the times stay on screen as results. The real frame carries the zeros
+        // here too; the lap has no business outliving the heat either way.
+        s.apply(frame(#"{"current_heat":"2","lane_splits1":0}"#), at: t0)
+        #expect(s[lane: 1].time == "2:00.0")
+        #expect(s.lap(lane: 1, up) == nil)
+    }
+
     @Test func lapDirectionFallsBackToUpForAnythingUnrecognised() {
         #expect(LapDirection("down") == .down)
         #expect(LapDirection("DOWN") == .down)
