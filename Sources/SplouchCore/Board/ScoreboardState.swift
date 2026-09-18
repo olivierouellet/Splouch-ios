@@ -142,6 +142,36 @@ public struct ScoreboardState: Sendable, Equatable {
         refreshPulses()
     }
 
+    /// `reset` (api.md §2.2): *everything on this board belongs to something that
+    /// is over.* A Pi sends it when a test session ends and the operator's own
+    /// meet has been reloaded — the cloud never does, because a replay that
+    /// reaches it is a real session as far as it is concerned.
+    ///
+    /// The contract says a client handles it the way it handles a fresh
+    /// connection, so this is `socketConnected()`'s wipe plus the cells: the
+    /// board is not about to be handed a join replay here, it is about to be
+    /// repainted from the real meet, and holding the recording's lanes until
+    /// that lands would show a heat that never swam.
+    ///
+    /// Blanking the cells is what `socketConnected()` deliberately does not do,
+    /// and it is the whole difference between the two.
+    public mutating func reset() {
+        lastEvent = nil
+        lastHeat = nil
+        currentEvent = ""
+        currentHeat = ""
+        eventName = ""
+        eventNameParts = nil
+        heatTime = ""
+        expectedSplits = 0
+        splitStep = 1
+        for i in lanes.indices {
+            lanes[i] = LaneRow()
+        }
+        clock.stop()
+        refreshPulses()
+    }
+
     /// A drop implies `meet_live = false`: every clock stops so stale lane state
     /// cannot masquerade as a live race. Cells hold their last value.
     public mutating func socketDisconnected() {

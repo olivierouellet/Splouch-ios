@@ -175,6 +175,13 @@ public final class MeetSession {
                 if f.data["current_event"] != nil || f.data["current_heat"] != nil {
                     currentHeat = HeatRef(event: scoreboard.currentEvent, heat: scoreboard.currentHeat)
                 }
+            case "reset":
+                // api.md §2.2, local Pi only. Distinct from `test_mode
+                // {active: false}`, which only takes the badge down: an
+                // operator who stops a replay to keep studying the last heat
+                // still has it. This one is the explicit wipe.
+                scoreboard.reset()
+                currentHeat = nil
             case "reload":
                 reloadVersion += 1
                 onReload?()

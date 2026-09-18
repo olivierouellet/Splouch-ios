@@ -453,6 +453,43 @@ import Testing
         #expect(s.lap(lane: 1, up) == nil)
     }
 
+    // api.md §2.2 — the wipe at the end of a test session.
+
+    @Test func resetClearsTheLapAlongWithEverythingElseOnTheBoard() {
+        var s = liveBoard()
+        heatOf(&s, expected: 8, step: 2)
+        s.apply(frame(#"{"lane_splits1":6,"lane_running1":true,"running_time":"2:00.00"}"#), at: t0)
+        s.apply(frame(#"{"lane_running1":false,"lane_time1":"2:20.92","lane_place2":"1"}"#), at: t0)
+        #expect(s.lap(lane: 1, up)?.text == "6")
+
+        // The end of a replay wipes the board with no `update_scoreboard` behind
+        // it. The lap was the one cell that survived this: clearing the place and
+        // the delta is exactly what puts the lap *back* on screen, so a board
+        // emptied of times came back showing lengths for a heat that was over.
+        s.reset()
+        #expect(s.lap(lane: 1, up) == nil)
+        #expect(s.lap(lane: 1, down) == nil)
+        #expect(s[lane: 1] == LaneRow())
+        #expect(s[lane: 1].time == "")
+        #expect(s.expectedSplits == 0)
+        #expect(s.splitStep == 1)
+        #expect(s.currentEvent == "")
+        #expect(s.eventName == "")
+    }
+
+    @Test func theHeatAfterAResetIsABaselineNotAChange() {
+        var s = liveBoard()
+        heatOf(&s, expected: 8)
+        s.reset()
+        // The real meet repaints right after the wipe (worker.py's
+        // `send_event_info`). That first event and heat are a baseline, as they
+        // are after a connect — nothing to blank, because nothing is there.
+        s.apply(frame(#"{"current_event":"3","current_heat":"1","lane_name1":"SARA LEBLANC","lane_splits1":0}"#), at: t0)
+        #expect(s.currentEvent == "3")
+        #expect(s.lap(lane: 1, up) == nil)
+        #expect(s.lap(lane: 1, down) == nil)   // no expected_splits yet
+    }
+
     @Test func lapDirectionFallsBackToUpForAnythingUnrecognised() {
         #expect(LapDirection("down") == .down)
         #expect(LapDirection("DOWN") == .down)

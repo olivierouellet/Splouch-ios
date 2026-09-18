@@ -105,6 +105,31 @@ import Testing
         await s.stop()
     }
 
+    // api.md §2.2: the Pi's end-of-test wipe reaches the board. `test_mode
+    // {active: false}` must not — that one only takes the badge down, and an
+    // operator who stopped a replay to study the last heat still has it.
+    @Test func resetWipesTheBoardAndTheBadgeComingDownDoesNot() async {
+        let (s, connector) = make()
+        s.start()
+        let sb = await connection(connector, "scoreboard")!
+        sb.push(Frame(event: "update_scoreboard", data: .object([
+            "current_event": .string("3"), "current_heat": .string("1"),
+            "expected_splits": .number(8), "split_step": .number(2),
+            "lane_name1": .string("SARA LEBLANC"), "lane_splits1": .number(6),
+        ])))
+        #expect(await eventually { @MainActor in s.scoreboard[lane: 1].splits == 6 })
+
+        sb.push(Frame(event: "test_mode", data: .object(["active": .bool(false)])))
+        #expect(await eventually { @MainActor in s.scoreboard[lane: 1].splits == 6 })
+
+        sb.push(Frame(event: "reset", data: .object([:])))
+        #expect(await eventually { @MainActor in
+            s.scoreboard[lane: 1] == LaneRow() && s.scoreboard.expectedSplits == 0
+                && s.scoreboard.currentEvent == "" && s.currentHeat == nil
+        })
+        await s.stop()
+    }
+
     @Test func whicheverSocketSpeaksLastOwnsTheCurrentHeat() async {
         let (s, connector) = make()
         s.start()
