@@ -128,6 +128,16 @@ struct HeatCard: View {
             .font(faces.text(17 * typeScale, weight: .semibold)).foregroundStyle(palette.scheduleEvent)
         let name = eventName.isEmpty ? nil :
             Text(eventName).font(faces.text(17 * typeScale)).foregroundStyle(palette.rowText)
+        // At its own width, not the seed column's. The heading's time is a clock
+        // time and the column is sized for a seed time, so lining the two up
+        // parked "9:12" at the right edge of a ruler cut for "1:04.219" and left
+        // the event name stopping a finger's width short of blank card. The seed
+        // times below still share their edge with each other, which is the
+        // alignment that was worth having. A heat with no scheduled time draws
+        // nothing here at all, and the name runs to the edge.
+        let time = heat.heat.time.isEmpty ? nil :
+            Text(heat.heat.time).font(faces.timing(13 * typeScale))
+                .foregroundStyle(palette.scheduleTime).lineLimit(1).fixedSize()
 
         // A header, so the VoiceOver rotor can jump heat to heat rather than
         // walking every lane — on the screen whose whole purpose is finding one
@@ -138,28 +148,44 @@ struct HeatCard: View {
                 // time shared one here too, and at these sizes the time took a
                 // third of the card and left the heading to wrap in what was
                 // left — "EV" / "12 —" / "HT 1" down a narrow gutter. The time
-                // keeps the trailing column so it still reads down the card
-                // with the seed times; it just no longer takes the heading's
-                // width to do it.
+                // keeps the trailing edge so it still reads down the card; it
+                // just no longer takes the heading's width to do it, and a heat
+                // without one spends no line on it.
                 VStack(alignment: .leading, spacing: 2) {
                     eventHeat.fixedSize(horizontal: false, vertical: true)
-                    HStack(spacing: 0) {
-                        Spacer(minLength: 0)
-                        timingColumn(heat.heat.time, size: 13)
+                    if let time {
+                        HStack(spacing: 0) {
+                            Spacer(minLength: 0)
+                            time
+                        }
                     }
                     name?.fixedSize(horizontal: false, vertical: true)
                 }
             } else {
                 // The scheduled time moved from the front of this row to the
-                // trailing column the seed times sit in, so a card reads as two
-                // columns rather than three loose runs of text: what the heat is
-                // on the left, when it swims on the right, level with every time
-                // below it.
+                // trailing edge, so a card reads as two columns rather than
+                // three loose runs of text: what the heat is on the left, when
+                // it swims on the right.
+                //
+                // No spacer between the name and the time. A stack hands each
+                // flexible child the room left over divided by how many are
+                // still to be sized, and a spacer is one of them — so the name
+                // was offered half the free width, ellipsised itself at that,
+                // and the spacer took the other half as blank. The name holds
+                // the gap itself instead, which is the same picture when it is
+                // short and the whole width when it is long.
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    eventHeat
-                    name?.fitOneLine(minimumScale: 0.7)
-                    Spacer(minLength: 8)
-                    timingColumn(heat.heat.time, size: 13)
+                    // Sized before the name, and never wrapped: the heading is
+                    // four short runs of text, and a second line for "HT 3" with
+                    // the rest of the card empty beside it was the same division
+                    // going the other way.
+                    eventHeat.fitOneLine(minimumScale: 0.7).layoutPriority(1)
+                    if let name {
+                        name.fitOneLine(minimumScale: 0.7).frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        Spacer(minLength: 0)
+                    }
+                    time
                 }
             }
         }
@@ -167,9 +193,12 @@ struct HeatCard: View {
         .accessibilityAddTraits(.isHeader)
     }
 
-    /// The timing column: as wide as the widest seed time on screen, with its
-    /// value at the trailing edge. Both a lane's seed time and a heading's
-    /// scheduled time sit in it, so every time on a card shares one right edge.
+    /// The seed column: as wide as the widest seed time on screen, with the
+    /// lane's own time at the trailing edge, so every seed time on a card — and
+    /// down the whole screen — shares one right edge. The heading's scheduled
+    /// time is not one of these; it is a clock time, and it sits at its own
+    /// width so the event name beside it is not held back by a ruler cut for
+    /// "1:04.219".
     ///
     /// The club and the time used to be packed against the right edge at their
     /// natural widths, so the club's position followed the width of the time
@@ -186,20 +215,16 @@ struct HeatCard: View {
     /// 14pt, the club's size, because the two were one size in the stylesheet
     /// this screen came from (12 each) and the pass that lifted the row to
     /// platform body sizes moved the club and missed the time.
-    /// One value in that column, at the size its own row wants: 14 for a lane's
-    /// seed time, 13 for a heading's scheduled time. Only the ruler is measured,
-    /// so the two sizes still share one right edge.
-    @ViewBuilder private func timingColumn(_ value: String, size: CGFloat) -> some View {
+    @ViewBuilder private func seedColumn(_ value: String) -> some View {
         if !value.isEmpty || !seedTemplate.isEmpty {
             let text = Text(value)
-                .font(faces.timing(size * typeScale))
+                .font(faces.timing(14 * typeScale))
                 .foregroundStyle(palette.scheduleTime)
                 .lineLimit(1)
                 .fixedSize()
             if seedTemplate.isEmpty {
                 // No lane on screen has a seed time, so there is no column to
-                // keep — a heading's time is then the only one here and can sit
-                // at its own width.
+                // keep and this lane has none either — nothing is drawn.
                 text
             } else {
                 Text(seedTemplate)
@@ -222,7 +247,7 @@ struct HeatCard: View {
             .foregroundStyle(palette.scheduleName)
         let club = lane.club.isEmpty ? nil :
             Text(lane.club).font(faces.text(14 * typeScale)).foregroundStyle(palette.scheduleClub)
-        let seed = timingColumn(lane.seedTime, size: 14)
+        let seed = seedColumn(lane.seedTime)
 
         if stacked {
             VStack(alignment: .leading, spacing: 2) {
@@ -233,8 +258,12 @@ struct HeatCard: View {
                     // row. A two-line cap was still ellipsising "TREMBLAY,
                     // Jean-Chri…" at the largest sizes, which is this reflow
                     // failing at the one job it exists for.
+                    //
+                    // It claims the width rather than sharing it with a spacer,
+                    // which was handing it half the row and wrapping a name that
+                    // had room to sit on one line.
                     name.fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 0)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Color.clear.frame(width: laneColumn, height: 0)
@@ -244,15 +273,19 @@ struct HeatCard: View {
                     // A club code is two to five capitals; half size still
                     // reads, a missing half does not.
                     club?.fitOneLine(minimumScale: 0.5)
-                    Spacer(minLength: 6)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     seed
                 }
             }
         } else {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 number
-                name.fitOneLine()
-                Spacer(minLength: 6)
+                // Same as the heading above: no spacer between the name and
+                // what follows it. The name was being offered the leftover
+                // width divided by the children still to be sized — the spacer
+                // among them — so it ellipsised at half a row while the other
+                // half stayed blank. It holds the gap itself.
+                name.fitOneLine().frame(maxWidth: .infinity, alignment: .leading)
                 club?.fitOneLine(minimumScale: 0.7)
                 seed
             }
