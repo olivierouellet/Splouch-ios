@@ -99,3 +99,7 @@ Two kinds, split by what the word is about (app.md T-05):
   `Sources/SplouchUI/Resources/Localizable.xcstrings` (en, fr, es) behind the
   `Native` enum. Cancel, Done and OK use the platform's own labels where SwiftUI
   provides them.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
