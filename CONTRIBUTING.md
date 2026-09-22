@@ -82,6 +82,13 @@ local cloud for those.
 Anything touching a screen also builds for the simulator and gets looked at, in both
 orientations if the layout moved. Say in the PR what you saw.
 
+CI runs on every push and pull request, and there is one thing worth knowing about what
+it can and cannot see. `swift test` compiles `SplouchUI` for **macOS** — that is the
+trade that keeps the inner loop off the simulator — so the `#if os(iOS)` blocks in it are
+invisible to a green local run. The `iOS app target` job is what compiles those, along
+with Info.plist and the asset catalogue, which no test reads. If your change is in one of
+those blocks, build for the simulator before you push rather than finding out from CI.
+
 ---
 
 ## Conventions

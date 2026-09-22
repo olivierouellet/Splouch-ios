@@ -5,8 +5,8 @@
 # CONTRIBUTING.md. If a dependency is ever added, add the `swift` ecosystem with it.
 #
 # Actions are a different matter: they run with a token against this repo, they are
-# pinned by tag, and nothing here would notice a stale or yanked one. This entry covers
-# `.github/workflows/` and starts doing work the day the first workflow lands.
+# pinned by tag, and nothing here would notice a stale or yanked one until a workflow
+# started failing. This entry watches `.github/workflows/ci.yml`.
 version: 2
 updates:
   - package-ecosystem: github-actions

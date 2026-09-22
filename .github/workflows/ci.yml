@@ -1,0 +1,114 @@
+# Two jobs because one of them cannot see what the other builds.
+#
+# `swift test` compiles both libraries and runs the whole suite, but it compiles
+# them **for macOS** — that is the trade this package makes so the inner loop needs
+# no simulator. The cost is that the eight `#if os(iOS)` blocks in SplouchUI, and
+# every UIKit path they reach, are invisible to it: they can be deleted, renamed or
+# broken and the suite still reports green. The `app` job is what closes that hole,
+# and it is also the only thing that reads Info.plist, the asset catalogue and the
+# Xcode project — none of which SwiftPM knows exist.
+#
+# Nothing is cached. The package has no dependencies to restore (CONTRIBUTING.md
+# says why), and a warm DerivedData is worth less than the time spent proving it is
+# not stale.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  package:
+    name: swift test · macOS
+    # Free for public repositories. macOS minutes bill at 10× on a private repo —
+    # worth knowing before this runs on every push there.
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Toolchain
+        # Recorded in the log on purpose: `macos-latest` moves, and when a failure
+        # here does not reproduce on someone's machine this is the first line to
+        # compare. The floor is asserted rather than assumed — Package.swift is
+        # swift-tools-version 6.0 and the tree is strict-concurrency throughout, so
+        # an older toolchain fails in ways that read like our own bugs.
+        run: |
+          xcodebuild -version
+          swift --version
+          swift --version 2>&1 | grep -qE 'Apple Swift version ([6-9]|[1-9][0-9])\.' \
+            || { echo "::error::Swift 6 or newer is required"; exit 1; }
+
+      - name: Tests
+        # LiveServerTests skips here by design: its two checks need a real server at
+        # SPLOUCH_LIVE_SERVER and there is none on a runner. Everything else uses the
+        # HTTP stub and the fake WebSocket in Tests/SplouchCoreTests/Support/.
+        run: swift test 2>&1 | tee test.log
+
+      - name: Check the suite really ran
+        # The guard that makes green mean green. A test target that builds but
+        # discovers nothing exits 0 and reports a pass, which is the one failure mode
+        # a green tick cannot be trusted about. The floor is well under the current
+        # count — raise it if it ever starts catching real growth instead of breakage.
+        run: |
+          count=$(sed -n 's/.*Test run with \([0-9]*\) tests.*/\1/p' test.log | tail -1)
+          echo "discovered ${count:-0} tests"
+          [ "${count:-0}" -ge 150 ] \
+            || { echo "::error::only ${count:-0} tests ran; the suite is around 195"; exit 1; }
+
+  app:
+    name: iOS app target
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build for the simulator
+        # `generic/platform=iOS Simulator` compiles against the simulator SDK without
+        # naming a device or booting one, so this does not break the day the runner
+        # image stops shipping whichever iPhone was hard-coded here. Signing is off:
+        # a simulator build needs none, and the project carries no team.
+        run: |
+          xcodebuild -project App/Splouch.xcodeproj -scheme Splouch \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath .build/ci \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Check the bundle came out whole
+        # Info.plist is not built by SwiftPM and not read by any test, so a key lost
+        # in a merge reaches a phone unless something looks. These four are the ones
+        # the contract requires (app.md P-12, T-03) and the ones whose absence is
+        # silent: the app still launches, it just cannot reach a Pi, find a server or
+        # draw a digit in the right face.
+        run: |
+          app=.build/ci/Build/Products/Debug-iphonesimulator/Splouch.app
+          plist=$app/Info.plist
+          test -d "$app" || { echo "::error::no app bundle at $app"; exit 1; }
+          for key in NSAppTransportSecurity NSLocalNetworkUsageDescription NSBonjourServices UIAppFonts; do
+            /usr/libexec/PlistBuddy -c "Print :$key" "$plist" >/dev/null 2>&1 \
+              || { echo "::error::Info.plist is missing $key"; exit 1; }
+          done
+          echo "fonts bundled: $(ls "$app"/Fonts 2>/dev/null | wc -l | tr -d ' ')"
+
+  scripts:
+    name: Shell scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install zsh
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends zsh
+
+      - name: Syntax-check the scripts
+        # Not shellcheck: both scripts are zsh — update-strings.sh uses glob
+        # qualifiers (`*.json(N)`) that no POSIX shell parses — and shellcheck has no
+        # zsh dialect. `zsh -n` is what is left, and it catches the unbalanced quote
+        # or missing `fi` that would otherwise be found by a release.
+        run: zsh -n scripts/*.sh

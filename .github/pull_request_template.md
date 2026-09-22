@@ -14,7 +14,7 @@ behind the ones that look arbitrary: https://github.com/olivierouellet/Splouch-i
 swift test
 ```
 
-- [ ] Green.
+- [ ] Green. (CI runs this, plus the iOS app-target build that `swift test` cannot cover.)
 - [ ] `parity.md` updated — the rows this touches say `done`, `deferred` or `diverges`, and a `diverges` row says what the app does instead and why.
 - [ ] No wire field invented: every payload key read here is in `api.md`.
 - [ ] No new package dependency.
