@@ -1,4 +1,5 @@
-# Two jobs because one of them cannot see what the other builds.
+# Three jobs, and the two macOS ones exist separately because neither can see what
+# the other builds.
 #
 # `swift test` compiles both libraries and runs the whole suite, but it compiles
 # them **for macOS** — that is the trade this package makes so the inner loop needs
@@ -48,7 +49,7 @@ jobs:
         # LiveServerTests skips here by design: its two checks need a real server at
         # SPLOUCH_LIVE_SERVER and there is none on a runner. Everything else uses the
         # HTTP stub and the fake WebSocket in Tests/SplouchCoreTests/Support/.
-        run: swift test 2>&1 | tee test.log
+        run: swift test --enable-code-coverage 2>&1 | tee test.log
 
       - name: Check the suite really ran
         # The guard that makes green mean green. A test target that builds but
@@ -60,6 +61,27 @@ jobs:
           echo "discovered ${count:-0} tests"
           [ "${count:-0}" -ge 150 ] \
             || { echo "::error::only ${count:-0} tests ran; the suite is around 195"; exit 1; }
+
+      - name: Coverage
+        # Printed into this log and nothing else: not uploaded, not gated, no badge.
+        # The number measures SplouchCore, which is the only thing `swift test` links
+        # — SplouchUI has no test target, so it is absent from the table rather than
+        # scoring zero, and the three files that do read 0% are the deliberate seam
+        # (BonjourBrowser, NetworkWatcher, WebSocketTransport). Tests use the fakes
+        # behind those protocols, so their zeros are the design working, not a gap.
+        # Read the table for which *branch* of a decoder went untried, not the total.
+        #
+        # `Sources/` as a positional filter rather than an ignore-regex: it drops the
+        # test target and SwiftPM's generated resource accessors in one move, and
+        # llvm-cov then strips the common prefix so the paths stay readable.
+        run: |
+          bin=$(swift build --show-bin-path)
+          cov=$(dirname "$(swift test --show-codecov-path --enable-code-coverage)")
+          xctest=$(find "$bin" -maxdepth 1 -name '*.xctest')
+          xcrun llvm-cov report \
+            "$xctest/Contents/MacOS/$(basename "$xctest" .xctest)" \
+            -instr-profile "$cov/default.profdata" \
+            Sources/
 
   app:
     name: iOS app target

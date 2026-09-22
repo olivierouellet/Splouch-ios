@@ -82,6 +82,24 @@ local cloud for those.
 Anything touching a screen also builds for the simulator and gets looked at, in both
 orientations if the layout moved. Say in the PR what you saw.
 
+CI prints a coverage table into its log on every run — nothing is uploaded and nothing is
+gated on the number. To see the same table locally:
+
+```sh
+swift test --enable-code-coverage
+bin=$(swift build --show-bin-path)
+cov=$(dirname "$(swift test --show-codecov-path --enable-code-coverage)")
+xctest=$(find "$bin" -maxdepth 1 -name '*.xctest')
+xcrun llvm-cov report "$xctest/Contents/MacOS/$(basename "$xctest" .xctest)" \
+  -instr-profile "$cov/default.profdata" Sources/
+```
+
+Read it for which branch of a decoder went untried, not for the total. Three files sit at
+0% on purpose — `BonjourBrowser`, `NetworkWatcher` and `WebSocketTransport` are the seam
+where the system frameworks start, and the suites use the fakes behind those protocols
+rather than the network. A change that makes one of them testable without a network is
+welcome; a test that reaches for a real socket to move the number is not.
+
 CI runs on every push and pull request, and there is one thing worth knowing about what
 it can and cannot see. `swift test` compiles `SplouchUI` for **macOS** — that is the
 trade that keeps the inner loop off the simulator — so the `#if os(iOS)` blocks in it are
