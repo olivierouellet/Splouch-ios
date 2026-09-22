@@ -188,4 +188,34 @@ import Testing
         #expect(MeetLive(json: json(#"{"live":true}"#)).live)
         #expect(MeetLive(json: .object([:])).live == false)
     }
+
+    /// api.md drift, from the client's side: a server that omits a field the
+    /// decoder expects must still produce a value, because every one of these
+    /// lands in a lane row that is about to be drawn. A missing lane number is
+    /// the one that matters — it is the sort key and the row's identity, so it
+    /// becomes 0 rather than leaving the row absent from a board mid-heat.
+    @Test func missingWireFieldsDecodeToTheirFloorRatherThanVanishing() {
+        let lane = ResultLane(json: json(#"{"name":"A"}"#))
+        #expect(lane.channel == 0)
+        #expect(lane.name == "A")
+        #expect(lane.placeInt == nil)          // absent stays absent where it is optional
+        #expect(lane.deltaSeconds == nil)
+
+        let next = NextHeats(json: json(#"{"heats":[{"event":3,"swimmers":[{"name":"a"}]}]}"#))
+        #expect(next.heats[0].swimmers[0].lane == 0)
+        #expect(next.heats[0].swimmers[0].name == "a")
+
+        let schedule = Schedule(json: json(#"{"heats":[{"event":1,"lanes":[{"name":"b"}]}]}"#))
+        #expect(schedule.heats[0].lanes[0].lane == 0)
+        #expect(schedule.heats[0].lanes[0].name == "b")
+    }
+
+    /// A meet config with no `settings` object at all still opens, on the
+    /// defaults, rather than failing to decode and leaving the meet unopenable.
+    @Test func aMeetConfigWithoutSettingsFallsBackToTheDefaults() {
+        let c = MeetConfig(json: json(#"{"name":"Open"}"#))
+        #expect(c.name == "Open")
+        #expect(c.live == false)
+        #expect(c.settings.numLanes == MeetSettings().numLanes)
+    }
 }

@@ -185,4 +185,37 @@ import Testing
         try? await Task.sleep(for: .milliseconds(50))
         #expect(connector.openCount == 1)
     }
+
+    /// C-02: the join frame is what the socket re-sends on every reconnect, so
+    /// replacing it has to change what the *next* connect announces. This is the
+    /// meet-switch case — the same socket, a different meet — where a stale join
+    /// would silently subscribe the reader back to the meet they just left.
+    @Test func replacingTheJoinChangesWhatTheNextConnectSends() async {
+        let (socket, connector, recorder) = make(join: join)
+        await socket.start()
+        #expect(await eventually { await recorder.events.contains(.connected) })
+        #expect(connector.latest!.sentEvents == ["join_meet"])
+
+        await socket.setJoin(Frame.joinMeet(meetID: "m2", vid: "v1"))
+        await connector.latest!.dropFromServer()
+        #expect(await eventually { connector.openCount == 2 })
+        #expect(await eventually { connector.latest!.sentEvents == ["join_meet"] })
+        let sent = try? Frame.decode(connector.latest!.sent.first ?? "")
+        #expect(sent?.data.object?["meet_id"]?.string == "m2")
+        await socket.close()
+    }
+
+    /// And clearing it stops the socket announcing anything at all, which is the
+    /// Pi's shape: one meet, nothing to join.
+    @Test func clearingTheJoinSendsNothingOnReconnect() async {
+        let (socket, connector, recorder) = make(join: join)
+        await socket.start()
+        #expect(await eventually { await recorder.events.contains(.connected) })
+        await socket.setJoin(nil)
+        await connector.latest!.dropFromServer()
+        #expect(await eventually { connector.openCount == 2 })
+        #expect(await eventually { await recorder.count { $0 == .connected } == 2 })
+        #expect(connector.latest!.sentEvents.isEmpty)
+        await socket.close()
+    }
 }

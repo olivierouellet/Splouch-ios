@@ -33,6 +33,29 @@ import Testing
     @Test func onlyRightSide() {
         #expect(EventName.compose(EventNameParts(gender: "girls"), vocab: es) == "Niñas")
     }
+
+    /// T-11: a server whose `event_name` section is missing the two joining words
+    /// still composes. `unit` and `separator` are the only vocabulary entries the
+    /// client supplies a default for, because without them the name would read
+    /// "200 backstroke" with no unit and the two halves would run together — the
+    /// same defaults `ws.js` carries, so a phone and the web page agree.
+    @Test func theJoiningWordsHaveDefaultsWhenTheVocabularyOmitsThem() {
+        let thin: [String: String] = ["backstroke": "dos", "girls": "Filles"]
+        let p = EventNameParts(raw: "200 Back Girls", dist: "200", stroke: "backstroke", gender: "girls")
+        #expect(EventName.compose(p, vocab: thin) == "200 m dos  \u{2014}  Filles")
+
+        // And a vocabulary that names them is still preferred over the defaults.
+        let named = thin.merging(["unit": "v", "separator": " / "]) { $1 }
+        #expect(EventName.compose(p, vocab: named) == "200 v dos / Filles")
+    }
+
+    /// An empty `relay` word is not a word: the flag is set but there is nothing
+    /// to show, so the name composes without it rather than with a blank slot.
+    @Test func anEmptyRelayWordIsNotAppended() {
+        let vocab = es.merging(["relay": ""]) { $1 }
+        let p = EventNameParts(dist: "4x50", stroke: "freestyle", relay: true)
+        #expect(EventName.compose(p, vocab: vocab) == "4x50 m libre")
+    }
 }
 
 @Suite struct StringTableTests {

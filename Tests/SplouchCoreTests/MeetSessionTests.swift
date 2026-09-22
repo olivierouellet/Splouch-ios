@@ -178,6 +178,26 @@ import Testing
         await s.stop()
     }
 
+    /// L-12: backgrounding stops the race clock and leaves it stopped. A tick
+    /// that arrives afterwards — a timer that had already fired, a tab coming
+    /// back before the next frame — must not restart it, or the board would
+    /// resume counting from a time the console never sent.
+    @Test func suspendStopsTheClockAndATickDoesNotRestartIt() async {
+        let (s, connector) = make()
+        s.start()
+        let board = await connection(connector, "scoreboard")
+        board?.push(Frame(event: "meet_live", data: .object(["live": .bool(true)])))
+        board?.push(Frame(event: "update_scoreboard",
+                          data: .object(["lane_running1": .bool(true), "running_time": .string("10.00")])))
+        #expect(await eventually { @MainActor in s.scoreboard.clock.isRunning })
+
+        s.suspend()
+        #expect(!s.scoreboard.clock.isRunning)
+        s.tick(at: .now)
+        #expect(!s.scoreboard.clock.isRunning)
+        await s.stop()
+    }
+
     @Test func stopClosesAndWipes() async {
         let (s, connector) = make()
         s.start()

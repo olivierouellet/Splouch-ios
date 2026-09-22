@@ -29,6 +29,44 @@ import Testing
         await ctx.stop()
     }
 
+    /// The heat the board is on, which the schedule highlights and the tabs share.
+    /// It follows the scoreboard socket, and the explicit wipe clears it — a lane
+    /// list that outlived its heat is the bug `reset` exists to prevent.
+    @Test func theCurrentHeatFollowsTheBoardAndClearsOnReset() async {
+        let stub = StubServer()
+        stub.route("/meet/m1/schedule", json: #"{"heats":[]}"#)
+        let connector = FakeConnector()
+        let ctx = make(stub: stub, connector: connector)
+        ctx.start()
+        _ = await eventually { connector.openCount == 3 }
+        #expect(ctx.currentHeat == nil)
+        connector.connections[0].push(Frame(event: "update_scoreboard",
+                                            data: .object(["current_event": .string("7"),
+                                                           "current_heat": .string("3")])))
+        #expect(await eventually { @MainActor in ctx.currentHeat == HeatRef(event: "7", heat: "3") })
+        connector.connections[0].push(Frame(event: "reset", data: .object([:])))
+        #expect(await eventually { @MainActor in ctx.currentHeat == nil })
+        await ctx.stop()
+    }
+
+    /// T-09: the short/long control is withdrawn from the UI, so a meet renders
+    /// the long labels whatever a device has stored — including a device that
+    /// chose short while the control still existed. The stored value is read
+    /// through `effectiveLabelStyle` rather than overwritten, so that choice is
+    /// still there if the control ever returns.
+    @Test func theMeetRendersLongLabelsWhateverTheDeviceStored() async {
+        let stub = StubServer()
+        stub.route("/meet/m1/schedule", json: #"{"heats":[]}"#)
+        let ctx = make(stub: stub, connector: FakeConnector(), prefs: Preferences(labelStyle: .short))
+        #expect(ctx.effectiveLabelStyle == .long)
+        // The choice itself is kept, not overwritten: it is the reading that is
+        // pinned, so the preference survives for the day the control returns.
+        let stored = Preferences(labelStyle: .short)
+        #expect(stored.labelStyle == .short)
+        #expect(stored.effectiveLabelStyle == .long)
+        await ctx.stop()
+    }
+
     @Test func reloadRefetchesConfigAndRebuildsTheBoard() async {
         let stub = StubServer()
         stub.route("/meet/m1/schedule", json: #"{"heats":[]}"#)
@@ -288,6 +326,23 @@ import Testing
         #expect(round.appearance == .auto)
     }
 
+    /// Preferences written before a key existed decode to its default rather than
+    /// throwing and taking the rest of the file with them. The server list is the
+    /// one that matters: a decode failure there would silently drop every server
+    /// the user had added, and they would have to type them again.
+    @Test func preferencesMissingAKeyKeepTheRestOfTheFile() throws {
+        let sparse = Data(#"{"language":"fr"}"#.utf8)
+        let p = try JSONDecoder().decode(Preferences.self, from: sparse)
+        #expect(p.language == "fr")
+        #expect(p.savedServers.isEmpty)
+        #expect(p.labelStyle == .long)
+        #expect(p.appearance == .dark)
+        #expect(p.server == nil)
+
+        // An empty object is the first-launch case and decodes the same way.
+        #expect(try JSONDecoder().decode(Preferences.self, from: Data("{}".utf8)).savedServers.isEmpty)
+    }
+
     @Test func languageListStartsFromTheSnapshotAndSurvivesAFailedRefresh() async {
         let stub = StubServer()
         cloud(stub)
@@ -332,5 +387,180 @@ import Testing
         let ctx = try await app.openPi()
         #expect(ctx.title == "Regional")
         #expect(ctx.settings.numLanes == 10)
+    }
+
+    /// The header's name for a server, before and after it has said one (§7).
+    /// Until `GET /server` answers there is no name to show, and the host is what
+    /// the user typed — which is the state the server sheet renders a row in.
+    @Test func serverNameFallsBackToTheHostUntilTheServerSaysOne() async {
+        let stub = StubServer()
+        cloud(stub)
+        let app = make(stub)
+        #expect(app.serverInfo == nil)
+        #expect(app.serverName == stub.host)
+        await app.start()
+        #expect(app.serverName == "Splouch")
+        // An unreachable server drops the name again rather than keeping a stale
+        // one: switchServer clears serverInfo before the load that fails.
+        await app.switchServer(ServerAddress(typed: "https://gone.example")!)
+        #expect(app.unreachable)
+        #expect(app.serverName == "gone.example")
+    }
+
+    /// The menu is built before any server has answered, so its first row has no
+    /// name to use and falls back to the product's own.
+    @Test func knownServersNamesTheCurrentServerBeforeItHasAnswered() {
+        let stub = StubServer()
+        let app = make(stub)
+        #expect(app.knownServers.map(\.name) == ["Splouch"])
+        #expect(app.knownServers.map(\.address) == [stub.address])
+    }
+
+    /// P-11: a server saved twice is one row, not two. The second add replaces
+    /// the first, so a renamed server keeps the newer name at the same origin.
+    @Test func addingTheSameServerTwiceKeepsOneEntryWithTheNewerName() async {
+        let stub = StubServer()
+        cloud(stub)
+        let store = InMemoryPreferencesStore()
+        let app = AppModel(defaultServer: ServerAddress(typed: "https://default.example")!, preferencesStore: store,
+                           vidStore: InMemoryVidStore(), bundleCache: InMemoryBundleCache(), session: stub.session,
+                           connector: FakeConnector())
+        await app.addServer(stub.address, info: ServerInfo(kind: .cloud, name: "Pool", contract: .init(api: "v2", app: "v1")))
+        await app.addServer(stub.address, info: ServerInfo(kind: .cloud, name: "Pool renamed", contract: .init(api: "v2", app: "v1")))
+        #expect(store.load().savedServers.map(\.name) == ["Pool renamed"])
+        // And the menu does not show the same origin twice either.
+        #expect(app.knownServers.filter { $0.address == stub.address }.count == 1)
+    }
+
+    /// P-11: removing a saved server takes it out of the store and the menu, and
+    /// leaves the others alone. Identity is the origin, not the name.
+    @Test func removingASavedServerLeavesTheOthers() async {
+        let stub = StubServer()
+        cloud(stub)
+        let app = make(stub)
+        let a = SavedServer(name: "Club A", address: ServerAddress(typed: "https://a.example")!)
+        let b = SavedServer(name: "Club B", address: ServerAddress(typed: "https://b.example")!)
+        await app.addServer(a.address, info: ServerInfo(kind: .cloud, name: a.name, contract: .init(api: "v2", app: "v1")))
+        await app.addServer(b.address, info: ServerInfo(kind: .cloud, name: b.name, contract: .init(api: "v2", app: "v1")))
+        #expect(app.preferences.savedServers.map(\.name) == ["Club A", "Club B"])
+        // A different SavedServer value with the same address is the same row.
+        app.removeSavedServer(SavedServer(name: "whatever", address: a.address))
+        #expect(app.preferences.savedServers.map(\.name) == ["Club B"])
+        #expect(!app.knownServers.contains { $0.address == a.address })
+        // Removing one that was never saved changes nothing.
+        app.removeSavedServer(SavedServer(name: "Club C", address: ServerAddress(typed: "https://c.example")!))
+        #expect(app.preferences.savedServers.map(\.name) == ["Club B"])
+    }
+
+    /// The directory is the one part of the load that is allowed to fail on its
+    /// own: a cloud that cannot list its siblings still has meets to show, so
+    /// `/servers` falling over empties the directory instead of the screen.
+    @Test func aFailedServerDirectoryDoesNotFailTheLoad() async {
+        let stub = StubServer()
+        cloud(stub)
+        stub.route("/servers", json: "nope", status: 500)
+        let app = make(stub)
+        await app.start()
+        #expect(!app.unreachable)
+        #expect(app.meets.count == 1)
+        #expect(app.directory.isEmpty)
+        // The menu still offers the current server and the default.
+        #expect(app.knownServers.map(\.name) == ["Splouch"])
+    }
+
+    /// P-08: the title a meet opens under, when the server has not set the one
+    /// the window prefers. `app_window_title` wins; then the meet's own name;
+    /// then the name the list already showed, so the bar is never blank.
+    @Test func meetTitleFallsBackThroughTheNamesItHas() async throws {
+        let stub = StubServer()
+        cloud(stub)
+        let app = make(stub)
+        await app.start()
+        let summary = app.meets[0]
+
+        stub.route("/meet/m1/config", json: #"{"name":"Open Meet","app_window_title":"","settings":{}}"#)
+        #expect(try await app.open(summary).title == "Open Meet")
+
+        stub.route("/meet/m1/config", json: #"{"name":"","app_window_title":"","settings":{}}"#)
+        #expect(try await app.open(summary).title == summary.name)
+    }
+
+    /// P-14: both halves of the contract are reported, and a double mismatch
+    /// reads as one notice rather than two.
+    @Test func bothContractHalvesAreReported() async {
+        let stub = StubServer()
+        cloud(stub)
+        stub.route("/server", json: #"{"kind":"cloud","name":"Old","contract":{"api":"v2","app":"v9"}}"#)
+        let app = make(stub)
+        await app.start()
+        #expect(app.contractNotice == "app v9 ≠ v1")
+        stub.route("/server", json: #"{"kind":"cloud","name":"Old","contract":{"api":"v1","app":"v9"}}"#)
+        await app.load()
+        #expect(app.contractNotice == "api v1 ≠ v2 · app v9 ≠ v1")
+    }
+
+    /// T-08: choosing "follow the device" clears the stored language, and the
+    /// table is rebuilt from the picker's own language rather than from nothing.
+    @Test func clearingTheLanguageFallsBackToThePickersOwn() async {
+        let stub = StubServer()
+        cloud(stub)
+        let store = InMemoryPreferencesStore(Preferences(language: "es"))
+        let app = AppModel(defaultServer: stub.address, preferencesStore: store, vidStore: InMemoryVidStore(),
+                           bundleCache: InMemoryBundleCache(), session: stub.session, connector: FakeConnector())
+        await app.start()
+        #expect(store.load().language == "es")
+        await app.setLanguage(nil)
+        #expect(store.load().language == nil)
+        // cloud() serves a picker whose own lang is fr, so that is what the
+        // chrome resolves to once the device's choice is withdrawn.
+        #expect(app.strings.language == "fr")
+    }
+
+    /// T-05 / T-10: the chrome starts on the compiled snapshot and upgrades to the
+    /// server's own words once `GET /i18n/{lang}` answers, in the picker's language
+    /// when the device has expressed no preference. What comes back is stored under
+    /// this server's origin, so the next launch starts from it rather than the floor.
+    @Test func chromeStringsUpgradeFromTheSnapshotToTheServersOwn() async {
+        let stub = StubServer()
+        cloud(stub)
+        stub.route("/i18n/fr", json: #"{"lang":"fr","mobile":{"no_meets":"Rien du tout"}}"#,
+                   headers: ["ETag": "\"v1\""])
+        let cache = InMemoryBundleCache()
+        let app = AppModel(defaultServer: stub.address, preferencesStore: InMemoryPreferencesStore(),
+                           vidStore: InMemoryVidStore(), bundleCache: cache, session: stub.session,
+                           connector: FakeConnector())
+        await app.start()
+        #expect(app.strings.language == "fr")
+        #expect(app.strings.mobile("no_meets") == "Rien du tout")
+        #expect(cache.load(origin: stub.address.origin, lang: "fr")?.etag == "\"v1\"")
+    }
+
+    /// The same load with the server's table unavailable: the snapshot stays, and
+    /// nothing is written to the cache for it to serve stale later.
+    @Test func aFailedStringRefreshLeavesTheSnapshotInPlace() async {
+        let stub = StubServer()
+        cloud(stub)
+        stub.route("/i18n/fr", json: "kaput", status: 500)
+        let cache = InMemoryBundleCache()
+        let app = AppModel(defaultServer: stub.address, preferencesStore: InMemoryPreferencesStore(),
+                           vidStore: InMemoryVidStore(), bundleCache: cache, session: stub.session,
+                           connector: FakeConnector())
+        await app.start()
+        #expect(!app.unreachable)
+        #expect(app.strings.language == "fr")
+        #expect(cache.load(origin: stub.address.origin, lang: "fr") == nil)
+    }
+
+    /// The same, with no picker to fall back to: a Pi serves none, so the last
+    /// resort is English rather than an empty language code.
+    @Test func clearingTheLanguageOnAPiFallsBackToEnglish() async {
+        let stub = StubServer()
+        stub.route("/server", json: #"{"kind":"pi","name":"Piscine","contract":{"api":"v2","app":"v1"}}"#)
+        stub.route("/config", json: #"{"num_lanes":8,"meet_title":"Local"}"#)
+        let app = make(stub, prefs: Preferences(language: "fr"))
+        await app.start()
+        #expect(app.picker == nil)
+        await app.setLanguage(nil)
+        #expect(app.strings.language == "en")
     }
 }

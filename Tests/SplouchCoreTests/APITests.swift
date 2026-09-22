@@ -127,4 +127,15 @@ import Testing
         #expect(p.labelStyle == .short)
         #expect(p.language == "fr")
     }
+    /// P-05: the picker's artwork is fetched by the view, not the client, so
+    /// these are URLs rather than requests. They hang off the server's own base,
+    /// which matters for a Pi served under a path prefix.
+    @Test func pickerArtworkURLsHangOffTheServersBase() {
+        let api = SplouchAPI(address: ServerAddress(typed: "https://x.example/base/")!)
+        #expect(api.pickerLogoURL().absoluteString == "https://x.example/base/picker_logo")
+        #expect(api.pickerImageURL(meetID: "m1").absoluteString == "https://x.example/base/picker_image/m1")
+        let pi = SplouchAPI(address: ServerAddress(typed: "pi.local:5000")!)
+        #expect(pi.pickerImageURL(meetID: "m1").absoluteString == "http://pi.local:5000/picker_image/m1")
+    }
+
 }

@@ -498,4 +498,21 @@ import Testing
         #expect(LapDirection("sideways") == .up)
         #expect(LapDirection("") == .up)
     }
+    /// C-07 at the value level: a key the client knows, carrying a type it does
+    /// not expect, is the same as nothing rather than a crash or a stale cell.
+    /// L-23 says so explicitly for the split count — the server blanks it to 0
+    /// at the top of every heat, and a value that will not decode is that same
+    /// nothing.
+    @Test func laneFieldsOfTheWrongTypeReadAsNothing() {
+        var s = liveBoard()
+        s.apply(frame(#"{"lane_running1":true,"running_time":"10.00","lane_splits1":3}"#), at: t0)
+        #expect(s[lane: 1].running)
+        #expect(s[lane: 1].splits == 3)
+
+        // Same keys, junk values: the flag goes false and the count goes to 0.
+        s.apply(frame(#"{"lane_running1":"yes","lane_splits1":"three"}"#), at: t0 + .seconds(1))
+        #expect(!s[lane: 1].running)
+        #expect(s[lane: 1].splits == 0)
+    }
+
 }
