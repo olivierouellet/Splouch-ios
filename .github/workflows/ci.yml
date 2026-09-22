@@ -66,9 +66,9 @@ jobs:
         # Printed into this log and nothing else: not uploaded, not gated, no badge.
         # The number measures SplouchCore, which is the only thing `swift test` links
         # — SplouchUI has no test target, so it is absent from the table rather than
-        # scoring zero, and the three files that do read 0% are the deliberate seam
-        # (BonjourBrowser, NetworkWatcher, WebSocketTransport). Tests use the fakes
-        # behind those protocols, so their zeros are the design working, not a gap.
+        # scoring zero. NetworkWatcher is the one file still at 0%: NWPathMonitor
+        # reports the machine's real network path, so the only way to test it is to
+        # inject a fake and watch a boolean come back, which is a test of the fake.
         # Read the table for which *branch* of a decoder went untried, not the total.
         #
         # `Sources/` as a positional filter rather than an ignore-regex: it drops the

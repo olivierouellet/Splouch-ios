@@ -94,11 +94,24 @@ xcrun llvm-cov report "$xctest/Contents/MacOS/$(basename "$xctest" .xctest)" \
   -instr-profile "$cov/default.profdata" Sources/
 ```
 
-Read it for which branch of a decoder went untried, not for the total. Three files sit at
-0% on purpose — `BonjourBrowser`, `NetworkWatcher` and `WebSocketTransport` are the seam
-where the system frameworks start, and the suites use the fakes behind those protocols
-rather than the network. A change that makes one of them testable without a network is
-welcome; a test that reaches for a real socket to move the number is not.
+Read it for which branch of a decoder went untried, not for the total.
+
+Where the system frameworks start, the rule is: test the decision, not the plumbing.
+`BonjourBrowser` keeps its `NWBrowser` wiring untested and lifts the two parts with a
+decision in them — which advertised service is a Pi, and what address an endpoint
+resolves to — out as `nonisolated static`, so they take real `Network` values with no
+mDNS. `URLSessionWebSocketConnector` is the exception that earns a server:
+`FakeConnector` exists to replace it and `StubServer` cannot reach it, so
+`LoopbackWebSocketServer` in the test support folder is a real RFC 6455 server on
+127.0.0.1 that it connects to.
+
+`NetworkWatcher` is the one file still at 0%, and stays there. `NWPathMonitor` reports
+the machine's real network path; the only way to test it is to inject a fake and assert
+the boolean you fed in comes back, which tests the fake. Leave it.
+
+A test that reaches for the outside world — a server on the network, a real Bonjour
+service, the machine's connectivity — to move the number is not welcome. Loopback is
+not the outside world.
 
 CI runs on every push and pull request, and there is one thing worth knowing about what
 it can and cannot see. `swift test` compiles `SplouchUI` for **macOS** — that is the
