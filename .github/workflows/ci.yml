@@ -64,24 +64,67 @@ jobs:
 
       - name: Coverage
         # Printed into this log and nothing else: not uploaded, not gated, no badge.
-        # The number measures SplouchCore, which is the only thing `swift test` links
-        # — SplouchUI has no test target, so it is absent from the table rather than
-        # scoring zero. NetworkWatcher is the one file still at 0%: NWPathMonitor
+        #
+        # Two tables, not one. SplouchCore is a library and is nearly all covered;
+        # SplouchUI is ~2400 lines of SwiftUI `body` that needs a host to run, plus
+        # a few hundred lines of real logic that does not. Averaging them produces a
+        # number that describes neither, and it would move when a view grew rather
+        # than when anything went untested. Read them apart: the core's total is a
+        # figure to hold, the UI's is not.
+        #
+        # NetworkWatcher is the one file still at 0% on purpose: NWPathMonitor
         # reports the machine's real network path, so the only way to test it is to
         # inject a fake and watch a boolean come back, which is a test of the fake.
-        # Read the table for which *branch* of a decoder went untried, not the total.
+        # Read the tables for which *branch* of a decoder went untried, not the total.
         #
-        # `Sources/` as a positional filter rather than an ignore-regex: it drops the
-        # test target and SwiftPM's generated resource accessors in one move, and
-        # llvm-cov then strips the common prefix so the paths stay readable.
+        # `Sources/…` as a positional filter rather than an ignore-regex: it drops
+        # the test targets and SwiftPM's generated resource accessors in one move,
+        # and llvm-cov then strips the common prefix so the paths stay readable.
+        #
+        # No `swift` command runs here, and that is the fix for a runner that
+        # came back with `default.profdata: No such file or directory`. Both
+        # `swift build --show-bin-path` and `swift test --show-codecov-path`
+        # re-enter SwiftPM: the first can relink the test binary, which makes it
+        # newer than the profile and makes llvm-cov exit non-zero; the second
+        # re-enters coverage setup, which is free to clear the very directory it
+        # is being asked about. The paths are on disk already — this reads them.
+        #
+        # Nothing here fails the build. Coverage gates nothing by design, so a
+        # missing or stale profile is a warning and a skipped table, not a red
+        # run over a number this project holds nobody to.
         run: |
-          bin=$(swift build --show-bin-path)
-          cov=$(dirname "$(swift test --show-codecov-path --enable-code-coverage)")
-          xctest=$(find "$bin" -maxdepth 1 -name '*.xctest')
-          xcrun llvm-cov report \
-            "$xctest/Contents/MacOS/$(basename "$xctest" .xctest)" \
-            -instr-profile "$cov/default.profdata" \
-            Sources/
+          xctest=$(find .build -maxdepth 4 -name '*.xctest' | head -1)
+          if [ -z "$xctest" ]; then
+            echo "::warning::no test bundle under .build; skipping the tables"
+            exit 0
+          fi
+          bin=$(dirname "$xctest")
+          cov="$bin/codecov"
+          echo "test bundle: $xctest"
+          ls -la "$cov" 2>/dev/null || echo "(no codecov directory)"
+
+          profdata="$cov/default.profdata"
+          if [ ! -f "$profdata" ]; then
+            # A glob into an array, not `find` into a bare word: SwiftPM names
+            # one of these "Swift Testing<n>.profraw", and the space in it turns
+            # an unquoted expansion into two paths that do not exist.
+            shopt -s nullglob
+            raws=("$cov"/*.profraw)
+            shopt -u nullglob
+            if [ ${#raws[@]} -eq 0 ]; then
+              echo "::warning::no coverage profile was produced; skipping the tables"
+              exit 0
+            fi
+            echo "no merged profile — merging ${#raws[@]} raw one(s)"
+            xcrun llvm-profdata merge -sparse "${raws[@]}" -o "$profdata"
+          fi
+
+          binary="$xctest/Contents/MacOS/$(basename "$xctest" .xctest)"
+          for module in SplouchCore SplouchUI; do
+            echo "── $module ─────────────────────────────────────────────"
+            xcrun llvm-cov report "$binary" -instr-profile "$profdata" "Sources/$module/" \
+              || echo "::warning::llvm-cov could not report on $module"
+          done
 
   app:
     name: iOS app target

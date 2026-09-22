@@ -82,19 +82,31 @@ local cloud for those.
 Anything touching a screen also builds for the simulator and gets looked at, in both
 orientations if the layout moved. Say in the PR what you saw.
 
-CI prints a coverage table into its log on every run — nothing is uploaded and nothing is
-gated on the number. To see the same table locally:
+CI prints two coverage tables into its log on every run — nothing is uploaded and nothing
+is gated on the numbers. To see them locally:
 
 ```sh
 swift test --enable-code-coverage
-bin=$(swift build --show-bin-path)
-cov=$(dirname "$(swift test --show-codecov-path --enable-code-coverage)")
-xctest=$(find "$bin" -maxdepth 1 -name '*.xctest')
+xctest=$(find .build -maxdepth 4 -name '*.xctest' | head -1)
+bin=$(dirname "$xctest")
 xcrun llvm-cov report "$xctest/Contents/MacOS/$(basename "$xctest" .xctest)" \
-  -instr-profile "$cov/default.profdata" Sources/
+  -instr-profile "$bin/codecov/default.profdata" Sources/SplouchCore/
 ```
 
-Read it for which branch of a decoder went untried, not for the total.
+Read the paths off disk rather than asking `swift build --show-bin-path` or
+`swift test --show-codecov-path` for them. Both re-enter SwiftPM: the first can relink the
+test binary, leaving it newer than the profile so llvm-cov refuses it, and the second
+re-enters coverage setup and may clear the directory it is being asked about. CI hit both.
+
+Swap `SplouchCore` for `SplouchUI` for the other table, and read them apart — see below.
+
+Read them for which branch of a decoder went untried, not for the totals — and never as
+one number. `SplouchCore` is a library and sits in the nineties. `SplouchUI` is around 6%
+and is meant to be: nearly all of it is SwiftUI `body`, which needs a host to run, and
+averaging the two produces a figure that moves when a view grows rather than when
+something goes untested. What `SplouchUITests` covers is the part of the UI module that
+is not a view — the hex parsing, the column rules, the row mapping — plus a check that
+every native string is translated.
 
 Where the system frameworks start, the rule is: test the decision, not the plumbing.
 `BonjourBrowser` keeps its `NWBrowser` wiring untested and lifts the two parts with a
