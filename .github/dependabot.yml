@@ -1,0 +1,19 @@
+# There is deliberately very little for Dependabot to do here, and that is the point:
+# `Package.swift` declares no dependencies, so there is no Package.resolved and no
+# `package-ecosystem: swift` entry below. The app ships to a phone that may be in a
+# building with no internet, and every package added is one more thing to audit — see
+# CONTRIBUTING.md. If a dependency is ever added, add the `swift` ecosystem with it.
+#
+# Actions are a different matter: they run with a token against this repo, they are
+# pinned by tag, and nothing here would notice a stale or yanked one. This entry covers
+# `.github/workflows/` and starts doing work the day the first workflow lands.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "[Build]"
+    labels:
+      - dependencies

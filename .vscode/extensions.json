@@ -1,0 +1,14 @@
+{
+  // `swiftlang.swift-vscode` is the whole toolchain here: SourceKit-LSP, build tasks
+  // and the Swift Testing explorer, all driven from Package.swift. Everything under
+  // `swift test` works without Xcode; only the app target needs it.
+  //
+  // markdownlint is worth having because this tree's docs *are* the reasoning —
+  // parity.md and README.md are load-bearing, and .markdownlint.json is tuned for them.
+  "recommendations": [
+    "swiftlang.swift-vscode",
+    "llvm-vs-code-extensions.lldb-dap",
+    "davidanson.vscode-markdownlint",
+    "redhat.vscode-yaml"
+  ]
+}

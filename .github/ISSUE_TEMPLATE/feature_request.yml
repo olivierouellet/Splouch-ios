@@ -1,0 +1,76 @@
+name: Feature request
+description: Something the app should do that it doesn't.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Two things worth knowing before you write this up.
+
+        **`app.md` is the contract.** What a spectator sees and does is defined in
+        [docs/app.md](https://github.com/olivierouellet/Splouch/blob/master/docs/app.md)
+        in the Splouch repo, and [parity.md](https://github.com/olivierouellet/Splouch-ios/blob/main/parity.md)
+        tracks what this app has built of it. Check parity.md first — what you want may
+        already have a row, deferred rather than missing. A genuinely new behaviour is a
+        change to `app.md` before it is a change here, and the two apps (iOS and Android)
+        get it together.
+
+        **The bar is the gallery.** This app is held one-handed in a loud room by someone
+        watching a race, not the phone. A feature helps there, or it stays out of the way.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's the problem
+      description: >
+        The situation at the pool, not the solution. What were you trying to do, and what
+        got in the way?
+      placeholder: |
+        My daughter swims in heat 7 and I can't tell how long I have — the schedule shows
+        the heat but I have to count down the list myself.
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you have in mind
+      description: If you have a shape in mind, describe it. If not, leave it blank.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where it would live
+      options:
+        - Scoreboard
+        - Results
+        - Schedule, or the filter sheet
+        - Meet picker or server sheet
+        - Preferences — language, theme, text size
+        - Accessibility — VoiceOver, Dynamic Type, contrast
+        - Notifications or background behaviour
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: contract
+    attributes:
+      label: Is this in app.md already?
+      description: A quick look at parity.md usually answers it. "Haven't checked" is a fine answer.
+      options:
+        - It has a row in parity.md, marked deferred
+        - I don't think it's in app.md — this would be new behaviour
+        - Haven't checked
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: offer
+    attributes:
+      label: Taking it on
+      options:
+        - label: I'd be willing to have a go at implementing this.
+          required: false

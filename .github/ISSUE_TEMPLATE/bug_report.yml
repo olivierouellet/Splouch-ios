@@ -1,0 +1,125 @@
+name: Bug report
+description: The app did something wrong — at a meet or on the bench.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If the bug has a security dimension, close this and use
+        [SECURITY.md](https://github.com/olivierouellet/Splouch-ios/blob/main/SECURITY.md)
+        instead.
+
+        This repo is the iOS app only. If the web scoreboard was wrong in the same way at
+        the same moment, the bug is in the
+        [Splouch repo](https://github.com/olivierouellet/Splouch/issues) — the question
+        below settles it.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what the app showed, and what you expected instead.
+      placeholder: |
+        Lane 4 touched second, but the app left the place column blank for the rest of the
+        heat. The TV in the hall had it.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: screen
+    attributes:
+      label: Where
+      description: Which screen. Pick "Not sure" rather than guessing.
+      options:
+        - Scoreboard
+        - Results
+        - Schedule, or the filter sheet
+        - Meet picker
+        - Server sheet — adding, choosing, nearby servers
+        - Connecting, reconnecting, or the connection error
+        - Language, theme, or another preference
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: web
+    attributes:
+      label: Did the web scoreboard agree?
+      description: >
+        Open the same meet in a browser at the same moment, if you can. This is the single
+        most useful line in the report — it says whether the bug is in the app or in what
+        the server sent it.
+      options:
+        - No — the web board was right, only the app was wrong
+        - Yes — the web board showed the same thing (this may belong in the Splouch repo)
+        - Couldn't check
+    validations:
+      required: true
+
+  - type: dropdown
+    id: server
+    attributes:
+      label: Which server
+      description: What the app was connected to.
+      options:
+        - The default cloud (splouch.ca)
+        - A self-hosted cloud relay
+        - A Pi on the pool's own network
+        - A dev server on my machine
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      description: >
+        The version and build TestFlight or the App Store listing shows — or, if you built
+        it yourself, the commit (`git rev-parse --short HEAD`).
+      placeholder: 1.0 (42), or commit 63c6e6d
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Device and iOS version
+      placeholder: iPhone 15 Pro, iOS 26.5 — or iPhone 17 simulator, iOS 26.5
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: >
+        If it needs live frames, say so. A recorded session played through the server's
+        Test tab that reproduces it is worth more than any description — see the README.
+      placeholder: |
+        1. Open the meet on the default cloud
+        2. Start a heat from a recorded session
+        3. Watch lane 4 after the touch
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshot, screen recording, or console output
+      description: >
+        A screenshot is usually enough for anything about layout, text size or theme. For a
+        crash, the Xcode console or the crash report. Pasted as plain text — no backticks
+        needed.
+      render: text
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: This is not a security issue (those go through SECURITY.md).
+          required: true

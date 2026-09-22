@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/olivierouellet/Splouch-ios/security/advisories/new
+    about: Don't open a public issue. Report privately here — see SECURITY.md.
+  - name: The scoreboard itself is wrong, on the app and on the web
+    url: https://github.com/olivierouellet/Splouch/issues
+    about: If the web board shows the same thing, it's the server or the decoder. Report it in the Splouch repo.
+  - name: Wiring the Pis, updating, credentials
+    url: https://github.com/olivierouellet/Splouch/blob/master/docs/installation.md
+    about: Setting up the server this app connects to.
+  - name: Running it on the simulator
+    url: https://github.com/olivierouellet/Splouch-ios/blob/main/emulator.md
+    about: Building, installing, launching against a local server, screenshots.

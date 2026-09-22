@@ -1,0 +1,39 @@
+{
+  // ── The important one ──────────────────────────────────────────────────────
+  // There is no `.swift-format` configuration in this repo on purpose. Running the
+  // formatter rewrites hand-aligned declarations and wrapped argument lists that are
+  // laid out to be read — the same decision the server repo made about `ruff format`.
+  // Format-on-save would do that silently on your first edit, so it is off, and
+  // organize-imports is off with it. See CONTRIBUTING.md → Conventions.
+  "[swift]": {
+    "editor.formatOnSave": false,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "never"
+    }
+  },
+
+  // `.build` is hundreds of megabytes of compiler output and regenerates constantly.
+  // Watching it costs a file handle per entry and gains nothing; git already ignores it.
+  "files.watcherExclude": {
+    "**/.build/**": true,
+    "**/.swiftpm/**": true,
+    "**/*.xcodeproj/**": true
+  },
+  "search.exclude": {
+    "**/.build": true
+  },
+
+  // The package has no executable target — it is two libraries and a test target, with
+  // the `@main` entry over in the Xcode project. Left on, the extension writes a
+  // launch.json into this directory that debugs nothing.
+  "swift.autoGenerateLaunchConfigurations": false,
+
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+
+  // parity.md and the READMEs use long lines and inline HTML deliberately.
+  "[markdown]": {
+    "editor.formatOnSave": false,
+    "files.trimTrailingWhitespace": false
+  }
+}

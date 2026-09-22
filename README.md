@@ -100,6 +100,14 @@ Two kinds, split by what the word is about (app.md T-05):
   `Native` enum. Cancel, Done and OK use the platform's own labels where SwiftUI
   provides them.
 
+## Community
+
+| | |
+| --- | --- |
+| [Contributing](CONTRIBUTING.md) | The contracts, setup, the checks a PR must pass, conventions, reporting a bug |
+| [Security](SECURITY.md) | Reporting a vulnerability, what the app assumes about the network it is on |
+| [Code of Conduct](CODE_OF_CONDUCT.md) | Contributor Covenant 2.1 |
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
