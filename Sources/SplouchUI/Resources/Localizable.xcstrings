@@ -23,6 +23,29 @@
       }
     },
     "%lld" : {},
+    "add" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter"
+          }
+        }
+      }
+    },
     "add_server" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -42,6 +65,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ajouter un serveur"
+          }
+        }
+      }
+    },
+    "add_server_question" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add this server?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Añadir este servidor?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter ce serveur ?"
+          }
+        }
+      }
+    },
+    "already_on_server" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You’re already on this server"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ya estás en este servidor"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous êtes déjà sur ce serveur"
           }
         }
       }
@@ -138,6 +207,29 @@
         }
       }
     },
+    "bad_server_link" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This link does not carry a server address."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este enlace no contiene una dirección de servidor."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce lien ne contient pas d’adresse de serveur."
+          }
+        }
+      }
+    },
     "cancel" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -161,6 +253,29 @@
         }
       }
     },
+    "cannot_add_server" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cannot add this server"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se puede añadir este servidor"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’ajouter ce serveur"
+          }
+        }
+      }
+    },
     "checking" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -180,6 +295,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vérification…"
+          }
+        }
+      }
+    },
+    "cleartext_not_local" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plain http is only allowed for .local names."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El http sin cifrar solo se permite para nombres .local."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le http simple n’est permis que pour les noms .local."
           }
         }
       }
@@ -231,7 +369,7 @@
       }
     },
     "laps" : {
-      "comment" : "VoiceOver only (L-23): what the number in the delta cell is while a lane is still swimming. Spoken as \u201claps 3\u201d.",
+      "comment" : "VoiceOver only (L-23): what the number in the delta cell is while a lane is still swimming. Spoken as “laps 3”.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -480,6 +618,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Le serveur est injoignable."
+          }
+        }
+      }
+    },
+    "switch_server_question" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch to this server?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Cambiar a este servidor?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passer à ce serveur ?"
+          }
+        }
+      }
+    },
+    "switch_to" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambiar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changer"
           }
         }
       }

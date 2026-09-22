@@ -56,10 +56,11 @@ xcrun simctl install booted .build/xcode/Build/Products/Debug-iphonesimulator/Sp
 SIMCTL_CHILD_SPLOUCH_SERVER=http://127.0.0.1:5056 xcrun simctl launch booted app.splouch.ios
 ```
 
-Debug builds read three launch-environment variables, ignored in release:
+Debug builds read four launch-environment variables, ignored in release:
 `SPLOUCH_SERVER` (start on this server instead of the default cloud, without
-touching stored preferences), `SPLOUCH_MEET` (open this meet id at once) and
-`SPLOUCH_TAB` (`scoreboard`, `results` or `schedule`).
+touching stored preferences), `SPLOUCH_MEET` (open this meet id at once),
+`SPLOUCH_TAB` (`scoreboard`, `results` or `schedule`) and `SPLOUCH_LINK` (hand the
+app a scanned QR link, `P-16` — see [`emulator.md`](emulator.md)).
 
 Live frames without a timing console: log in to the Pi (`score` / `swimming` by
 default) and `POST /test_play {"name": "200m_medley_2heats.cts"}`. To feed the

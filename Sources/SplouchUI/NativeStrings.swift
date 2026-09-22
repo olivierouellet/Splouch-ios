@@ -20,6 +20,17 @@ enum Native {
     static var serverUnreachable: String { String(localized: "server_unreachable", bundle: .module) }
     static var notSplouch: String { String(localized: "not_splouch", bundle: .module) }
     static var invalidAddress: String { String(localized: "invalid_address", bundle: .module) }
+    // P-16. A scanned code's prompt: the question, the two buttons that answer it,
+    // and the ways a printed link can be wrong. All of it is about this device and
+    // the link it was handed, so none of it comes from a server (T-05).
+    static var addServerQuestion: String { String(localized: "add_server_question", bundle: .module) }
+    static var switchServerQuestion: String { String(localized: "switch_server_question", bundle: .module) }
+    static var alreadyOnServer: String { String(localized: "already_on_server", bundle: .module) }
+    static var cannotAddServer: String { String(localized: "cannot_add_server", bundle: .module) }
+    static var add: String { String(localized: "add", bundle: .module) }
+    static var switchTo: String { String(localized: "switch_to", bundle: .module) }
+    static var badServerLink: String { String(localized: "bad_server_link", bundle: .module) }
+    static var cleartextNotLocal: String { String(localized: "cleartext_not_local", bundle: .module) }
     // P-15. Light and dark are about the device, not about anything a web page
     // shows, so the words are the app's (T-05) and the server serves none.
     static var appearance: String { String(localized: "appearance", bundle: .module) }

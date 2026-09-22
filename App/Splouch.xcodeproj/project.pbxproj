@@ -20,6 +20,8 @@
 		F10000000000000000000004 /* Splouch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Splouch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F10000000000000000000005 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		F10000000000000000000006 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+		F10000000000000000000007 /* Splouch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Splouch.entitlements; sourceTree = "<group>"; };
+		F10000000000000000000008 /* SplouchDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SplouchDebug.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -39,6 +41,8 @@
 			children = (
 				F10000000000000000000001 /* SplouchApp.swift */,
 				F10000000000000000000003 /* Info.plist */,
+				F10000000000000000000007 /* Splouch.entitlements */,
+				F10000000000000000000008 /* SplouchDebug.entitlements */,
 				F10000000000000000000002 /* Fonts */,
 				F10000000000000000000006 /* AppIcon.icon */,
 				F10000000000000000000005 /* README.md */,
@@ -196,6 +200,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = SplouchDebug.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = L86UD2L8Q5;
@@ -223,6 +228,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Splouch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = L86UD2L8Q5;

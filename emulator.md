@@ -39,7 +39,7 @@ With more than one booted, pass the UDID from `simctl list` instead.
 
 ## Pointing the app at a server
 
-Debug builds read three launch-environment variables, ignored in release. `simctl`
+Debug builds read four launch-environment variables, ignored in release. `simctl`
 passes an environment variable through to the app by prefixing it with
 `SIMCTL_CHILD_`:
 
@@ -53,6 +53,27 @@ xcrun simctl launch booted app.splouch.ios
 - `SPLOUCH_SERVER` — start on this server instead of the default cloud.
 - `SPLOUCH_MEET` — open this meet id immediately.
 - `SPLOUCH_TAB` — `scoreboard`, `results` or `schedule`.
+- `SPLOUCH_LINK` — hand the app a scanned QR link at launch (`P-16`), as if the OS
+  had routed a universal link to it.
+
+### Scanning a code without a camera (`P-16`)
+
+A real universal link is routed by iOS only when the host serves an
+`apple-app-site-association` naming this app, and a simulator cannot be handed a
+signed one — so `xcrun simctl openurl` with an `https` link opens Safari, not the
+app. `SPLOUCH_LINK` delivers the same link to the model with the OS's own
+resolution left out, which is everything the app itself does with a code:
+
+```sh
+SIMCTL_CHILD_SPLOUCH_SERVER=http://127.0.0.1:5055 \
+SIMCTL_CHILD_SPLOUCH_LINK='https://127.0.0.1/add?server=http%3A%2F%2F127.0.0.1%3A5056' \
+xcrun simctl launch booted app.splouch.ios
+```
+
+The link's **host must be the default server's** — `SPLOUCH_SERVER`'s host in a
+debug run, `splouch.ca` otherwise — because that is the only authority the app
+accepts (`P-16`). A link on any other host raises the prompt as a bad one, which
+is itself worth seeing.
 
 > **`SPLOUCH_SERVER` only sets the default server, and a server saved in
 > preferences beats it.** Once the app has stored one, it silently ignores the
