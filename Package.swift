@@ -17,5 +17,9 @@ let package = Package(
         .target(name: "SplouchCore", resources: [.copy("Resources/i18n")]),
         .target(name: "SplouchUI", dependencies: ["SplouchCore"], resources: [.process("Resources")]),
         .testTarget(name: "SplouchCoreTests", dependencies: ["SplouchCore"]),
+        // SplouchUI is mostly SwiftUI `body`, which needs a host to run. This
+        // target reaches the part that does not: the hex parsing, the column
+        // rules, the row mapping, and whether every native string is translated.
+        .testTarget(name: "SplouchUITests", dependencies: ["SplouchUI"]),
     ]
 )
