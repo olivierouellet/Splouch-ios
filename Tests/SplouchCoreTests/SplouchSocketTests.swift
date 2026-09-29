@@ -1,12 +1,14 @@
 import Foundation
 import Testing
+
 @testable import SplouchCore
 
 @Suite(.serialized) struct SplouchSocketTests {
     let url = URL(string: "wss://example.test/ws/scoreboard")!
-    let timing = SocketTiming(heartbeat: .milliseconds(40), stale: .milliseconds(100),
-                              probe: .milliseconds(40), backoffMin: .milliseconds(10),
-                              backoffMax: .milliseconds(40))
+    let timing = SocketTiming(
+        heartbeat: .milliseconds(40), stale: .milliseconds(100),
+        probe: .milliseconds(40), backoffMin: .milliseconds(10),
+        backoffMax: .milliseconds(40))
     let join = Frame.joinMeet(meetID: "m1", vid: "v1")
 
     func make(join: Frame? = nil) -> (SplouchSocket, FakeConnector, EventRecorder) {
@@ -148,9 +150,11 @@ import Testing
     /// watchdog stays out of the way, and the check lands after the window has shut.
     @Test func wakeProbeAnsweredKeepsTheSocket() async {
         let connector = FakeConnector()
-        let socket = SplouchSocket(url: url, connector: connector, join: join,
-                                   timing: SocketTiming(heartbeat: .seconds(60), stale: .seconds(60),
-                                                        probe: .milliseconds(300)))
+        let socket = SplouchSocket(
+            url: url, connector: connector, join: join,
+            timing: SocketTiming(
+                heartbeat: .seconds(60), stale: .seconds(60),
+                probe: .milliseconds(300)))
         let recorder = EventRecorder(socket.events)
         await socket.start()
         #expect(await eventually { await recorder.events.contains(.connected) })

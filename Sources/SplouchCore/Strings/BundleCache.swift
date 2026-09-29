@@ -18,7 +18,8 @@ public struct FileBundleCache: BundleCache {
 
     /// `Application Support/Splouch/i18n` on this platform.
     public static func standard() -> FileBundleCache {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+        let base =
+            FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory
         return FileBundleCache(directory: base.appendingPathComponent("Splouch/i18n", isDirectory: true))
     }
@@ -78,8 +79,9 @@ public struct StringsLoader: Sendable {
     /// Immediate: what the cache holds for this server and language over the
     /// compiled snapshot. Never touches the network.
     public func table(for lang: String) -> StringTable {
-        StringTable(language: lang, server: cache.load(origin: api.address.origin, lang: lang)?.bundle,
-                    builtIn: BuiltInStrings.bundle(for: lang), english: BuiltInStrings.english)
+        StringTable(
+            language: lang, server: cache.load(origin: api.address.origin, lang: lang)?.bundle,
+            builtIn: BuiltInStrings.bundle(for: lang), english: BuiltInStrings.english)
     }
 
     /// Revalidates and stores. nil when the server said 304 or could not be
@@ -88,7 +90,8 @@ public struct StringsLoader: Sendable {
         let existing = cache.load(origin: api.address.origin, lang: lang)
         guard let fresh = try? await api.i18n(lang, etag: existing?.etag) else { return nil }
         cache.store(fresh, origin: api.address.origin, lang: lang)
-        return StringTable(language: lang, server: fresh.bundle, builtIn: BuiltInStrings.bundle(for: lang),
-                           english: BuiltInStrings.english)
+        return StringTable(
+            language: lang, server: fresh.bundle, builtIn: BuiltInStrings.bundle(for: lang),
+            english: BuiltInStrings.english)
     }
 }

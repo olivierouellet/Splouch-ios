@@ -1,6 +1,6 @@
-import SwiftUI
 import SplouchCore
 import SplouchUI
+import SwiftUI
 
 /// The iOS app target. Everything else lives in the SwiftPM package.
 @main

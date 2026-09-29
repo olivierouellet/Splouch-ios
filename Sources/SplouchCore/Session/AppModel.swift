@@ -35,8 +35,10 @@ public struct ServerInvite: Sendable, Equatable {
     public var checking: Bool
     public var failure: InviteFailure?
 
-    public init(address: ServerAddress?, standing: Standing = .new, checking: Bool = false,
-                failure: InviteFailure? = nil) {
+    public init(
+        address: ServerAddress?, standing: Standing = .new, checking: Bool = false,
+        failure: InviteFailure? = nil
+    ) {
         self.address = address
         self.standing = standing
         self.checking = checking
@@ -92,9 +94,11 @@ public final class AppModel {
     /// against, as `api v1 ≠ v2`; nil when they match. A notice, never a gate.
     public private(set) var contractNotice: String?
 
-    public init(defaultServer: ServerAddress, preferencesStore: any PreferencesStore = UserDefaultsPreferencesStore(),
-                vidStore: any VidStore = UserDefaultsVidStore(), bundleCache: any BundleCache = FileBundleCache.standard(),
-                session: URLSession = .shared, connector: any WebSocketConnector = URLSessionWebSocketConnector()) {
+    public init(
+        defaultServer: ServerAddress, preferencesStore: any PreferencesStore = UserDefaultsPreferencesStore(),
+        vidStore: any VidStore = UserDefaultsVidStore(), bundleCache: any BundleCache = FileBundleCache.standard(),
+        session: URLSession = .shared, connector: any WebSocketConnector = URLSessionWebSocketConnector()
+    ) {
         self.defaultServer = defaultServer
         self.preferencesStore = preferencesStore
         self.vidStore = vidStore
@@ -104,7 +108,8 @@ public final class AppModel {
         let prefs = preferencesStore.load()
         self.preferences = prefs
         self.server = prefs.server ?? defaultServer
-        self.strings = BuiltInStrings.table(for: prefs.language ?? Locale.current.language.languageCode?.identifier ?? "en")
+        self.strings = BuiltInStrings.table(
+            for: prefs.language ?? Locale.current.language.languageCode?.identifier ?? "en")
     }
 
     public var api: SplouchAPI { SplouchAPI(address: server, session: session) }
@@ -125,7 +130,10 @@ public final class AppModel {
 
     public func load() async {
         loading = true
-        defer { loading = false; Self.log.info("load finished unreachable=\(self.unreachable) meets=\(self.meets.count)") }
+        defer {
+            loading = false
+            Self.log.info("load finished unreachable=\(self.unreachable) meets=\(self.meets.count)")
+        }
         let api = self.api
         Self.log.info("load start \(api.address.url.absoluteString)")
         do {
@@ -316,18 +324,21 @@ public final class AppModel {
 
     public func open(_ meet: MeetSummary) async throws -> MeetContext {
         let config = try await api.meetConfig(meet.id)
-        let title = config.appWindowTitle.isEmpty ? (config.name.isEmpty ? meet.name : config.name) : config.appWindowTitle
-        return MeetContext(api: api, kind: .cloud, meetID: meet.id, title: title, settings: config.settings,
-                           stringsLoader: stringsLoader, preferences: preferences, vidStore: vidStore,
-                           connector: connector)
+        let title =
+            config.appWindowTitle.isEmpty ? (config.name.isEmpty ? meet.name : config.name) : config.appWindowTitle
+        return MeetContext(
+            api: api, kind: .cloud, meetID: meet.id, title: title, settings: config.settings,
+            stringsLoader: stringsLoader, preferences: preferences, vidStore: vidStore,
+            connector: connector)
     }
 
     /// A Pi has one meet and no picker: straight to the board.
     public func openPi() async throws -> MeetContext {
         let config = try await api.piConfig()
-        return MeetContext(api: api, kind: .pi, meetID: nil, title: config.meetTitle, settings: config.settings,
-                           stringsLoader: stringsLoader, preferences: preferences, vidStore: vidStore,
-                           connector: connector)
+        return MeetContext(
+            api: api, kind: .pi, meetID: nil, title: config.meetTitle, settings: config.settings,
+            stringsLoader: stringsLoader, preferences: preferences, vidStore: vidStore,
+            connector: connector)
     }
 
     static func notice(for info: ServerInfo) -> String? {

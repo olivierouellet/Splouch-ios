@@ -1,5 +1,5 @@
-import SwiftUI
 import SplouchCore
+import SwiftUI
 
 /// The Schedule tab (app.md §5.1).
 struct ScheduleTab: View {
@@ -21,12 +21,15 @@ struct ScheduleTab: View {
                     if ctx.schedule != nil, heats.isEmpty {
                         // S-07: on a Pi an empty list means no meet file is loaded;
                         // on a cloud the meet is there but carries no schedule yet.
-                        Unavailable(text: ctx.strings.mobile(ctx.kind == .pi ? "no_meet" : "no_schedule"),
-                                    symbol: "calendar")
+                        Unavailable(
+                            text: ctx.strings.mobile(ctx.kind == .pi ? "no_meet" : "no_schedule"),
+                            symbol: "calendar")
                     } else if ctx.schedule == nil {
                         if ctx.scheduleFailed {
-                            Unavailable(text: Native.serverUnreachable, symbol: "wifi.exclamationmark",
-                                        actionLabel: Native.retry) { Task { await ctx.refresh() } }
+                            Unavailable(
+                                text: Native.serverUnreachable, symbol: "wifi.exclamationmark",
+                                actionLabel: Native.retry
+                            ) { Task { await ctx.refresh() } }
                         } else {
                             ProgressView().padding(40)
                         }
@@ -34,16 +37,22 @@ struct ScheduleTab: View {
                         // S-19: no swimmer matches these filters. Offer the way
                         // out only when there is something to clear — "nothing
                         // upcoming" is not a filter the reset would undo.
-                        Unavailable(text: ctx.strings.mobile(ctx.filter.upcomingOnly && !ctx.filter.isFiltering ? "no_upcoming" : "no_matches"),
-                                    symbol: "magnifyingglass",
-                                    actionLabel: ctx.filter.isFiltering ? ctx.strings.mobile("reset_filters") : nil) {
+                        Unavailable(
+                            text: ctx.strings.mobile(
+                                ctx.filter.upcomingOnly && !ctx.filter.isFiltering ? "no_upcoming" : "no_matches"),
+                            symbol: "magnifyingglass",
+                            actionLabel: ctx.filter.isFiltering ? ctx.strings.mobile("reset_filters") : nil
+                        ) {
                             ctx.filter.reset()
                         }
                     } else {
                         ForEach(visible, id: \.heat.id) { v in
-                            HeatCard(heat: v, labels: ctx.shortLabels, eventName: ctx.eventName(v.heat.eventName, parts: v.heat.eventNameParts),
-                                     seedTemplate: seedTemplate)
-                                .id(v.heat.id)
+                            HeatCard(
+                                heat: v, labels: ctx.shortLabels,
+                                eventName: ctx.eventName(v.heat.eventName, parts: v.heat.eventNameParts),
+                                seedTemplate: seedTemplate
+                            )
+                            .id(v.heat.id)
                         }
                     }
                 }
@@ -61,7 +70,6 @@ struct ScheduleTab: View {
         }
     }
 }
-
 
 extension ScheduleHeat {
     var id: String { event + "/" + heat }
@@ -112,9 +120,9 @@ struct HeatCard: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(heat.stripe % 2 == 0 ? palette.rowEven : palette.rowOdd)   // S-04
+        .background(heat.stripe % 2 == 0 ? palette.rowEven : palette.rowOdd)  // S-04
         .overlay(alignment: .leading) {
-            if heat.isCurrent { palette.time.frame(width: 4) }   // S-05
+            if heat.isCurrent { palette.time.frame(width: 4) }  // S-05
         }
     }
 
@@ -126,8 +134,8 @@ struct HeatCard: View {
         // face, so the reading is the same and the line is shorter.
         let eventHeat = Text("\(labels["event"] ?? "") \(heat.heat.event)  \(labels["heat"] ?? "") \(heat.heat.heat)")
             .font(faces.text(17 * typeScale, weight: .semibold)).foregroundStyle(palette.scheduleEvent)
-        let name = eventName.isEmpty ? nil :
-            Text(eventName).font(faces.text(17 * typeScale)).foregroundStyle(palette.rowText)
+        let name =
+            eventName.isEmpty ? nil : Text(eventName).font(faces.text(17 * typeScale)).foregroundStyle(palette.rowText)
         // At its own width, not the seed column's. The heading's time is a clock
         // time and the column is sized for a seed time, so lining the two up
         // parked "9:12" at the right edge of a ruler cut for "1:04.219" and left
@@ -135,8 +143,10 @@ struct HeatCard: View {
         // times below still share their edge with each other, which is the
         // alignment that was worth having. A heat with no scheduled time draws
         // nothing here at all, and the name runs to the edge.
-        let time = heat.heat.time.isEmpty ? nil :
-            Text(heat.heat.time).font(faces.timing(13 * typeScale))
+        let time =
+            heat.heat.time.isEmpty
+            ? nil
+            : Text(heat.heat.time).font(faces.timing(13 * typeScale))
                 .foregroundStyle(palette.scheduleTime).lineLimit(1).fixedSize()
 
         // A header, so the VoiceOver rotor can jump heat to heat rather than
@@ -245,8 +255,9 @@ struct HeatCard: View {
             .foregroundStyle(palette.thText).frame(width: laneColumn, alignment: .trailing)
         let name = Text(ScheduleView.displayName(lane)).font(faces.text(17 * typeScale))
             .foregroundStyle(palette.scheduleName)
-        let club = lane.club.isEmpty ? nil :
-            Text(lane.club).font(faces.text(14 * typeScale)).foregroundStyle(palette.scheduleClub)
+        let club =
+            lane.club.isEmpty
+            ? nil : Text(lane.club).font(faces.text(14 * typeScale)).foregroundStyle(palette.scheduleClub)
         let seed = seedColumn(lane.seedTime)
 
         if stacked {

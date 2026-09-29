@@ -51,14 +51,14 @@ public enum ServerLink {
         // either way. Nothing is trusted out of it — scheme, host and path are each
         // asserted, and the query is read by name.
         guard let comps = URLComponents(string: link.trimmingCharacters(in: .whitespacesAndNewlines)),
-              comps.scheme?.lowercased() == "https",
-              // `https://splouch.ca@elsewhere.example/add` resolves to `elsewhere.example`
-              // and would fail the host check anyway; a link carrying credentials at all
-              // is not one this app mints, so it stops here rather than later.
-              comps.user == nil, comps.password == nil,
-              let linkHost = comps.host?.lowercased(), linkHost == host.lowercased(),
-              trimmedPath(comps.path) == path,
-              let origin = lastValue(of: param, in: comps)
+            comps.scheme?.lowercased() == "https",
+            // `https://splouch.ca@elsewhere.example/add` resolves to `elsewhere.example`
+            // and would fail the host check anyway; a link carrying credentials at all
+            // is not one this app mints, so it stops here rather than later.
+            comps.user == nil, comps.password == nil,
+            let linkHost = comps.host?.lowercased(), linkHost == host.lowercased(),
+            trimmedPath(comps.path) == path,
+            let origin = lastValue(of: param, in: comps)
         else { return .invalid }
         guard let address = ServerAddress(typed: origin) else { return .invalid }
         return address.isCleartextToNonLocal ? .cleartextNotLocal : .ok(address)
@@ -83,6 +83,6 @@ public enum ServerLink {
     }
 }
 
-private extension String {
-    var nilIfEmpty: String? { isEmpty ? nil : self }
+extension String {
+    fileprivate var nilIfEmpty: String? { isEmpty ? nil : self }
 }

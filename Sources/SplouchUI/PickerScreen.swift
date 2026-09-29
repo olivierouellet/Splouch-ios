@@ -1,5 +1,5 @@
-import SwiftUI
 import SplouchCore
+import SwiftUI
 
 /// The meet picker (app.md §1). Language is the device's, not a meet's. Its
 /// chrome and preference controls are the server's words (`mobile`, T-05);
@@ -60,7 +60,7 @@ struct PickerScreen: View {
         // The grouped list's own top inset is generous, which is right in
         // portrait and costly on the axis that has no height to spare.
         .trimmedTop(shortScreen)
-        .refreshable { await app.load() }   // P-09
+        .refreshable { await app.load() }  // P-09
         .overlay { if app.loading && app.meets.isEmpty { ProgressView() } }
         .toolbar { toolbar }
         .sheet(isPresented: $showServers) { ServerSheet(app: app) }
@@ -75,14 +75,18 @@ struct PickerScreen: View {
         if app.unreachable {
             Section {
                 // A connection error is about the device, so it is native (T-05).
-                Unavailable(text: Native.serverUnreachable, symbol: "wifi.exclamationmark",
-                            actionLabel: Native.retry, fillsContainer: false) { Task { await app.load() } }
+                Unavailable(
+                    text: Native.serverUnreachable, symbol: "wifi.exclamationmark",
+                    actionLabel: Native.retry, fillsContainer: false
+                ) { Task { await app.load() } }
             }
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
         } else if app.isPi {
             Section {
-                Button { Task { await openPi() } } label: {
+                Button {
+                    Task { await openPi() }
+                } label: {
                     Label(Native.openBoard, systemImage: "sportscourt")
                         .frame(maxWidth: .infinity)
                 }
@@ -97,19 +101,23 @@ struct PickerScreen: View {
             Section {
                 // P-04 on the platform's empty state. The words stay the
                 // server's (T-05); only the presentation is the system's.
-                Unavailable(text: picker?.strings["no_meets"] ?? strings.mobile("no_meets"),
-                            symbol: "calendar.badge.exclamationmark", fillsContainer: false)
+                Unavailable(
+                    text: picker?.strings["no_meets"] ?? strings.mobile("no_meets"),
+                    symbol: "calendar.badge.exclamationmark", fillsContainer: false)
             }
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
         } else {
             Section {
                 ForEach(app.meets) { meet in
-                    Button { Task { await open(meet) } } label: {
-                        MeetCard(meet: meet,
-                                 imageURL: meet.hasPickerImage ? app.api.pickerImageURL(meetID: meet.id) : nil,
-                                 unnamed: picker?.strings["unnamed_meet"] ?? strings.mobile("unnamed_meet"),
-                                 offline: strings.mobile("offline"))
+                    Button {
+                        Task { await open(meet) }
+                    } label: {
+                        MeetCard(
+                            meet: meet,
+                            imageURL: meet.hasPickerImage ? app.api.pickerImageURL(meetID: meet.id) : nil,
+                            unnamed: picker?.strings["unnamed_meet"] ?? strings.mobile("unnamed_meet"),
+                            offline: strings.mobile("offline"))
                     }
                     .buttonStyle(CardButtonStyle())
                     .disabled(opening)
@@ -128,7 +136,13 @@ struct PickerScreen: View {
     @ViewBuilder private var branding: some View {
         let title = picker?.title ?? app.serverName
         let above = picker?.logoAbove ?? false
-        let logo = (picker?.hasLogo ?? false) ? AsyncImage(url: app.api.pickerLogoURL()) { $0.resizable().scaledToFit() } placeholder: { EmptyView() }
+        let logo =
+            (picker?.hasLogo ?? false)
+            ? AsyncImage(url: app.api.pickerLogoURL()) {
+                $0.resizable().scaledToFit()
+            } placeholder: {
+                EmptyView()
+            }
             .frame(maxHeight: shortScreen ? 44 : 80) : nil
         VStack(spacing: shortScreen ? 4 : 8) {
             if above { logo }
@@ -184,17 +198,24 @@ struct PickerScreen: View {
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .automatic) {
             Menu {
-                Button { showServers = true } label: {
+                Button {
+                    showServers = true
+                } label: {
                     Label(Native.server, systemImage: "server.rack")
                 }
-                Button { showLanguages = true } label: {
+                Button {
+                    showLanguages = true
+                } label: {
                     Label(strings.mobile("language"), systemImage: "globe")
                 }
                 // P-15. A menu Picker rather than a sheet of its own: three
                 // fixed choices the app owns, unlike the server list and the
                 // language list, which are both served and both open-ended.
-                Picker(selection: Binding(get: { app.preferences.appearance },
-                                          set: { app.setAppearance($0) })) {
+                Picker(
+                    selection: Binding(
+                        get: { app.preferences.appearance },
+                        set: { app.setAppearance($0) })
+                ) {
                     Text(Native.appearanceDark).tag(SplouchCore.Appearance.dark)
                     Text(Native.appearanceLight).tag(SplouchCore.Appearance.light)
                     Text(Native.appearanceAuto).tag(SplouchCore.Appearance.auto)
@@ -224,8 +245,8 @@ struct PickerScreen: View {
     }
 }
 
-private extension View {
-    @ViewBuilder func trimmedTop(_ trim: Bool) -> some View {
+extension View {
+    @ViewBuilder fileprivate func trimmedTop(_ trim: Bool) -> some View {
         if trim {
             self.contentMargins(.top, 0, for: .scrollContent)
         } else {
@@ -235,7 +256,7 @@ private extension View {
 
     /// `.insetGrouped` is iOS-only; on macOS the picker is checked for
     /// compilation, not looked at.
-    @ViewBuilder func groupedList() -> some View {
+    @ViewBuilder fileprivate func groupedList() -> some View {
         #if os(iOS)
         self.listStyle(.insetGrouped)
         #else
@@ -268,7 +289,11 @@ struct MeetCard: View {
             // empty tile the image shows while it loads.
             Group {
                 if let imageURL {
-                    AsyncImage(url: imageURL) { $0.resizable().scaledToFill() } placeholder: { placeholder }
+                    AsyncImage(url: imageURL) {
+                        $0.resizable().scaledToFill()
+                    } placeholder: {
+                        placeholder
+                    }
                 } else {
                     placeholder
                 }
@@ -323,8 +348,10 @@ struct MeetCard: View {
                 // Core Animation drives this, unlike the board's per-frame
                 // TimelineView pulse (L-12) — that one has to start and stop
                 // with a lane, this one runs for the life of the row.
-                .animation(reduceMotion ? nil : .easeInOut(duration: 0.85).repeatForever(autoreverses: true),
-                           value: pulsing)
+                .animation(
+                    reduceMotion ? nil : .easeInOut(duration: 0.85).repeatForever(autoreverses: true),
+                    value: pulsing
+                )
                 .onAppear { pulsing = true }
         }
     }

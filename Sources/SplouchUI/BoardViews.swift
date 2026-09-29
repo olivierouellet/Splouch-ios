@@ -1,5 +1,5 @@
-import SwiftUI
 import SplouchCore
+import SwiftUI
 
 /// One row as both boards draw it: the Scoreboard tab's `LaneRow` and the
 /// Results tab's `ResultRow` map onto this (R-04: same six columns).
@@ -20,17 +20,28 @@ struct BoardRow: Equatable {
 
     init(_ i: Int, _ l: LaneRow, lap: LapCount? = nil) {
         laneLabel = String(i)
-        name = l.name; alt = l.alt; club = l.club; time = l.time; place = l.place
-        delta = DeltaFormat.text(l.deltaSeconds); deltaBetter = l.deltaBetter
+        name = l.name
+        alt = l.alt
+        club = l.club
+        time = l.time
+        place = l.place
+        delta = DeltaFormat.text(l.deltaSeconds)
+        deltaBetter = l.deltaBetter
         self.lap = lap
-        timeStyle = l.timeStyle; pulse = l.pulse
+        timeStyle = l.timeStyle
+        pulse = l.pulse
     }
 
     init(_ r: ResultRow) {
         laneLabel = r.laneLabel
-        name = r.name; alt = r.alt; club = r.club; time = r.time; place = r.place
-        delta = DeltaFormat.text(r.deltaSeconds); deltaBetter = r.deltaBetter
-        timeStyle = r.locked ? .locked(generation: 1) : .plain   // R-09
+        name = r.name
+        alt = r.alt
+        club = r.club
+        time = r.time
+        place = r.place
+        delta = DeltaFormat.text(r.deltaSeconds)
+        deltaBetter = r.deltaBetter
+        timeStyle = r.locked ? .locked(generation: 1) : .plain  // R-09
     }
 }
 
@@ -43,14 +54,20 @@ struct Columns: Equatable {
     /// the lap count on the live board, and the Results tab is all finishes, so
     /// its delta column has one tenant and keeps its title.
     init(_ s: MeetSettings, laps: LapSettings = .off) {
-        name = s.showName; club = s.showClub; delta = s.showDelta; place = s.showPosition
+        name = s.showName
+        club = s.showClub
+        delta = s.showDelta
+        place = s.showPosition
         // L-23: with laps on, that column holds lengths for most of a heat, and
         // a `Δ` over a column of small integers reads as a claim about them. It
         // stays hidden once the heat settles too — a title that appeared at the
         // finish would be the moving header L-23 exists to refuse.
-        nameHeader = s.showNameHeader; clubHeader = s.showClubHeader
+        nameHeader = s.showNameHeader
+        clubHeader = s.showClubHeader
         deltaHeader = s.showDeltaHeader && !laps.show
-        placeHeader = s.showPositionHeader; laneHeader = s.showLaneHeader; timeHeader = s.showTimeHeader
+        placeHeader = s.showPositionHeader
+        laneHeader = s.showLaneHeader
+        timeHeader = s.showTimeHeader
     }
 }
 
@@ -120,9 +137,15 @@ struct BoardHeader: View {
             if compact {
                 // A navigation bar is one row high, so the label sits beside
                 // its number rather than over it.
-                HStack(alignment: .firstTextBaseline, spacing: 4) { name; number }.fixedSize()
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    name
+                    number
+                }.fixedSize()
             } else {
-                VStack(spacing: 3) { name; number }.fixedSize()
+                VStack(spacing: 3) {
+                    name
+                    number
+                }.fixedSize()
             }
         }
         .accessibilityElement(children: .combine)
@@ -174,7 +197,6 @@ struct BoardTable: View {
     static func tableHeight(in geo: GeometryProxy) -> CGFloat {
         max(0, geo.size.height - bottomGap)
     }
-
 
     /// How far the portrait type may be shrunk to keep a heat on one screen.
     /// Past this the table overflows and scrolls, which is the honest answer:
@@ -264,9 +286,11 @@ struct BoardTable: View {
                         PortraitRow(row: row, columns: columns, scale: portraitScale, showsAlt: showsAlt)
                     }
                 }
-                .frame(maxWidth: .infinity,
-                       minHeight: isLandscape ? 0 : portraitRow,
-                       maxHeight: isLandscape ? .infinity : nil)
+                .frame(
+                    maxWidth: .infinity,
+                    minHeight: isLandscape ? 0 : portraitRow,
+                    maxHeight: isLandscape ? .infinity : nil
+                )
                 .background(i % 2 == 0 ? palette.rowOdd : palette.rowEven)
                 // A lane is one thing. Left as six separate Texts, VoiceOver
                 // read "1", "Sara Leblanc", "CAMO", "2:24.10" as four unrelated
@@ -292,11 +316,19 @@ struct BoardTable: View {
             VStack(spacing: 0) {
                 PortraitRow(row: first, columns: columns, scale: 1, showsAlt: false)
                     .fixedSize(horizontal: false, vertical: true)
-                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { laneIdeal = $0 }
+                    .onGeometryChange(for: CGFloat.self) {
+                        $0.size.height
+                    } action: {
+                        laneIdeal = $0
+                    }
                 if let relay = rows.first(where: { !$0.alt.isEmpty }) {
                     PortraitRow(row: relay, columns: columns, scale: 1, showsAlt: true)
                         .fixedSize(horizontal: false, vertical: true)
-                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { laneIdealWithAlt = $0 }
+                        .onGeometryChange(for: CGFloat.self) {
+                            $0.size.height
+                        } action: {
+                            laneIdealWithAlt = $0
+                        }
                 }
                 Spacer(minLength: 0)
             }
@@ -388,8 +420,8 @@ struct PortraitRow: View {
                     if columns.name {
                         VStack(alignment: .leading, spacing: 0) {
                             Text(row.name).font(faces.text(17 * scale)).foregroundStyle(palette.rowText).fitOneLine()
-                            if !row.alt.isEmpty, showsAlt {
-                                Text(row.alt).font(faces.text(12 * scale)).foregroundStyle(palette.thText).fitOneLine()   // L-06
+                            if !row.alt.isEmpty, showsAlt {  // L-06
+                                Text(row.alt).font(faces.text(12 * scale)).foregroundStyle(palette.thText).fitOneLine()
                             }
                         }
                     }
@@ -410,7 +442,8 @@ struct PortraitRow: View {
                     }
                     Spacer()
                     if columns.place, !row.place.isEmpty {
-                        Text("#" + row.place).font(faces.text(18 * scale, weight: .bold)).foregroundStyle(palette.headerLabel)
+                        Text("#" + row.place).font(faces.text(18 * scale, weight: .bold)).foregroundStyle(
+                            palette.headerLabel)
                     }
                 }
             }
@@ -462,7 +495,8 @@ struct LandscapeRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             if columns.club {
-                Text(row.club).font(faces.text(size * 0.85)).foregroundStyle(palette.thText).fitOneLine().frame(width: 140, alignment: .leading)
+                Text(row.club).font(faces.text(size * 0.85)).foregroundStyle(palette.thText).fitOneLine().frame(
+                    width: 140, alignment: .leading)
             }
             TimeCell(text: row.time, style: row.timeStyle, size: size * 0.85).frame(width: 130, alignment: .trailing)
             if columns.delta {
@@ -499,7 +533,7 @@ struct LaneNumber: View {
                 TimelineView(.animation) { ctx in
                     let t = ctx.date.timeIntervalSinceReferenceDate
                     let cycle = Int(t.rounded(.down))
-                    let phase = t - Double(cycle)   // 0…1 over one second
+                    let phase = t - Double(cycle)  // 0…1 over one second
                     let done = stopAfterCycle.map { cycle > $0 } ?? false
                     let mix = done ? 0 : (1 - cos(phase * 2 * .pi)) / 2
                     label(mix: mix)

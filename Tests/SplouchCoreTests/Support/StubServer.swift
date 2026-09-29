@@ -1,4 +1,5 @@
 import Foundation
+
 @testable import SplouchCore
 
 /// A scripted HTTP server behind `URLProtocol`, for the REST client and the
@@ -11,7 +12,9 @@ final class StubServer: @unchecked Sendable {
         var headers: [String: String] = [:]
 
         static func json(_ text: String, status: Int = 200, headers: [String: String] = [:]) -> Response {
-            Response(status: status, body: Data(text.utf8), headers: ["Content-Type": "application/json"].merging(headers) { $1 })
+            Response(
+                status: status, body: Data(text.utf8),
+                headers: ["Content-Type": "application/json"].merging(headers) { $1 })
         }
     }
 
@@ -77,7 +80,8 @@ final class StubProtocol: URLProtocol {
             return
         }
         let r = server.respond(request)
-        let http = HTTPURLResponse(url: request.url!, statusCode: r.status, httpVersion: "HTTP/1.1", headerFields: r.headers)!
+        let http = HTTPURLResponse(
+            url: request.url!, statusCode: r.status, httpVersion: "HTTP/1.1", headerFields: r.headers)!
         client?.urlProtocol(self, didReceive: http, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: r.body)
         client?.urlProtocolDidFinishLoading(self)

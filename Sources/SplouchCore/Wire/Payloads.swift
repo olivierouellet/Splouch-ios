@@ -14,11 +14,16 @@ public struct ServerInfo: Sendable, Equatable, Decodable {
     public struct Contract: Sendable, Equatable, Decodable {
         public var api: String
         public var app: String
-        public init(api: String, app: String) { self.api = api; self.app = app }
+        public init(api: String, app: String) {
+            self.api = api
+            self.app = app
+        }
     }
 
     public init(kind: ServerKind, name: String, contract: Contract) {
-        self.kind = kind; self.name = name; self.contract = contract
+        self.kind = kind
+        self.name = name
+        self.contract = contract
     }
 
     /// The contract versions this client was written against.
@@ -137,14 +142,23 @@ public struct MeetSettings: Sendable, Equatable {
         labelStyle: String? = nil, console: ConsoleInfo = ConsoleInfo()
     ) {
         self.numLanes = numLanes
-        self.showName = showName; self.showClub = showClub; self.showDelta = showDelta
-        self.showPosition = showPosition; self.showPodium = showPodium
-        self.showLaneHeader = showLaneHeader; self.showNameHeader = showNameHeader
-        self.showClubHeader = showClubHeader; self.showTimeHeader = showTimeHeader
-        self.showDeltaHeader = showDeltaHeader; self.showPositionHeader = showPositionHeader
-        self.showLaps = showLaps; self.lapDirection = lapDirection
-        self.themeColors = themeColors; self.themeFonts = themeFonts
-        self.locale = locale; self.labels = labels
+        self.showName = showName
+        self.showClub = showClub
+        self.showDelta = showDelta
+        self.showPosition = showPosition
+        self.showPodium = showPodium
+        self.showLaneHeader = showLaneHeader
+        self.showNameHeader = showNameHeader
+        self.showClubHeader = showClubHeader
+        self.showTimeHeader = showTimeHeader
+        self.showDeltaHeader = showDeltaHeader
+        self.showPositionHeader = showPositionHeader
+        self.showLaps = showLaps
+        self.lapDirection = lapDirection
+        self.themeColors = themeColors
+        self.themeFonts = themeFonts
+        self.locale = locale
+        self.labels = labels
         self.labelStyle = labelStyle
         self.console = console
     }
@@ -170,10 +184,17 @@ public struct EventNameParts: Sendable, Equatable {
     public var age: String
     public var ageKey: String
 
-    public init(raw: String = "", dist: String = "", stroke: String = "", relay: Bool = false,
-                gender: String = "", age: String = "", ageKey: String = "") {
-        self.raw = raw; self.dist = dist; self.stroke = stroke; self.relay = relay
-        self.gender = gender; self.age = age; self.ageKey = ageKey
+    public init(
+        raw: String = "", dist: String = "", stroke: String = "", relay: Bool = false,
+        gender: String = "", age: String = "", ageKey: String = ""
+    ) {
+        self.raw = raw
+        self.dist = dist
+        self.stroke = stroke
+        self.relay = relay
+        self.gender = gender
+        self.age = age
+        self.ageKey = ageKey
     }
 }
 
@@ -261,10 +282,15 @@ public struct I18nBundle: Sendable, Equatable, Codable {
     public var labels: [String: [String: String]]
     public var eventName: [String: String]
 
-    public init(lang: String, mobile: [String: String] = [:], display: [String: String] = [:],
-                labels: [String: [String: String]] = [:], eventName: [String: String] = [:]) {
-        self.lang = lang; self.mobile = mobile; self.display = display
-        self.labels = labels; self.eventName = eventName
+    public init(
+        lang: String, mobile: [String: String] = [:], display: [String: String] = [:],
+        labels: [String: [String: String]] = [:], eventName: [String: String] = [:]
+    ) {
+        self.lang = lang
+        self.mobile = mobile
+        self.display = display
+        self.labels = labels
+        self.eventName = eventName
     }
 }
 

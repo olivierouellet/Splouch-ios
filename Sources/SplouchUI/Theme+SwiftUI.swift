@@ -1,5 +1,5 @@
-import SwiftUI
 import SplouchCore
+import SwiftUI
 
 /// A CSS hex colour as components: `#rgb`, `#rrggbb`, `#rrggbbaa`. Anything
 /// else is clear, which never happens for a key `ThemeColors` has defaulted (T-07).
@@ -10,15 +10,29 @@ public struct RGBA: Equatable, Sendable {
         var s = hex.trimmingCharacters(in: .whitespaces)
         if s.hasPrefix("#") { s.removeFirst() }
         if s.count == 3 { s = s.map { "\($0)\($0)" }.joined() }
-        guard let v = UInt64(s, radix: 16) else { r = 0; g = 0; b = 0; a = 0; return }
+        guard let v = UInt64(s, radix: 16) else {
+            r = 0
+            g = 0
+            b = 0
+            a = 0
+            return
+        }
         switch s.count {
         case 6:
-            r = Double((v >> 16) & 0xFF) / 255; g = Double((v >> 8) & 0xFF) / 255; b = Double(v & 0xFF) / 255; a = 1
+            r = Double((v >> 16) & 0xFF) / 255
+            g = Double((v >> 8) & 0xFF) / 255
+            b = Double(v & 0xFF) / 255
+            a = 1
         case 8:
-            r = Double((v >> 24) & 0xFF) / 255; g = Double((v >> 16) & 0xFF) / 255; b = Double((v >> 8) & 0xFF) / 255
+            r = Double((v >> 24) & 0xFF) / 255
+            g = Double((v >> 16) & 0xFF) / 255
+            b = Double((v >> 8) & 0xFF) / 255
             a = Double(v & 0xFF) / 255
         default:
-            r = 0; g = 0; b = 0; a = 0
+            r = 0
+            g = 0
+            b = 0
+            a = 0
         }
     }
 
@@ -28,13 +42,16 @@ public struct RGBA: Equatable, Sendable {
     public func blended(with o: RGBA, by t: Double) -> RGBA {
         let k = min(1, max(0, t))
         var out = self
-        out.r += (o.r - r) * k; out.g += (o.g - g) * k; out.b += (o.b - b) * k; out.a += (o.a - a) * k
+        out.r += (o.r - r) * k
+        out.g += (o.g - g) * k
+        out.b += (o.b - b) * k
+        out.a += (o.a - a) * k
         return out
     }
 }
 
-public extension Color {
-    init(hex: String) { self = RGBA(hex: hex).color }
+extension Color {
+    public init(hex: String) { self = RGBA(hex: hex).color }
 }
 
 /// The palette as Colors, built once per `ThemeColors`.
@@ -51,14 +68,25 @@ public struct Palette: Equatable, Sendable {
     }
 
     public init(_ c: ThemeColors) {
-        rowTextRGBA = RGBA(hex: c.rowText); timeRGBA = RGBA(hex: c.time)
-        bg = Color(hex: c.bg); headerBg = Color(hex: c.headerBg); headerBorder = Color(hex: c.headerBorder)
-        headerLabel = Color(hex: c.headerLabel); headerValue = Color(hex: c.headerValue)
-        thText = Color(hex: c.thText); thBg = Color(hex: c.thBg)
-        rowOdd = Color(hex: c.rowOdd); rowEven = Color(hex: c.rowEven); rowText = Color(hex: c.rowText)
-        time = Color(hex: c.time); deltaBetter = Color(hex: c.deltaBetter); deltaWorse = Color(hex: c.deltaWorse)
-        scheduleEvent = Color(hex: c.scheduleEvent); scheduleTime = Color(hex: c.scheduleTime)
-        scheduleName = Color(hex: c.scheduleName); scheduleClub = Color(hex: c.scheduleClub)
+        rowTextRGBA = RGBA(hex: c.rowText)
+        timeRGBA = RGBA(hex: c.time)
+        bg = Color(hex: c.bg)
+        headerBg = Color(hex: c.headerBg)
+        headerBorder = Color(hex: c.headerBorder)
+        headerLabel = Color(hex: c.headerLabel)
+        headerValue = Color(hex: c.headerValue)
+        thText = Color(hex: c.thText)
+        thBg = Color(hex: c.thBg)
+        rowOdd = Color(hex: c.rowOdd)
+        rowEven = Color(hex: c.rowEven)
+        rowText = Color(hex: c.rowText)
+        time = Color(hex: c.time)
+        deltaBetter = Color(hex: c.deltaBetter)
+        deltaWorse = Color(hex: c.deltaWorse)
+        scheduleEvent = Color(hex: c.scheduleEvent)
+        scheduleTime = Color(hex: c.scheduleTime)
+        scheduleName = Color(hex: c.scheduleName)
+        scheduleClub = Color(hex: c.scheduleClub)
     }
 }
 
@@ -81,7 +109,9 @@ public struct Faces: Equatable, Sendable {
     ]
 
     public init(_ f: ThemeFonts) {
-        family = f.family; digits = f.digits; timing = f.timing
+        family = f.family
+        digits = f.digits
+        timing = f.timing
     }
 
     /// `fixedSize:` rather than `size:`, which is not a detail: `Font.custom(_:size:)`
@@ -98,29 +128,35 @@ public struct Faces: Equatable, Sendable {
     /// Both paths are now fixed, so a size means the same thing whichever face
     /// the server names, and scaling is the caller's to do and only once.
     public static func font(_ name: String, size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        if let ps = bundled[name] ?? bundled.first(where: { $0.key.caseInsensitiveCompare(name) == .orderedSame })?.value {
+        if let ps = bundled[name]
+            ?? bundled.first(where: { $0.key.caseInsensitiveCompare(name) == .orderedSame })?.value
+        {
             return .custom(ps, fixedSize: size)
         }
         return .system(size: size, weight: weight, design: .monospaced)
     }
 
-    public func text(_ size: CGFloat, weight: Font.Weight = .regular) -> Font { Self.font(family, size: size, weight: weight) }
+    public func text(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        Self.font(family, size: size, weight: weight)
+    }
     public func clock(_ size: CGFloat) -> Font { Self.font(digits, size: size) }
-    public func timing(_ size: CGFloat, weight: Font.Weight = .regular) -> Font { Self.font(timing, size: size, weight: weight) }
+    public func timing(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        Self.font(timing, size: size, weight: weight)
+    }
 }
 
 /// L-17 / R-08: shrink to fit, ellipsis only as a floor.
-public extension View {
-    func fitOneLine(minimumScale: CGFloat = 0.5) -> some View {
+extension View {
+    public func fitOneLine(minimumScale: CGFloat = 0.5) -> some View {
         self.lineLimit(1).minimumScaleFactor(minimumScale).truncationMode(.tail)
     }
 }
 
-public extension RGBA {
+extension RGBA {
     /// Rec. 709 luma against the usual midpoint. A meet themes itself (app.md
     /// §7), so the system chrome drawn over its board — sheets, alerts, the
     /// menu — has to know which way the board leans.
-    var isDark: Bool { 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.5 }
+    public var isDark: Bool { 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.5 }
 }
 
 /// The platform's empty state, drawn the same way wherever a tab has nothing

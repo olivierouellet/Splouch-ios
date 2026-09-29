@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import SplouchCore
 
 @Suite struct FoldTests {
@@ -55,8 +56,9 @@ import Testing
 
 @Suite struct SuggestionIndexTests {
     func lane(_ n: Int, _ name: String, club: String, swimmers: [String] = []) -> ScheduleLane {
-        ScheduleLane(lane: n, name: name, club: club, seedTime: "",
-                     swimmers: swimmers.map { ScheduleSwimmer(name: $0, first: String($0.split(separator: " ").last ?? "")) })
+        ScheduleLane(
+            lane: n, name: name, club: club, seedTime: "",
+            swimmers: swimmers.map { ScheduleSwimmer(name: $0, first: String($0.split(separator: " ").last ?? "")) })
     }
 
     func heat(_ event: String, _ lanes: [ScheduleLane]) -> ScheduleHeat {
@@ -82,7 +84,7 @@ import Testing
         let hits = index.search("foo")
         #expect(hits.map(\.name) == ["Foo Bar"])
         #expect(hits[0].kind == .swimmer)
-        #expect(hits[0].club == "CAMO")   // the member carries its lane's club
+        #expect(hits[0].club == "CAMO")  // the member carries its lane's club
     }
 
     @Test func clubIsIndexedOnceAndFoundAccentInsensitively() {

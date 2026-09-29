@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import SplouchCore
 
 @Suite struct ServerAddressTests {
@@ -33,9 +34,13 @@ import Testing
     @Test func endpointsAndSockets() {
         let a = ServerAddress(typed: "https://x.example/base/")!
         #expect(a.endpoint("/server").absoluteString == "https://x.example/base/server")
-        #expect(a.endpoint("/picker/config", query: [URLQueryItem(name: "lang", value: "fr")]).absoluteString == "https://x.example/base/picker/config?lang=fr")
+        #expect(
+            a.endpoint("/picker/config", query: [URLQueryItem(name: "lang", value: "fr")]).absoluteString
+                == "https://x.example/base/picker/config?lang=fr")
         #expect(a.webSocket("/ws/scoreboard").absoluteString == "wss://x.example/base/ws/scoreboard")
-        #expect(ServerAddress(typed: "http://pi.local:5000")!.webSocket("/ws/results").absoluteString == "ws://pi.local:5000/ws/results")
+        #expect(
+            ServerAddress(typed: "http://pi.local:5000")!.webSocket("/ws/results").absoluteString
+                == "ws://pi.local:5000/ws/results")
     }
 
     @Test func sameServerTwoSpellingsShareAnOrigin() {
@@ -141,12 +146,15 @@ import Network
     /// (RFC 6874). Foundation does that encoding; this pins it, because the
     /// bare `%` it starts from looks like a bug worth "fixing".
     @Test func ipv6LiteralsAreBracketedAndTheirZoneSurvives() {
-        #expect(BonjourBrowser.entry(name: "Pi", remote: endpoint(.ipv6(IPv6Address("2001:db8::5")!)))?
-            .address.url.absoluteString == "http://[2001:db8::5]:5000")
-        #expect(BonjourBrowser.entry(name: "Pi", remote: endpoint(.ipv6(IPv6Address("::1")!)))?
-            .address.url.absoluteString == "http://[::1]:5000")
-        #expect(BonjourBrowser.entry(name: "Pi", remote: endpoint(.ipv6(IPv6Address("fe80::1%en0")!)))?
-            .address.url.absoluteString == "http://[fe80::1%25en0]:5000")
+        #expect(
+            BonjourBrowser.entry(name: "Pi", remote: endpoint(.ipv6(IPv6Address("2001:db8::5")!)))?
+                .address.url.absoluteString == "http://[2001:db8::5]:5000")
+        #expect(
+            BonjourBrowser.entry(name: "Pi", remote: endpoint(.ipv6(IPv6Address("::1")!)))?
+                .address.url.absoluteString == "http://[::1]:5000")
+        #expect(
+            BonjourBrowser.entry(name: "Pi", remote: endpoint(.ipv6(IPv6Address("fe80::1%en0")!)))?
+                .address.url.absoluteString == "http://[fe80::1%25en0]:5000")
     }
 
     /// Anything that is not a host and port is not somewhere to send a request.
@@ -154,9 +162,12 @@ import Network
     /// when it never became ready.
     @Test func anEndpointThatIsNotAHostAndPortIsNotAnAddress() {
         #expect(BonjourBrowser.entry(name: "Pi", remote: nil) == nil)
-        #expect(BonjourBrowser.entry(name: "Pi",
-                                     remote: .service(name: "Pi", type: "_splouch._tcp",
-                                                      domain: "local.", interface: nil)) == nil)
+        #expect(
+            BonjourBrowser.entry(
+                name: "Pi",
+                remote: .service(
+                    name: "Pi", type: "_splouch._tcp",
+                    domain: "local.", interface: nil)) == nil)
     }
 
     /// The TXT record decides whose service it is. A relay or a display
@@ -199,12 +210,12 @@ import Network
 
         b.start()
         #expect(b.browsing)
-        b.start()                     // starting twice keeps the one browser
+        b.start()  // starting twice keeps the one browser
         #expect(b.browsing)
         b.stop()
         #expect(!b.browsing)
         #expect(b.found.isEmpty)
-        b.stop()                      // and stopping an idle browser is harmless
+        b.stop()  // and stopping an idle browser is harmless
         #expect(!b.browsing)
     }
 

@@ -24,31 +24,32 @@ public struct PayloadError: Error, Sendable, Equatable {
     public init(_ message: String) { self.message = message }
 }
 
-public extension JSONValue {
-    static func parse(_ data: Data) throws -> JSONValue {
+extension JSONValue {
+    public static func parse(_ data: Data) throws -> JSONValue {
         try JSONDecoder().decode(JSONValue.self, from: data)
     }
 }
 
-public extension MeetSummary {
-    init(json: JSONValue) throws {
+extension MeetSummary {
+    public init(json: JSONValue) throws {
         guard let id = json["id"]?.text, !id.isEmpty else { throw PayloadError("meet without id") }
-        self.init(id: id, name: json.str("name"), location: json.str("location"),
-                  sport: json.str("sport"), organizer: json.str("organizer"),
-                  meetDate: json.str("meet_date"), offline: json.flag("offline", default: false),
-                  hasPickerImage: json.flag("has_picker_image", default: false))
+        self.init(
+            id: id, name: json.str("name"), location: json.str("location"),
+            sport: json.str("sport"), organizer: json.str("organizer"),
+            meetDate: json.str("meet_date"), offline: json.flag("offline", default: false),
+            hasPickerImage: json.flag("has_picker_image", default: false))
     }
 }
 
-public extension MeetList {
-    init(json: JSONValue) throws {
+extension MeetList {
+    public init(json: JSONValue) throws {
         meets = try json.list("meets").map(MeetSummary.init(json:))
     }
-    init(data: Data) throws { try self.init(json: JSONValue.parse(data)) }
+    public init(data: Data) throws { try self.init(json: JSONValue.parse(data)) }
 }
 
-public extension PickerConfig {
-    init(json: JSONValue) {
+extension PickerConfig {
+    public init(json: JSONValue) {
         title = json.str("title")
         windowTitle = json.str("window_title")
         hasLogo = json.flag("has_logo", default: false)
@@ -57,11 +58,11 @@ public extension PickerConfig {
         analyticsEnabled = json.flag("analytics_enabled", default: false)
         strings = json.strings("strings")
     }
-    init(data: Data) throws { self.init(json: try JSONValue.parse(data)) }
+    public init(data: Data) throws { self.init(json: try JSONValue.parse(data)) }
 }
 
-public extension MeetSettings {
-    init(json: JSONValue) {
+extension MeetSettings {
+    public init(json: JSONValue) {
         self.init(
             numLanes: json.integer("num_lanes") ?? 8,
             showName: json.flag("show_name", default: true),
@@ -87,20 +88,23 @@ public extension MeetSettings {
     }
 }
 
-public extension ConsoleInfo {
+extension ConsoleInfo {
     /// A-11 defaults to a console that times, and every way the field can fail
     /// to say otherwise lands there: absent (a server older than the field),
     /// `null`, or anything that is not an object. `timed` itself is read with
     /// the same default, so a malformed value — `"false"`, `0` — shows the tab
     /// rather than removing it on a guess.
-    init(json: JSONValue?) {
-        guard let json, json.object != nil else { self.init(); return }
+    public init(json: JSONValue?) {
+        guard let json, json.object != nil else {
+            self.init()
+            return
+        }
         self.init(key: json.str("key"), timed: json.flag("timed", default: true))
     }
 }
 
-public extension MeetConfig {
-    init(json: JSONValue) {
+extension MeetConfig {
+    public init(json: JSONValue) {
         name = json.str("name")
         location = json.str("location")
         sport = json.str("sport")
@@ -109,31 +113,32 @@ public extension MeetConfig {
         live = json.flag("live", default: false)
         settings = MeetSettings(json: json["settings"] ?? .object([:]))
     }
-    init(data: Data) throws { self.init(json: try JSONValue.parse(data)) }
+    public init(data: Data) throws { self.init(json: try JSONValue.parse(data)) }
 }
 
-public extension PiDisplayConfig {
-    init(json: JSONValue) {
+extension PiDisplayConfig {
+    public init(json: JSONValue) {
         meetTitle = json.str("meet_title")
         locale = json["locale"]?.text ?? "en"
         displayStrings = json.strings("display_strings")
         settings = MeetSettings(json: json)
     }
-    init(data: Data) throws { self.init(json: try JSONValue.parse(data)) }
+    public init(data: Data) throws { self.init(json: try JSONValue.parse(data)) }
 }
 
-public extension EventNameParts {
+extension EventNameParts {
     /// nil for `null` or anything that is not an object — the field is optional.
-    init?(json: JSONValue?) {
+    public init?(json: JSONValue?) {
         guard let json, json.object != nil else { return nil }
-        self.init(raw: json.str("raw"), dist: json.str("dist"), stroke: json.str("stroke"),
-                  relay: json.flag("relay", default: false), gender: json.str("gender"),
-                  age: json.str("age"), ageKey: json.str("age_key"))
+        self.init(
+            raw: json.str("raw"), dist: json.str("dist"), stroke: json.str("stroke"),
+            relay: json.flag("relay", default: false), gender: json.str("gender"),
+            age: json.str("age"), ageKey: json.str("age_key"))
     }
 }
 
-public extension ResultLane {
-    init(json: JSONValue) {
+extension ResultLane {
+    public init(json: JSONValue) {
         channel = json.integer("channel") ?? 0
         place = json.str("place")
         placeInt = json.integer("place_int")
@@ -146,8 +151,8 @@ public extension ResultLane {
     }
 }
 
-public extension ResultsSnapshot {
-    init(json: JSONValue) {
+extension ResultsSnapshot {
+    public init(json: JSONValue) {
         event = json.str("event")
         heat = json.str("heat")
         eventName = json.str("event_name")
@@ -157,50 +162,55 @@ public extension ResultsSnapshot {
     }
 }
 
-public extension NextHeats {
-    init(json: JSONValue) {
+extension NextHeats {
+    public init(json: JSONValue) {
         heats = json.list("heats").map { h in
-            NextHeat(event: h.str("event"), heat: h.str("heat"), eventName: h.str("event_name"),
-                     eventNameParts: EventNameParts(json: h["event_name_parts"]), time: h.str("time"),
-                     swimmers: h.list("swimmers").map { s in
-                         NextHeatSwimmer(lane: s.integer("lane") ?? 0, name: s.str("name"),
-                                         club: s.str("club"), alt: s.str("alt"))
-                     })
+            NextHeat(
+                event: h.str("event"), heat: h.str("heat"), eventName: h.str("event_name"),
+                eventNameParts: EventNameParts(json: h["event_name_parts"]), time: h.str("time"),
+                swimmers: h.list("swimmers").map { s in
+                    NextHeatSwimmer(
+                        lane: s.integer("lane") ?? 0, name: s.str("name"),
+                        club: s.str("club"), alt: s.str("alt"))
+                })
         }
     }
 }
 
-public extension Schedule {
-    init(json: JSONValue) {
+extension Schedule {
+    public init(json: JSONValue) {
         heats = json.list("heats").map { h in
-            ScheduleHeat(event: h.str("event"), heat: h.str("heat"), eventName: h.str("event_name"),
-                         eventNameParts: EventNameParts(json: h["event_name_parts"]), time: h.str("time"),
-                         lanes: h.list("lanes").map { l in
-                             ScheduleLane(lane: l.integer("lane") ?? 0, name: l.str("name"), club: l.str("club"),
-                                          seedTime: l.str("seed_time"),
-                                          swimmers: l.list("swimmers").map { s in
-                                              ScheduleSwimmer(name: s.str("name"), first: s.str("first"))
-                                          })
-                         })
+            ScheduleHeat(
+                event: h.str("event"), heat: h.str("heat"), eventName: h.str("event_name"),
+                eventNameParts: EventNameParts(json: h["event_name_parts"]), time: h.str("time"),
+                lanes: h.list("lanes").map { l in
+                    ScheduleLane(
+                        lane: l.integer("lane") ?? 0, name: l.str("name"), club: l.str("club"),
+                        seedTime: l.str("seed_time"),
+                        swimmers: l.list("swimmers").map { s in
+                            ScheduleSwimmer(name: s.str("name"), first: s.str("first"))
+                        })
+                })
         }
     }
-    init(data: Data) throws { self.init(json: try JSONValue.parse(data)) }
+    public init(data: Data) throws { self.init(json: try JSONValue.parse(data)) }
 }
 
-public extension I18nBundle {
-    init(json: JSONValue) {
+extension I18nBundle {
+    public init(json: JSONValue) {
         var labels: [String: [String: String]] = [:]
         if let l = json["labels"]?.object {
             for (style, table) in l {
                 if let t = table.object { labels[style] = t.compactMapValues(\.text) }
             }
         }
-        self.init(lang: json.str("lang"), mobile: json.strings("mobile"), display: json.strings("display"),
-                  labels: labels, eventName: json.strings("event_name"))
+        self.init(
+            lang: json.str("lang"), mobile: json.strings("mobile"), display: json.strings("display"),
+            labels: labels, eventName: json.strings("event_name"))
     }
-    init(data: Data) throws { self.init(json: try JSONValue.parse(data)) }
+    public init(data: Data) throws { self.init(json: try JSONValue.parse(data)) }
 }
 
-public extension MeetLive {
-    init(json: JSONValue) { live = json.flag("live", default: false) }
+extension MeetLive {
+    public init(json: JSONValue) { live = json.flag("live", default: false) }
 }

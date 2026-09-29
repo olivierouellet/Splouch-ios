@@ -123,10 +123,10 @@ public struct SplouchAPI: Sendable {
     }
 }
 
-public extension ServerInfo {
+extension ServerInfo {
     /// Which contract versions differ from the ones this client was written
     /// against. Empty means a match; the app connects either way and says so.
-    var contractMismatches: [String] {
+    public var contractMismatches: [String] {
         var out: [String] = []
         if contract.api != Self.expectedContract.api { out.append("api \(contract.api)") }
         if contract.app != Self.expectedContract.app { out.append("app \(contract.app)") }

@@ -1,4 +1,5 @@
 import Testing
+
 @testable import SplouchCore
 
 @Suite struct ScoreboardStateTests {
@@ -67,7 +68,10 @@ import Testing
 
     @Test func headerFieldsAndPartsAreRead() {
         var s = liveBoard()
-        s.apply(frame(#"{"event_name":"200 m dos","event_name_parts":{"raw":"200 Backstroke","dist":"200","stroke":"backstroke","relay":false,"gender":"girls","age":"< 12","age_key":""},"heat_time":"10:42","expected_splits":4}"#), at: t0)
+        s.apply(
+            frame(
+                #"{"event_name":"200 m dos","event_name_parts":{"raw":"200 Backstroke","dist":"200","stroke":"backstroke","relay":false,"gender":"girls","age":"< 12","age_key":""},"heat_time":"10:42","expected_splits":4}"#
+            ), at: t0)
         #expect(s.eventName == "200 m dos")
         #expect(s.eventNameParts?.stroke == "backstroke")
         #expect(s.heatTime == "10:42")
@@ -109,7 +113,10 @@ import Testing
 
     @Test func runningLanesShowTheOneRaceClock() {
         var s = liveBoard()
-        s.apply(frame(#"{"lane_running1":true,"lane_running2":true,"lane_running3":false,"lane_time3":"","running_time":"12.30"}"#), at: t0)
+        s.apply(
+            frame(
+                #"{"lane_running1":true,"lane_running2":true,"lane_running3":false,"lane_time3":"","running_time":"12.30"}"#
+            ), at: t0)
         #expect(s[lane: 1].time == "12.3")
         #expect(s[lane: 2].time == "12.3")
         #expect(s[lane: 3].time == "")
@@ -231,7 +238,10 @@ import Testing
 
     @Test func heatChangeBlanksTimesDeltasAndPlaces() {
         var s = liveBoard()
-        s.apply(frame(#"{"current_event":"3","current_heat":"1","lane_name1":"A","lane_time1":"25.61","lane_place1":"1","lane_delta_seconds1":-0.4,"lane_delta_better1":true}"#), at: t0)
+        s.apply(
+            frame(
+                #"{"current_event":"3","current_heat":"1","lane_name1":"A","lane_time1":"25.61","lane_place1":"1","lane_delta_seconds1":-0.4,"lane_delta_better1":true}"#
+            ), at: t0)
         s.apply(frame(#"{"current_heat":"2","lane_name1":"B"}"#), at: t0)
         #expect(s[lane: 1].name == "B")
         #expect(s[lane: 1].time == "")
@@ -266,7 +276,10 @@ import Testing
         s.socketConnected()
         s.setMeetLive(true)
         // The server replays its merged snapshot for a later heat.
-        s.apply(frame(#"{"current_event":"3","current_heat":"2","lane_running1":false,"lane_time1":"25.61","lane_place1":"1"}"#), at: t0 + .seconds(30))
+        s.apply(
+            frame(
+                #"{"current_event":"3","current_heat":"2","lane_running1":false,"lane_time1":"25.61","lane_place1":"1"}"#
+            ), at: t0 + .seconds(30))
         #expect(s[lane: 1].time == "25.61")
         #expect(s[lane: 1].place == "1")
         #expect(s[lane: 1].timeStyle != .locked(generation: 2))
@@ -303,7 +316,7 @@ import Testing
         heatOf(&s, expected: 8)
         s.apply(frame(#"{"lane_splits1":3,"lane_running1":true}"#), at: t0)
         #expect(s.lap(lane: 1, .off) == nil)
-        #expect(s.lap(lane: 1, LapSettings(MeetSettings())) == nil)   // ships off
+        #expect(s.lap(lane: 1, LapSettings(MeetSettings())) == nil)  // ships off
         #expect(s.lap(lane: 1, up)?.text == "3")
     }
 
@@ -344,7 +357,10 @@ import Testing
         heatOf(&s, expected: 8)
         s.apply(frame(#"{"lane_splits1":6,"lane_running1":true}"#), at: t0)
         #expect(s.lap(lane: 1, up)?.text == "6")
-        s.apply(frame(#"{"lane_running1":false,"lane_time1":"2:20.92","lane_delta_seconds1":-0.46,"lane_delta_better1":true}"#), at: t0)
+        s.apply(
+            frame(
+                #"{"lane_running1":false,"lane_time1":"2:20.92","lane_delta_seconds1":-0.46,"lane_delta_better1":true}"#
+            ), at: t0)
         #expect(s.lap(lane: 1, up) == nil)
     }
 
@@ -379,7 +395,7 @@ import Testing
         s.apply(frame(#"{"lane_splits1":4}"#), at: t0)
         #expect(s.lap(lane: 1, up)?.isFinal == false)
         s.apply(frame(#"{"lane_splits1":6}"#), at: t0)
-        #expect(s.lap(lane: 1, up)?.isFinal == true)   // 6 + 2 >= 8
+        #expect(s.lap(lane: 1, up)?.isFinal == true)  // 6 + 2 >= 8
         #expect(s.lap(lane: 1, up)?.text == "6")
         // The countdown reads 8, 6, 4, 2 there and never reaches 1.
         #expect(s.lap(lane: 1, down)?.text == "2")
@@ -399,7 +415,10 @@ import Testing
         var s = ScoreboardState(numLanes: 4)
         s.socketConnected()
         s.setMeetLive(true)
-        s.apply(frame(#"{"current_event":"3","current_heat":"2","expected_splits":8,"split_step":2,"lane_name1":"SARA LEBLANC","lane_splits1":6,"lane_running1":true,"lane_place1":" "}"#), at: t0)
+        s.apply(
+            frame(
+                #"{"current_event":"3","current_heat":"2","expected_splits":8,"split_step":2,"lane_name1":"SARA LEBLANC","lane_splits1":6,"lane_running1":true,"lane_place1":" "}"#
+            ), at: t0)
         #expect(s.lap(lane: 1, up) == LapCount(text: "6", isFinal: true))
         #expect(s.lap(lane: 1, down) == LapCount(text: "2", isFinal: true))
     }
@@ -484,10 +503,11 @@ import Testing
         // The real meet repaints right after the wipe (worker.py's
         // `send_event_info`). That first event and heat are a baseline, as they
         // are after a connect — nothing to blank, because nothing is there.
-        s.apply(frame(#"{"current_event":"3","current_heat":"1","lane_name1":"SARA LEBLANC","lane_splits1":0}"#), at: t0)
+        s.apply(
+            frame(#"{"current_event":"3","current_heat":"1","lane_name1":"SARA LEBLANC","lane_splits1":0}"#), at: t0)
         #expect(s.currentEvent == "3")
         #expect(s.lap(lane: 1, up) == nil)
-        #expect(s.lap(lane: 1, down) == nil)   // no expected_splits yet
+        #expect(s.lap(lane: 1, down) == nil)  // no expected_splits yet
     }
 
     @Test func lapDirectionFallsBackToUpForAnythingUnrecognised() {

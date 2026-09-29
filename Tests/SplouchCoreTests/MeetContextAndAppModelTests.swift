@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import SplouchCore
 
 @Suite(.serialized) @MainActor struct MeetContextTests {
@@ -9,26 +10,32 @@ import Testing
     /// frames into, or counts opens or config checks, loses whenever a busy runner
     /// makes it take longer than that. Only a backoff this short is needed; nothing
     /// closes a socket unless the test does.
-    let timing = SocketTiming(heartbeat: .seconds(60), stale: .seconds(60), probe: .seconds(60),
-                              backoffMin: .milliseconds(10), backoffMax: .milliseconds(40))
+    let timing = SocketTiming(
+        heartbeat: .seconds(60), stale: .seconds(60), probe: .seconds(60),
+        backoffMin: .milliseconds(10), backoffMax: .milliseconds(40))
 
-    func make(stub: StubServer, connector: FakeConnector, prefs: Preferences = Preferences(), settings: MeetSettings = MeetSettings(numLanes: 4, locale: "fr", labels: ["event": "ÉP"])) -> MeetContext {
+    func make(
+        stub: StubServer, connector: FakeConnector, prefs: Preferences = Preferences(),
+        settings: MeetSettings = MeetSettings(numLanes: 4, locale: "fr", labels: ["event": "ÉP"])
+    ) -> MeetContext {
         let api = SplouchAPI(address: stub.address, session: stub.session)
-        return MeetContext(api: api, kind: .cloud, meetID: "m1", title: "Open", settings: settings,
-                           stringsLoader: StringsLoader(api: api, cache: InMemoryBundleCache()), preferences: prefs,
-                           vidStore: InMemoryVidStore(), connector: connector, timing: timing)
+        return MeetContext(
+            api: api, kind: .cloud, meetID: "m1", title: "Open", settings: settings,
+            stringsLoader: StringsLoader(api: api, cache: InMemoryBundleCache()), preferences: prefs,
+            vidStore: InMemoryVidStore(), connector: connector, timing: timing)
     }
 
     @Test func loadsScheduleOnStartAndAgainOnScheduleUpdate() async {
         let stub = StubServer()
-        stub.route("/meet/m1/schedule", json: #"{"heats":[{"event":1,"heat":1,"lanes":[{"lane":1,"name":"A","club":"C"}]}]}"#)
+        stub.route(
+            "/meet/m1/schedule", json: #"{"heats":[{"event":1,"heat":1,"lanes":[{"lane":1,"name":"A","club":"C"}]}]}"#)
         let connector = FakeConnector()
         let ctx = make(stub: stub, connector: connector)
         ctx.filter.add(FilterTerm(kind: .swimmer, name: "Nobody"))
         ctx.filter.add(FilterTerm(kind: .swimmer, name: "A"))
         ctx.start()
         #expect(await eventually { @MainActor in ctx.schedule?.heats.count == 1 })
-        #expect(ctx.filter.terms.map(\.name) == ["A"])   // pruned to names that still exist
+        #expect(ctx.filter.terms.map(\.name) == ["A"])  // pruned to names that still exist
         _ = await eventually { connector.openCount == 3 }
         connector.connection(to: "/ws/schedule")!.push(Frame(event: "schedule_update"))
         #expect(await eventually { stub.requestCount("/meet/m1/schedule") == 2 })
@@ -46,9 +53,13 @@ import Testing
         ctx.start()
         _ = await eventually { connector.openCount == 3 }
         #expect(ctx.currentHeat == nil)
-        connector.connection(to: "/ws/scoreboard")!.push(Frame(event: "update_scoreboard",
-                                            data: .object(["current_event": .string("7"),
-                                                           "current_heat": .string("3")])))
+        connector.connection(to: "/ws/scoreboard")!.push(
+            Frame(
+                event: "update_scoreboard",
+                data: .object([
+                    "current_event": .string("7"),
+                    "current_heat": .string("3"),
+                ])))
         #expect(await eventually { @MainActor in ctx.currentHeat == HeatRef(event: "7", heat: "3") })
         connector.connection(to: "/ws/scoreboard")!.push(Frame(event: "reset", data: .object([:])))
         #expect(await eventually { @MainActor in ctx.currentHeat == nil })
@@ -76,7 +87,11 @@ import Testing
     @Test func reloadRefetchesConfigAndRebuildsTheBoard() async {
         let stub = StubServer()
         stub.route("/meet/m1/schedule", json: #"{"heats":[]}"#)
-        stub.route("/meet/m1/config", json: ##"{"name":"Open 2","live":true,"settings":{"num_lanes":6,"locale":"fr","theme_colors":{"bg":"#123456"}}}"##)
+        stub.route(
+            "/meet/m1/config",
+            json:
+                ##"{"name":"Open 2","live":true,"settings":{"num_lanes":6,"locale":"fr","theme_colors":{"bg":"#123456"}}}"##
+        )
         let connector = FakeConnector()
         let ctx = make(stub: stub, connector: connector)
         ctx.start()
@@ -155,14 +170,18 @@ import Testing
         let connector = FakeConnector()
         let ctx = make(stub: stub, connector: connector)
         ctx.start()
-        await ctx.refresh()   // /meet/m1/config is not routed → 404
+        await ctx.refresh()  // /meet/m1/config is not routed → 404
         #expect(ctx.gone)
         await ctx.stop()
     }
 
     @Test func languageFollowsTheMeetUntilTheUserChoosesAndTheStyleStartsLong() async {
         let stub = StubServer()
-        stub.route("/i18n/es", json: #"{"lang":"es","mobile":{"scoreboard":"Marcador X"},"labels":{"short":{"event":"PR"},"long":{"event":"PRUEBA"}}}"#)
+        stub.route(
+            "/i18n/es",
+            json:
+                #"{"lang":"es","mobile":{"scoreboard":"Marcador X"},"labels":{"short":{"event":"PR"},"long":{"event":"PRUEBA"}}}"#
+        )
         let connector = FakeConnector()
         let ctx = make(stub: stub, connector: connector)
         #expect(ctx.effectiveLanguage == "fr")
@@ -178,7 +197,7 @@ import Testing
         #expect(ctx.labels["event"] == "PR")
         ctx.setLanguage(nil)
         #expect(ctx.effectiveLanguage == "fr")
-        #expect(ctx.labels["event"] == "ÉP")   // fr again, still short
+        #expect(ctx.labels["event"] == "ÉP")  // fr again, still short
         ctx.setLabelStyle(.long)
         #expect(ctx.labels["event"] == "ÉPREUVE")
         await ctx.stop()
@@ -197,15 +216,16 @@ import Testing
         stub.route("/schedule.json", json: #"{"heats":[{"event":3,"heat":1,"lanes":[]}]}"#)
         let api = SplouchAPI(address: stub.address, session: stub.session)
         let connector = FakeConnector()
-        let ctx = MeetContext(api: api, kind: .pi, meetID: "ignored", title: "Pool", settings: MeetSettings(),
-                              stringsLoader: StringsLoader(api: api, cache: InMemoryBundleCache()), preferences: Preferences(),
-                              vidStore: InMemoryVidStore(), connector: connector, timing: timing)
+        let ctx = MeetContext(
+            api: api, kind: .pi, meetID: "ignored", title: "Pool", settings: MeetSettings(),
+            stringsLoader: StringsLoader(api: api, cache: InMemoryBundleCache()), preferences: Preferences(),
+            vidStore: InMemoryVidStore(), connector: connector, timing: timing)
         #expect(ctx.meetID == nil)
         ctx.start()
         _ = await eventually { connector.openCount == 3 }
         #expect(connector.connections.allSatisfy { $0.sent.isEmpty })
         #expect(await eventually { @MainActor in ctx.schedule?.heats.count == 1 })
-        await ctx.refresh()   // a Pi's config cannot 404 into A-09
+        await ctx.refresh()  // a Pi's config cannot 404 into A-09
         #expect(!ctx.gone)
         await ctx.stop()
     }
@@ -214,16 +234,25 @@ import Testing
 @Suite(.serialized) @MainActor struct AppModelTests {
     func cloud(_ stub: StubServer) {
         stub.route("/server", json: #"{"kind":"cloud","name":"Splouch","contract":{"api":"v2","app":"v1"}}"#)
-        stub.route("/picker/config", json: #"{"title":"Splouch","lang":"fr","analytics_enabled":true,"strings":{"no_meets":"Aucune"}}"#)
+        stub.route(
+            "/picker/config",
+            json: #"{"title":"Splouch","lang":"fr","analytics_enabled":true,"strings":{"no_meets":"Aucune"}}"#)
         stub.route("/meets", json: #"{"meets":[{"id":"m1","name":"Open","offline":false}]}"#)
-        stub.route("/servers", json: #"{"servers":[{"name":"Splouch","url":"\#(stub.address.url.absoluteString)","kind":"cloud"},{"name":"Club X","url":"https://x.example","kind":"cloud"}]}"#)
+        stub.route(
+            "/servers",
+            json:
+                #"{"servers":[{"name":"Splouch","url":"\#(stub.address.url.absoluteString)","kind":"cloud"},{"name":"Club X","url":"https://x.example","kind":"cloud"}]}"#
+        )
         stub.route("/locales", json: #"[{"code":"en","name":"English"},{"code":"fr","name":"Français"}]"#)
-        stub.route("/meet/m1/config", json: #"{"name":"Open","app_window_title":"Open 2026","settings":{"num_lanes":6}}"#)
+        stub.route(
+            "/meet/m1/config", json: #"{"name":"Open","app_window_title":"Open 2026","settings":{"num_lanes":6}}"#)
     }
 
     func make(_ stub: StubServer, prefs: Preferences = Preferences()) -> AppModel {
-        AppModel(defaultServer: stub.address, preferencesStore: InMemoryPreferencesStore(prefs), vidStore: InMemoryVidStore(),
-                 bundleCache: InMemoryBundleCache(), session: stub.session, connector: FakeConnector())
+        AppModel(
+            defaultServer: stub.address, preferencesStore: InMemoryPreferencesStore(prefs),
+            vidStore: InMemoryVidStore(),
+            bundleCache: InMemoryBundleCache(), session: stub.session, connector: FakeConnector())
     }
 
     @Test func cloudStartLoadsThePicker() async throws {
@@ -266,9 +295,10 @@ import Testing
         let stub = StubServer()
         cloud(stub)
         let store = InMemoryPreferencesStore()
-        let app = AppModel(defaultServer: ServerAddress(typed: "https://default.example")!, preferencesStore: store,
-                           vidStore: InMemoryVidStore(), bundleCache: InMemoryBundleCache(), session: stub.session,
-                           connector: FakeConnector())
+        let app = AppModel(
+            defaultServer: ServerAddress(typed: "https://default.example")!, preferencesStore: store,
+            vidStore: InMemoryVidStore(), bundleCache: InMemoryBundleCache(), session: stub.session,
+            connector: FakeConnector())
         await app.start()
         #expect(app.unreachable)
         let info = ServerInfo(kind: .cloud, name: "Stub", contract: .init(api: "v2", app: "v1"))
@@ -286,12 +316,15 @@ import Testing
         let stub = StubServer()
         cloud(stub)
         stub.route("/picker/config") { req in
-            let lang = URLComponents(url: req.url!, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "lang" }?.value ?? "auto"
+            let lang =
+                URLComponents(url: req.url!, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "lang" }?
+                .value ?? "auto"
             return .json(#"{"title":"S","lang":"\#(lang)","strings":{}}"#)
         }
         let store = InMemoryPreferencesStore()
-        let app = AppModel(defaultServer: stub.address, preferencesStore: store, vidStore: InMemoryVidStore(),
-                           bundleCache: InMemoryBundleCache(), session: stub.session, connector: FakeConnector())
+        let app = AppModel(
+            defaultServer: stub.address, preferencesStore: store, vidStore: InMemoryVidStore(),
+            bundleCache: InMemoryBundleCache(), session: stub.session, connector: FakeConnector())
         await app.start()
         #expect(app.picker?.lang == "auto")
         await app.setLanguage("fr")
@@ -327,8 +360,9 @@ import Testing
         let light = Data(#"{"appearance":"light","savedServers":[]}"#.utf8)
         #expect(try JSONDecoder().decode(Preferences.self, from: light).appearance == .light)
         // And it survives a round trip rather than being dropped on the way out.
-        let round = try JSONDecoder().decode(Preferences.self,
-                                             from: try JSONEncoder().encode(Preferences(appearance: .auto)))
+        let round = try JSONDecoder().decode(
+            Preferences.self,
+            from: try JSONEncoder().encode(Preferences(appearance: .auto)))
         #expect(round.appearance == .auto)
     }
 
@@ -364,7 +398,7 @@ import Testing
         #expect(app.locales.map(\.code) == ["en", "de"])
         stub.route("/locales") { _ in .init(status: 503) }
         await app.load()
-        #expect(app.locales.map(\.code) == ["en", "de"])   // the previous list, not the floor, not empty
+        #expect(app.locales.map(\.code) == ["en", "de"])  // the previous list, not the floor, not empty
     }
 
     @Test func contractMismatchIsANoticeNotAGate() async {
@@ -374,7 +408,7 @@ import Testing
         let app = make(stub)
         await app.start()
         #expect(!app.unreachable)
-        #expect(app.meets.count == 1)   // connected regardless
+        #expect(app.meets.count == 1)  // connected regardless
         #expect(app.contractNotice == "api v1 ≠ v2")
         stub.route("/server", json: #"{"kind":"cloud","name":"New","contract":{"api":"v2","app":"v1"}}"#)
         await app.load()
@@ -428,11 +462,14 @@ import Testing
         let stub = StubServer()
         cloud(stub)
         let store = InMemoryPreferencesStore()
-        let app = AppModel(defaultServer: ServerAddress(typed: "https://default.example")!, preferencesStore: store,
-                           vidStore: InMemoryVidStore(), bundleCache: InMemoryBundleCache(), session: stub.session,
-                           connector: FakeConnector())
-        await app.addServer(stub.address, info: ServerInfo(kind: .cloud, name: "Pool", contract: .init(api: "v2", app: "v1")))
-        await app.addServer(stub.address, info: ServerInfo(kind: .cloud, name: "Pool renamed", contract: .init(api: "v2", app: "v1")))
+        let app = AppModel(
+            defaultServer: ServerAddress(typed: "https://default.example")!, preferencesStore: store,
+            vidStore: InMemoryVidStore(), bundleCache: InMemoryBundleCache(), session: stub.session,
+            connector: FakeConnector())
+        await app.addServer(
+            stub.address, info: ServerInfo(kind: .cloud, name: "Pool", contract: .init(api: "v2", app: "v1")))
+        await app.addServer(
+            stub.address, info: ServerInfo(kind: .cloud, name: "Pool renamed", contract: .init(api: "v2", app: "v1")))
         #expect(store.load().savedServers.map(\.name) == ["Pool renamed"])
         // And the menu does not show the same origin twice either.
         #expect(app.knownServers.filter { $0.address == stub.address }.count == 1)
@@ -446,8 +483,10 @@ import Testing
         let app = make(stub)
         let a = SavedServer(name: "Club A", address: ServerAddress(typed: "https://a.example")!)
         let b = SavedServer(name: "Club B", address: ServerAddress(typed: "https://b.example")!)
-        await app.addServer(a.address, info: ServerInfo(kind: .cloud, name: a.name, contract: .init(api: "v2", app: "v1")))
-        await app.addServer(b.address, info: ServerInfo(kind: .cloud, name: b.name, contract: .init(api: "v2", app: "v1")))
+        await app.addServer(
+            a.address, info: ServerInfo(kind: .cloud, name: a.name, contract: .init(api: "v2", app: "v1")))
+        await app.addServer(
+            b.address, info: ServerInfo(kind: .cloud, name: b.name, contract: .init(api: "v2", app: "v1")))
         #expect(app.preferences.savedServers.map(\.name) == ["Club A", "Club B"])
         // A different SavedServer value with the same address is the same row.
         app.removeSavedServer(SavedServer(name: "whatever", address: a.address))
@@ -511,8 +550,9 @@ import Testing
         let stub = StubServer()
         cloud(stub)
         let store = InMemoryPreferencesStore(Preferences(language: "es"))
-        let app = AppModel(defaultServer: stub.address, preferencesStore: store, vidStore: InMemoryVidStore(),
-                           bundleCache: InMemoryBundleCache(), session: stub.session, connector: FakeConnector())
+        let app = AppModel(
+            defaultServer: stub.address, preferencesStore: store, vidStore: InMemoryVidStore(),
+            bundleCache: InMemoryBundleCache(), session: stub.session, connector: FakeConnector())
         await app.start()
         #expect(store.load().language == "es")
         await app.setLanguage(nil)
@@ -529,12 +569,14 @@ import Testing
     @Test func chromeStringsUpgradeFromTheSnapshotToTheServersOwn() async {
         let stub = StubServer()
         cloud(stub)
-        stub.route("/i18n/fr", json: #"{"lang":"fr","mobile":{"no_meets":"Rien du tout"}}"#,
-                   headers: ["ETag": "\"v1\""])
+        stub.route(
+            "/i18n/fr", json: #"{"lang":"fr","mobile":{"no_meets":"Rien du tout"}}"#,
+            headers: ["ETag": "\"v1\""])
         let cache = InMemoryBundleCache()
-        let app = AppModel(defaultServer: stub.address, preferencesStore: InMemoryPreferencesStore(),
-                           vidStore: InMemoryVidStore(), bundleCache: cache, session: stub.session,
-                           connector: FakeConnector())
+        let app = AppModel(
+            defaultServer: stub.address, preferencesStore: InMemoryPreferencesStore(),
+            vidStore: InMemoryVidStore(), bundleCache: cache, session: stub.session,
+            connector: FakeConnector())
         await app.start()
         #expect(app.strings.language == "fr")
         #expect(app.strings.mobile("no_meets") == "Rien du tout")
@@ -548,9 +590,10 @@ import Testing
         cloud(stub)
         stub.route("/i18n/fr", json: "kaput", status: 500)
         let cache = InMemoryBundleCache()
-        let app = AppModel(defaultServer: stub.address, preferencesStore: InMemoryPreferencesStore(),
-                           vidStore: InMemoryVidStore(), bundleCache: cache, session: stub.session,
-                           connector: FakeConnector())
+        let app = AppModel(
+            defaultServer: stub.address, preferencesStore: InMemoryPreferencesStore(),
+            vidStore: InMemoryVidStore(), bundleCache: cache, session: stub.session,
+            connector: FakeConnector())
         await app.start()
         #expect(!app.unreachable)
         #expect(app.strings.language == "fr")

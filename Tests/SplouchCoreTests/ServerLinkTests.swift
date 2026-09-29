@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import SplouchCore
 
 /// P-16: what a QR code may say, and what it may not.
@@ -41,7 +42,8 @@ import Testing
         // Case is the DNS's business, not the poster's.
         #expect(address(ServerLink.parse("https://SPLOUCH.CA/add?server=https%3A%2F%2Fa.example", host: host)) != nil)
         // Credentials in the authority are not a shape this app mints.
-        #expect(ServerLink.parse("https://user:pw@splouch.ca/add?server=https%3A%2F%2Fa.example", host: host) == .invalid)
+        #expect(
+            ServerLink.parse("https://user:pw@splouch.ca/add?server=https%3A%2F%2Fa.example", host: host) == .invalid)
     }
 
     /// `http` on the link itself is not our link either: the AASA is served over TLS and
@@ -85,15 +87,20 @@ import Testing
     /// code is a stranger's input in a way a typed address is not, so it is refused
     /// before a request is made rather than by ATS after one is.
     @Test func cleartextIsForTheLocalNetworkOnly() {
-        #expect(ServerLink.parse("https://splouch.ca/add?server=http%3A%2F%2F192.168.1.10%3A5000", host: host)
+        #expect(
+            ServerLink.parse("https://splouch.ca/add?server=http%3A%2F%2F192.168.1.10%3A5000", host: host)
                 == .cleartextNotLocal)
-        #expect(ServerLink.parse("https://splouch.ca/add?server=http%3A%2F%2Fpool.example", host: host)
+        #expect(
+            ServerLink.parse("https://splouch.ca/add?server=http%3A%2F%2Fpool.example", host: host)
                 == .cleartextNotLocal)
         // The two that are allowed: a Pi by its mDNS name, and a developer's loopback.
-        #expect(address(ServerLink.parse("https://splouch.ca/add?server=http%3A%2F%2Fsplouch.local", host: host)) != nil)
-        #expect(address(ServerLink.parse("https://splouch.ca/add?server=http%3A%2F%2F127.0.0.1%3A5055", host: host)) != nil)
+        #expect(
+            address(ServerLink.parse("https://splouch.ca/add?server=http%3A%2F%2Fsplouch.local", host: host)) != nil)
+        #expect(
+            address(ServerLink.parse("https://splouch.ca/add?server=http%3A%2F%2F127.0.0.1%3A5055", host: host)) != nil)
         // And https to the same remote host is fine — the scheme is the whole objection.
-        #expect(address(ServerLink.parse("https://splouch.ca/add?server=https%3A%2F%2Fpool.example", host: host)) != nil)
+        #expect(
+            address(ServerLink.parse("https://splouch.ca/add?server=https%3A%2F%2Fpool.example", host: host)) != nil)
     }
 
     /// A value that is not an address at all is `invalid`, not `cleartextNotLocal`: the

@@ -48,20 +48,26 @@ public final class MeetSession {
     private var pumps: [Task<Void, Never>] = []
     private var started = false
 
-    public init(address: ServerAddress, kind: ServerKind, meetID: String?, settings: MeetSettings,
-                vidStore: any VidStore, connector: any WebSocketConnector = URLSessionWebSocketConnector(),
-                timing: SocketTiming = .standard) {
+    public init(
+        address: ServerAddress, kind: ServerKind, meetID: String?, settings: MeetSettings,
+        vidStore: any VidStore, connector: any WebSocketConnector = URLSessionWebSocketConnector(),
+        timing: SocketTiming = .standard
+    ) {
         self.address = address
         self.kind = kind
         self.meetID = kind == .cloud ? meetID : nil
         self.settings = settings
         self.scoreboard = ScoreboardState(numLanes: settings.numLanes)
         // C-10: one random id per server, generated on first use and stored.
-        let join: Frame? = (kind == .cloud && meetID != nil)
+        let join: Frame? =
+            (kind == .cloud && meetID != nil)
             ? .joinMeet(meetID: meetID!, vid: vidStore.vid(for: address.origin)) : nil
-        scoreboardSocket = SplouchSocket(url: address.webSocket("/ws/scoreboard"), connector: connector, join: join, timing: timing)
-        resultsSocket = SplouchSocket(url: address.webSocket("/ws/results"), connector: connector, join: join, timing: timing)
-        scheduleSocket = SplouchSocket(url: address.webSocket("/ws/schedule"), connector: connector, join: join, timing: timing)
+        scoreboardSocket = SplouchSocket(
+            url: address.webSocket("/ws/scoreboard"), connector: connector, join: join, timing: timing)
+        resultsSocket = SplouchSocket(
+            url: address.webSocket("/ws/results"), connector: connector, join: join, timing: timing)
+        scheduleSocket = SplouchSocket(
+            url: address.webSocket("/ws/schedule"), connector: connector, join: join, timing: timing)
     }
 
     public var meetLive: Bool { scoreboard.meetLive }
@@ -147,7 +153,9 @@ public final class MeetSession {
 
     // MARK: - Dispatch
 
-    private func pump(_ socket: SplouchSocket, _ handle: @escaping @MainActor (SocketEvent) -> Void) -> Task<Void, Never> {
+    private func pump(_ socket: SplouchSocket, _ handle: @escaping @MainActor (SocketEvent) -> Void) -> Task<
+        Void, Never
+    > {
         Task { @MainActor in
             for await e in socket.events {
                 if Task.isCancelled { return }
@@ -165,7 +173,7 @@ public final class MeetSession {
             scoreboardEverConnected = true
         case .disconnected:
             scoreboardConnected = false
-            scoreboard.socketDisconnected()   // C-09: a drop implies not live
+            scoreboard.socketDisconnected()  // C-09: a drop implies not live
         case .frame(let f):
             switch f.event {
             case "meet_live":
@@ -186,7 +194,7 @@ public final class MeetSession {
                 reloadVersion += 1
                 onReload?()
             default:
-                break   // C-07
+                break  // C-07
             }
         }
     }
@@ -206,7 +214,7 @@ public final class MeetSession {
                 if !live { wipeResults() }
             case "results_snapshot":
                 let snap = ResultsSnapshot(json: f.data)
-                guard !snap.lanes.isEmpty else { return }   // the reference ignores an empty snapshot
+                guard !snap.lanes.isEmpty else { return }  // the reference ignores an empty snapshot
                 results = snap
                 currentHeat = HeatRef(event: snap.event, heat: snap.heat)
             case "reload":

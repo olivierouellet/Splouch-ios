@@ -70,14 +70,26 @@ public struct ThemeColors: Sendable, Equatable {
             if let v = colors[k], !v.trimmingCharacters(in: .whitespaces).isEmpty { return v }
             return Self.defaults[k]!
         }
-        bg = pick("bg"); headerBg = pick("header_bg"); headerBorder = pick("header_border")
-        headerLabel = pick("header_label"); headerValue = pick("header_value")
-        thText = pick("th_text"); thBg = pick("th_bg")
-        rowOdd = pick("row_odd"); rowEven = pick("row_even"); rowText = pick("row_text")
-        time = pick("time"); deltaBetter = pick("delta_better"); deltaWorse = pick("delta_worse")
-        podiumGold = pick("podium_gold"); podiumSilver = pick("podium_silver"); podiumBronze = pick("podium_bronze")
-        scheduleEvent = pick("schedule_event"); scheduleTime = pick("schedule_time")
-        scheduleName = pick("schedule_name"); scheduleClub = pick("schedule_club")
+        bg = pick("bg")
+        headerBg = pick("header_bg")
+        headerBorder = pick("header_border")
+        headerLabel = pick("header_label")
+        headerValue = pick("header_value")
+        thText = pick("th_text")
+        thBg = pick("th_bg")
+        rowOdd = pick("row_odd")
+        rowEven = pick("row_even")
+        rowText = pick("row_text")
+        time = pick("time")
+        deltaBetter = pick("delta_better")
+        deltaWorse = pick("delta_worse")
+        podiumGold = pick("podium_gold")
+        podiumSilver = pick("podium_silver")
+        podiumBronze = pick("podium_bronze")
+        scheduleEvent = pick("schedule_event")
+        scheduleTime = pick("schedule_time")
+        scheduleName = pick("schedule_name")
+        scheduleClub = pick("schedule_club")
     }
 }
 
@@ -98,6 +110,8 @@ public struct ThemeFonts: Sendable, Equatable {
             if let v = fonts[k], !v.trimmingCharacters(in: .whitespaces).isEmpty { return v }
             return Self.defaults[k]!
         }
-        family = pick("family"); digits = pick("digits"); timing = pick("timing")
+        family = pick("family")
+        digits = pick("digits")
+        timing = pick("timing")
     }
 }

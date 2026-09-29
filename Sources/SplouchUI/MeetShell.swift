@@ -1,5 +1,5 @@
-import SwiftUI
 import SplouchCore
+import SwiftUI
 
 /// A-04 stores a choice, not a number: the raw value is the tab's own name, so
 /// a stored selection survives the tab *set* changing under it (A-11) instead
@@ -37,7 +37,10 @@ struct MeetShell: View {
     private static var initialTab: String {
         #if DEBUG
         if let name = ProcessInfo.processInfo.environment["SPLOUCH_TAB"],
-           let t = MeetTab(rawValue: name) { return t.key }
+            let t = MeetTab(rawValue: name)
+        {
+            return t.key
+        }
         #endif
         return MeetTab.scoreboard.key
     }
@@ -88,11 +91,13 @@ struct MeetShell: View {
             .environment(\.faces, faces)
             .navigationTitle(ctx.title)
             #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
+        .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar { toolbar }
             .sensoryFeedback(.selection, trigger: tabKey)
-            .onGeometryChange(for: CGSize.self) { $0.size } action: {
+            .onGeometryChange(for: CGSize.self) {
+                $0.size
+            } action: {
                 isLandscape = $0.width > $0.height
                 width = $0.width
             }
@@ -102,14 +107,17 @@ struct MeetShell: View {
                 network.start()
                 #if DEBUG
                 if let env = ProcessInfo.processInfo.environment["SPLOUCH_TAB"],
-                   let t = MeetTab(rawValue: env) { tabKey = t.key }
+                    let t = MeetTab(rawValue: env)
+                {
+                    tabKey = t.key
+                }
                 #endif
             }
             .onDisappear { network.stop() }
             // C-05: foreground → probe; background → the ticker stops (L-12).
             .onChange(of: scenePhase) { _, phase in
                 switch phase {
-                case .active: ctx.foregrounded()   // C-05 probe, A-09 check
+                case .active: ctx.foregrounded()  // C-05 probe, A-09 check
                 default: ctx.session.suspend()
                 }
             }
@@ -191,7 +199,6 @@ struct MeetShell: View {
         tab.wrappedValue != .schedule && (isLandscape || boardNeedsBar)
     }
 
-
     /// Short labels, because this is a bar: "EV 12  HT 3", not "EVENT 12
     /// HEAT 3". The words buy nothing the numbers do not already say and the
     /// width they cost is the event name's, which is the one thing here that
@@ -199,14 +206,16 @@ struct MeetShell: View {
     @ViewBuilder private var barBoardHeader: some View {
         if tab.wrappedValue == .results {
             let snapshot = ctx.session.results
-            BoardHeader(event: snapshot?.event ?? "", heat: snapshot?.heat ?? "",
-                        eventName: snapshot.map { ctx.eventName($0.eventName, parts: $0.eventNameParts) } ?? "",
-                        labels: ctx.shortLabels, compact: true, showsClock: false)
+            BoardHeader(
+                event: snapshot?.event ?? "", heat: snapshot?.heat ?? "",
+                eventName: snapshot.map { ctx.eventName($0.eventName, parts: $0.eventNameParts) } ?? "",
+                labels: ctx.shortLabels, compact: true, showsClock: false)
         } else {
             let board = ctx.session.scoreboard
-            BoardHeader(event: board.currentEvent, heat: board.currentHeat,
-                        eventName: ctx.eventName(board.eventName, parts: board.eventNameParts),
-                        labels: ctx.shortLabels, compact: true, showsClock: false)
+            BoardHeader(
+                event: board.currentEvent, heat: board.currentHeat,
+                eventName: ctx.eventName(board.eventName, parts: board.eventNameParts),
+                labels: ctx.shortLabels, compact: true, showsClock: false)
         }
     }
 
@@ -267,10 +276,14 @@ struct MeetShell: View {
     // reads at a glance and not only by the digit.
     private var filterButton: some View {
         let count = ctx.filter.count
-        return Button { showFilter = true } label: {
+        return Button {
+            showFilter = true
+        } label: {
             HStack(spacing: 4) {
-                Image(systemName: count > 0 ? "line.3.horizontal.decrease.circle.fill"
-                                            : "line.3.horizontal.decrease.circle")
+                Image(
+                    systemName: count > 0
+                        ? "line.3.horizontal.decrease.circle.fill"
+                        : "line.3.horizontal.decrease.circle")
                 if count > 0 {
                     Text("\(count)").font(.footnote.weight(.semibold)).monospacedDigit()
                 }
@@ -282,10 +295,10 @@ struct MeetShell: View {
     }
 }
 
-private extension View {
+extension View {
     /// `ToolbarPlacement.tabBar` is iOS-only; on macOS the shell is checked for
     /// compilation, not looked at.
-    @ViewBuilder func themedTabBar(_ color: Color) -> some View {
+    @ViewBuilder fileprivate func themedTabBar(_ color: Color) -> some View {
         #if os(iOS)
         self.toolbarBackground(color, for: .tabBar)
             .toolbarBackground(.visible, for: .tabBar)

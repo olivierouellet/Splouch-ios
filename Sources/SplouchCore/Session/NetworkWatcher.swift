@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+
 #if canImport(Network)
 import Network
 #endif

@@ -86,8 +86,9 @@ public struct RaceClock: Sendable, Equatable {
         let sec = rest[..<dot]
         let frac = rest[rest.index(after: dot)...]
         guard (1...2).contains(sec.count), sec.allSatisfy(\.isASCIIDigit),
-              frac.count == 2, frac.allSatisfy(\.isASCIIDigit),
-              let secs = Int(sec), let hund = Int(frac) else { return nil }
+            frac.count == 2, frac.allSatisfy(\.isASCIIDigit),
+            let secs = Int(sec), let hund = Int(frac)
+        else { return nil }
         return minutes * 6000 + secs * 100 + hund
     }
 
@@ -111,6 +112,6 @@ public struct RaceClock: Sendable, Equatable {
     }
 }
 
-private extension Character {
-    var isASCIIDigit: Bool { ("0"..."9").contains(self) }
+extension Character {
+    fileprivate var isASCIIDigit: Bool { ("0"..."9").contains(self) }
 }

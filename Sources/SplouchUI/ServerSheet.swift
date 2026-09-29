@@ -1,5 +1,5 @@
-import SwiftUI
 import SplouchCore
+import SwiftUI
 
 /// P-11: the servers on offer; P-12: the ones found on the local network;
 /// P-13: one added by hand, checked with `GET /server` before it is saved.
@@ -21,7 +21,9 @@ struct ServerSheet: View {
                             .swipeActions(edge: .trailing) {
                                 if let saved = app.preferences.savedServers.first(where: { $0.id == s.id }) {
                                     // Only hand-added servers can be removed; the rest are data.
-                                    Button(role: .destructive) { app.removeSavedServer(saved) } label: {
+                                    Button(role: .destructive) {
+                                        app.removeSavedServer(saved)
+                                    } label: {
                                         Label(Native.remove, systemImage: "trash")
                                     }
                                 }
@@ -48,15 +50,17 @@ struct ServerSheet: View {
                             .textContentType(.URL)
                             .autocorrectionDisabled()
                             #if os(iOS)
-                            .keyboardType(.URL)
-                            .textInputAutocapitalization(.never)
-                            .submitLabel(.go)
+                        .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .submitLabel(.go)
                             #endif
                             .onSubmit { Task { await add() } }
                         if checking {
                             ProgressView()
                         } else if !typed.trimmingCharacters(in: .whitespaces).isEmpty {
-                            Button { Task { await add() } } label: {
+                            Button {
+                                Task { await add() }
+                            } label: {
                                 Image(systemName: "arrow.up.circle.fill")
                                     .font(.title2)
                                     .symbolRenderingMode(.hierarchical)

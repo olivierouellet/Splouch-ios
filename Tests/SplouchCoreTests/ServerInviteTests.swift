@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import SplouchCore
 
 /// P-16, the model half: a scanned code asks, and only a yes does anything.
@@ -15,8 +16,10 @@ import Testing
     }
 
     func make(_ stub: StubServer, prefs: Preferences = Preferences()) -> AppModel {
-        AppModel(defaultServer: stub.address, preferencesStore: InMemoryPreferencesStore(prefs), vidStore: InMemoryVidStore(),
-                 bundleCache: InMemoryBundleCache(), session: stub.session, connector: FakeConnector())
+        AppModel(
+            defaultServer: stub.address, preferencesStore: InMemoryPreferencesStore(prefs),
+            vidStore: InMemoryVidStore(),
+            bundleCache: InMemoryBundleCache(), session: stub.session, connector: FakeConnector())
     }
 
     func link(_ stub: StubServer, server: String) -> String {
@@ -39,7 +42,7 @@ import Testing
         #expect(app.invite?.failure == nil)
         #expect(app.preferences.savedServers.isEmpty)
         #expect(app.server == stub.address)
-        #expect(pi.requestCount("/server") == 0)   // not dialled, not even once
+        #expect(pi.requestCount("/server") == 0)  // not dialled, not even once
     }
 
     /// The yes runs P-13 unchanged — `GET /server`, then save, then select — and the
@@ -54,7 +57,7 @@ import Testing
 
         app.openServerLink(link(stub, server: pi.address.origin))
         app.acceptInvite()
-        #expect(app.invite?.checking == true)      // in the same turn the button was pressed
+        #expect(app.invite?.checking == true)  // in the same turn the button was pressed
         #expect(await eventually { @MainActor in app.invite == nil })
         #expect(pi.requestCount("/server") >= 1)
         #expect(app.server == pi.address)
@@ -69,12 +72,12 @@ import Testing
         cloud(stub)
         let app = make(stub)
         await app.start()
-        let gone = StubServer()   // routes nothing: every path 404s
+        let gone = StubServer()  // routes nothing: every path 404s
 
         app.openServerLink(link(stub, server: gone.address.origin))
         app.acceptInvite()
         #expect(await eventually { @MainActor in app.invite?.failure != nil })
-        #expect(app.invite?.failure == .notSplouch)   // a 404 is an answer, just not ours
+        #expect(app.invite?.failure == .notSplouch)  // a 404 is an answer, just not ours
         #expect(app.invite?.address == gone.address)  // still named, so the press can be repeated
         #expect(app.invite?.checking == false)
         #expect(app.preferences.savedServers.isEmpty)
@@ -119,8 +122,8 @@ import Testing
         #expect(app.invite?.standing == .inUse)
         #expect(app.invite?.nothingToDo == true)
         app.acceptInvite()
-        #expect(app.invite?.checking == false)          // the model refuses it, not the view
-        #expect(stub.requestCount("/server") == before) // and nothing was asked of the network
+        #expect(app.invite?.checking == false)  // the model refuses it, not the view
+        #expect(stub.requestCount("/server") == before)  // and nothing was asked of the network
         app.dismissInvite()
         #expect(app.invite == nil)
     }
@@ -128,7 +131,7 @@ import Testing
     /// Only while it is *answering*. A selected server whose handshake failed is listed,
     /// so scanning its code re-dials it — that is a spectator whose Pi rebooted.
     @Test func aSelectedServerThatIsNotAnsweringAsksToSwitchBackToIt() async {
-        let stub = StubServer()   // routes nothing yet: the handshake fails
+        let stub = StubServer()  // routes nothing yet: the handshake fails
         let app = make(stub)
         await app.start()
         #expect(app.unreachable)
@@ -164,10 +167,10 @@ import Testing
         app.acceptInvite()
         app.dismissInvite()
         #expect(app.invite == nil)
-        #expect(await eventually { slow.requestCount("/server") == 1 })   // the request still ran
+        #expect(await eventually { slow.requestCount("/server") == 1 })  // the request still ran
         try? await Task.sleep(for: .milliseconds(200))
         #expect(app.invite == nil)
-        #expect(app.server == stub.address)          // and it changed nothing
+        #expect(app.server == stub.address)  // and it changed nothing
         #expect(app.preferences.savedServers.isEmpty)
     }
 
@@ -184,7 +187,7 @@ import Testing
         #expect(app.invite?.failure == .badLink)
         #expect(app.invite?.nothingToDo == true)
         app.acceptInvite()
-        #expect(app.invite?.checking == false)   // there is nothing to accept
+        #expect(app.invite?.checking == false)  // there is nothing to accept
 
         app.openServerLink(link(stub, server: "http://192.168.1.10:5000"))
         #expect(app.invite?.failure == .cleartextNotLocal)

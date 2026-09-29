@@ -1,5 +1,5 @@
-import SwiftUI
 import SplouchCore
+import SwiftUI
 
 /// S-08 to S-19: the filter sheet. Its words are the server's (`mobile`, T-05);
 /// only the confirming checkmark is the platform's.
@@ -32,7 +32,7 @@ struct FilterSheet: View {
                     entryField
                     if typing {
                         if suggestions.isEmpty {
-                            Text(strings.mobile("no_search_results")).foregroundStyle(.secondary)   // S-19
+                            Text(strings.mobile("no_search_results")).foregroundStyle(.secondary)  // S-19
                         }
                         ForEach(Array(suggestions.enumerated()), id: \.offset) { _, s in
                             suggestionRow(s)
@@ -64,7 +64,9 @@ struct FilterSheet: View {
                         .padding(.vertical, 4)
                     }
                     Section {
-                        Button(role: .destructive) { confirmReset = true } label: {
+                        Button(role: .destructive) {
+                            confirmReset = true
+                        } label: {
                             Text(strings.mobile("reset_filters"))
                                 .frame(maxWidth: .infinity)
                         }
@@ -85,7 +87,9 @@ struct FilterSheet: View {
                 // `ctx.filter`, so the schedule is filtered before this is
                 // tapped and the mark confirms what is already true.
                 ToolbarItem(placement: .confirmationAction) {
-                    Button { dismiss() } label: {
+                    Button {
+                        dismiss()
+                    } label: {
                         Label(Native.done, systemImage: "checkmark")
                             .labelStyle(.iconOnly)
                     }
@@ -93,7 +97,8 @@ struct FilterSheet: View {
             }
             .sensoryFeedback(.impact(weight: .light), trigger: ctx.filter.terms.count)
             // S-18: the dialog brings the platform's own Cancel.
-            .confirmationDialog(strings.mobile("reset_confirm"), isPresented: $confirmReset, titleVisibility: .visible) {
+            .confirmationDialog(strings.mobile("reset_confirm"), isPresented: $confirmReset, titleVisibility: .visible)
+            {
                 Button(strings.mobile("reset_filters"), role: .destructive) { ctx.filter.reset() }
             }
         }
@@ -107,8 +112,8 @@ struct FilterSheet: View {
                 .focused($searching)
                 .autocorrectionDisabled()
                 #if os(iOS)
-                .textInputAutocapitalization(.never)   // a name search, folded either way
-                .submitLabel(.done)
+            .textInputAutocapitalization(.never)  // a name search, folded either way
+            .submitLabel(.done)
                 #endif
                 .onSubmit { searching = false }
                 // S-09: no debounce — the old ~220ms wait spared the server, and
@@ -178,9 +183,11 @@ struct FilterSheet: View {
                     .accessibilityHidden(true)
                 VStack(alignment: .leading) {
                     Text(s.name).foregroundStyle(.primary)
-                    Text([strings.mobile(term.kind == .club ? "club" : "swimmer"), term.kind == .swimmer ? s.club : ""]
-                        .filter { !$0.isEmpty }.joined(separator: " · "))
-                        .font(.footnote).foregroundStyle(.secondary)
+                    Text(
+                        [strings.mobile(term.kind == .club ? "club" : "swimmer"), term.kind == .swimmer ? s.club : ""]
+                            .filter { !$0.isEmpty }.joined(separator: " · ")
+                    )
+                    .font(.footnote).foregroundStyle(.secondary)
                 }
                 Spacer()
                 if added { Image(systemName: "checkmark").foregroundStyle(.secondary) }
@@ -199,7 +206,9 @@ struct FilterSheet: View {
                     Image(systemName: term.kind == .club ? "building.2" : "person").font(.caption)
                         .accessibilityHidden(true)
                     Text(term.name).font(.subheadline)
-                    Button { ctx.filter.remove(term) } label: {
+                    Button {
+                        ctx.filter.remove(term)
+                    } label: {
                         // The target is 44pt and the negative padding takes it
                         // back out of the layout, so the chip stays chip-sized
                         // while the tap area is the one the HIG asks for.
@@ -227,10 +236,16 @@ struct FlowLayout: Layout {
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let width = proposal.width ?? 0
-        var x: CGFloat = 0, y: CGFloat = 0, rowHeight: CGFloat = 0
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
         for s in subviews {
             let size = s.sizeThatFits(.unspecified)
-            if x + size.width > width, x > 0 { x = 0; y += rowHeight + spacing; rowHeight = 0 }
+            if x + size.width > width, x > 0 {
+                x = 0
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
             x += size.width + spacing
             rowHeight = max(rowHeight, size.height)
         }
@@ -238,10 +253,16 @@ struct FlowLayout: Layout {
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var x = bounds.minX, y = bounds.minY, rowHeight: CGFloat = 0
+        var x = bounds.minX
+        var y = bounds.minY
+        var rowHeight: CGFloat = 0
         for s in subviews {
             let size = s.sizeThatFits(.unspecified)
-            if x + size.width > bounds.maxX, x > bounds.minX { x = bounds.minX; y += rowHeight + spacing; rowHeight = 0 }
+            if x + size.width > bounds.maxX, x > bounds.minX {
+                x = bounds.minX
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
             s.place(at: CGPoint(x: x, y: y), proposal: .unspecified)
             x += size.width + spacing
             rowHeight = max(rowHeight, size.height)

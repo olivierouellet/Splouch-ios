@@ -18,7 +18,6 @@ swift test
 - [ ] `parity.md` updated — the rows this touches say `done`, `deferred` or `diverges`, and a `diverges` row says what the app does instead and why.
 - [ ] No wire field invented: every payload key read here is in `api.md`.
 - [ ] No new package dependency.
-- [ ] The formatter was not run over the tree.
 
 ## Seen on a screen
 

@@ -49,24 +49,24 @@ extension JSONValue: Codable {
     }
 }
 
-public extension JSONValue {
-    var isNull: Bool { if case .null = self { return true } else { return false } }
-    var bool: Bool? { if case .bool(let b) = self { return b } else { return nil } }
-    var double: Double? { if case .number(let n) = self { return n } else { return nil } }
-    var int: Int? {
+extension JSONValue {
+    public var isNull: Bool { if case .null = self { return true } else { return false } }
+    public var bool: Bool? { if case .bool(let b) = self { return b } else { return nil } }
+    public var double: Double? { if case .number(let n) = self { return n } else { return nil } }
+    public var int: Int? {
         guard case .number(let n) = self, n == n.rounded(), abs(n) < Double(Int.max) else { return nil }
         return Int(n)
     }
-    var string: String? { if case .string(let s) = self { return s } else { return nil } }
-    var array: [JSONValue]? { if case .array(let a) = self { return a } else { return nil } }
-    var object: [String: JSONValue]? { if case .object(let o) = self { return o } else { return nil } }
+    public var string: String? { if case .string(let s) = self { return s } else { return nil } }
+    public var array: [JSONValue]? { if case .array(let a) = self { return a } else { return nil } }
+    public var object: [String: JSONValue]? { if case .object(let o) = self { return o } else { return nil } }
 
-    subscript(key: String) -> JSONValue? { object?[key] }
+    public subscript(key: String) -> JSONValue? { object?[key] }
 
     /// The value read as display text. Event and heat numbers are strings in
     /// `update_scoreboard` and `results_snapshot` but integers in `next_heats` and
     /// the schedule, and S-05 compares them, so both spellings land on one form.
-    var text: String? {
+    public var text: String? {
         switch self {
         case .string(let s): return s
         case .number(let n): return n == n.rounded() && abs(n) < 1e15 ? String(Int64(n)) : String(n)

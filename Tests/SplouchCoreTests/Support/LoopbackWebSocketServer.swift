@@ -89,7 +89,7 @@ final class LoopbackWebSocketServer: @unchecked Sendable {
 
     /// A clean close: the client's pending `receive()` throws.
     func closeFromServer() {
-        var payload = Data([0x03, 0xE8])   // 1000, normal closure
+        var payload = Data([0x03, 0xE8])  // 1000, normal closure
         payload.append(contentsOf: Array("bye".utf8))
         send(frame(opcode: 0x8, payload: payload))
     }
@@ -141,7 +141,10 @@ final class LoopbackWebSocketServer: @unchecked Sendable {
                     return
                 }
             }
-            if error != nil || isComplete { self.forget(conn) ; return }
+            if error != nil || isComplete {
+                self.forget(conn)
+                return
+            }
             self.read(conn, handshakeDone: handshakeDone)
         }
     }
@@ -152,14 +155,15 @@ final class LoopbackWebSocketServer: @unchecked Sendable {
         let key: String? = lock.withLock {
             let id = ObjectIdentifier(conn)
             guard let buf = buffers[id],
-                  let text = String(data: buf, encoding: .utf8),
-                  let headerEnd = text.range(of: "\r\n\r\n") else { return nil }
+                let text = String(data: buf, encoding: .utf8),
+                let headerEnd = text.range(of: "\r\n\r\n")
+            else { return nil }
             let head = String(text[text.startIndex..<headerEnd.lowerBound])
             buffers[id] = buf.dropFirst(head.utf8.count + 4)
             for line in head.split(separator: "\r\n") {
                 let parts = line.split(separator: ":", maxSplits: 1)
                 guard parts.count == 2,
-                      parts[0].trimmingCharacters(in: .whitespaces).lowercased() == "sec-websocket-key"
+                    parts[0].trimmingCharacters(in: .whitespaces).lowercased() == "sec-websocket-key"
                 else { continue }
                 return parts[1].trimmingCharacters(in: .whitespaces)
             }
@@ -171,13 +175,13 @@ final class LoopbackWebSocketServer: @unchecked Sendable {
         let digest = Insecure.SHA1.hash(data: Data((key + magic).utf8))
         let accept = Data(digest).base64EncodedString()
         let response = """
-        HTTP/1.1 101 Switching Protocols\r
-        Upgrade: websocket\r
-        Connection: Upgrade\r
-        Sec-WebSocket-Accept: \(accept)\r
-        \r
+            HTTP/1.1 101 Switching Protocols\r
+            Upgrade: websocket\r
+            Connection: Upgrade\r
+            Sec-WebSocket-Accept: \(accept)\r
+            \r
 
-        """
+            """
         conn.send(content: Data(response.utf8), completion: .contentProcessed { _ in })
         lock.withLock { handshakes += 1 }
         return true

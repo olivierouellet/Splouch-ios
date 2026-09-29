@@ -136,12 +136,18 @@ Both Swift builds treat a warning as an error, and the tree has none. To run the
 checks locally before pushing:
 
 ```sh
+swift format lint --strict -r -p Sources Tests App Package.swift
 swift test -Xswiftc -warnings-as-errors
 swift build --triple arm64-apple-ios17.0-simulator \
   --sdk "$(xcrun --sdk iphonesimulator --show-sdk-path)" \
   --scratch-path .build/ios -Xswiftc -warnings-as-errors
 uvx rumdl check .          # `uvx rumdl fmt .` fixes what it flags
 ```
+
+`swift format -i -r -p Sources Tests App Package.swift` fixes the layout half of the
+first check for you, and VS Code with the recommended Swift extension does the same on
+save. What is left after that is a lint rule the formatter can only report — fix it by
+hand.
 
 ### Tooling by language
 
@@ -150,7 +156,7 @@ pinned in `ci.yml`.
 
 | Language | Where | Linter | Formatter | Types / schema | Tests | Coverage | Editor (VS Code) | Gated in CI |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **Swift 6** | `Sources/`, `Tests/` | The compiler, with `-warnings-as-errors`, once for macOS and once for the iOS simulator | None, on purpose — see [Conventions](#conventions) | swiftc, strict concurrency | Swift Testing under `swift test`; CI also fails if fewer than 270 tests ran, a floor set so that a whole test target going missing is caught | llvm-cov, one table per module, printed in the CI log and never gated | Swift, LLDB DAP | Yes: warnings and tests |
+| **Swift 6** | `Sources/`, `Tests/` | The compiler, with `-warnings-as-errors`, once for macOS and once for the iOS simulator; `swift format lint --strict` for its default rules | swift-format (`swift format`, from the toolchain; settings in `.swift-format`), imports sorted by its `OrderedImports` rule | swiftc, strict concurrency | Swift Testing under `swift test`; CI also fails if fewer than 270 tests ran, a floor set so that a whole test target going missing is caught | llvm-cov, one table per module, printed in the CI log and never gated | Swift (formats on save), LLDB DAP | Yes: format, warnings and tests |
 | **iOS app target** | `App/` | — | — | `xcodebuild` for the simulator | The built bundle's Info.plist is checked for the four keys the contract needs | — | Xcode | Yes |
 | **Strings** | `Localizable.xcstrings`, `Sources/SplouchCore/Resources/i18n/` | — | — | — | Every native string in en, fr and es (`SplouchUITests`); every served key the app asks for is in the snapshot (`SnapshotCoverageTests`) | — | — | Yes, through `swift test` |
 | **Shell (zsh)** | `scripts/` | `zsh -n`, syntax only (ShellCheck has no zsh dialect) | — | — | — | — | — | Yes |
@@ -182,10 +188,14 @@ documents as thread-safe without annotating it — `UserDefaults`, `URLSessionWe
 Each one carries the reason near it. An `@unchecked` that is really "the compiler was in my
 way" doesn't pass review; reach for an `actor` or a value type instead.
 
-**Don't format the tree.** There is no `swift-format` configuration here on purpose, and
-running the formatter rewrites hand-aligned declarations and wrapped argument lists that
-are laid out to be read. The editor settings in `.vscode/` turn format-on-save off for
-Swift for exactly this reason.
+**swift-format owns layout and import order.** Code is formatted with `swift format`,
+the one that ships in the toolchain, so it adds no dependency and no version to pin — the
+same role Ruff plays in the server repo. `.swift-format` is the default configuration
+with three changes, each to fit the tree as it was rather than to reshape it: four-space
+indentation (Xcode's), a 120-column line, and `#if` bodies not indented. CI fails on
+either layout or a lint rule drifting. Don't hand-align assignments or hand-wrap
+argument lists — the formatter will undo it. Change a setting in its own commit, with the
+tree reformatted in the same one.
 
 **Tests are Swift Testing** (`@Test`, `#expect`), one suite per model, with the HTTP stub
 and fake WebSocket in `Tests/SplouchCoreTests/Support/`. A network change is tested against

@@ -1,15 +1,12 @@
 {
   // ── The important one ──────────────────────────────────────────────────────
-  // There is no `.swift-format` configuration in this repo on purpose. Running the
-  // formatter rewrites hand-aligned declarations and wrapped argument lists that are
-  // laid out to be read — the same decision the server repo made about `ruff format`.
-  // Format-on-save would do that silently on your first edit, so it is off, and
-  // organize-imports is off with it. See CONTRIBUTING.md → Conventions.
+  // swift-format formats and sorts imports on save, through SourceKit-LSP, which reads
+  // `.swift-format` at the root — the same check CI fails on (`swift format lint
+  // --strict`), so a file saved here is a file CI accepts. The server repo does the
+  // same with Ruff. See CONTRIBUTING.md → Conventions.
   "[swift]": {
-    "editor.formatOnSave": false,
-    "editor.codeActionsOnSave": {
-      "source.organizeImports": "never"
-    }
+    "editor.defaultFormatter": "swiftlang.swift-vscode",
+    "editor.formatOnSave": true
   },
 
   // `.build` is hundreds of megabytes of compiler output and regenerates constantly.

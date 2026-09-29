@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import SplouchCore
 
 @Suite(.serialized) @MainActor struct MeetSessionTests {
@@ -10,13 +11,15 @@ import Testing
     /// frames into, or counts opens or config checks, loses whenever a busy runner
     /// makes it take longer than that. Only a backoff this short is needed; nothing
     /// closes a socket unless the test does.
-    let timing = SocketTiming(heartbeat: .seconds(60), stale: .seconds(60), probe: .seconds(60),
-                              backoffMin: .milliseconds(10), backoffMax: .milliseconds(40))
+    let timing = SocketTiming(
+        heartbeat: .seconds(60), stale: .seconds(60), probe: .seconds(60),
+        backoffMin: .milliseconds(10), backoffMax: .milliseconds(40))
 
     func make(kind: ServerKind = .cloud, lanes: Int = 4) -> (MeetSession, FakeConnector) {
         let connector = FakeConnector()
-        let s = MeetSession(address: address, kind: kind, meetID: "m1", settings: MeetSettings(numLanes: lanes),
-                            vidStore: InMemoryVidStore(), connector: connector, timing: timing)
+        let s = MeetSession(
+            address: address, kind: kind, meetID: "m1", settings: MeetSettings(numLanes: lanes),
+            vidStore: InMemoryVidStore(), connector: connector, timing: timing)
         return (s, connector)
     }
 
@@ -52,10 +55,13 @@ import Testing
         s.start()
         let sb = await connection(connector, "scoreboard")!
         sb.push(Frame(event: "meet_live", data: .object(["live": .bool(true)])))
-        sb.push(Frame(event: "update_scoreboard", data: .object([
-            "current_event": .string("3"), "current_heat": .string("2"),
-            "lane_name1": .string("A"), "lane_running1": .bool(true), "running_time": .string("12.00"),
-        ])))
+        sb.push(
+            Frame(
+                event: "update_scoreboard",
+                data: .object([
+                    "current_event": .string("3"), "current_heat": .string("2"),
+                    "lane_name1": .string("A"), "lane_running1": .bool(true), "running_time": .string("12.00"),
+                ])))
         #expect(await eventually { @MainActor in s.scoreboard[lane: 1].name == "A" })
         #expect(s.meetLive)
         #expect(s.scoreboard[lane: 1].time == "12.0")
@@ -70,10 +76,18 @@ import Testing
         s.start()
         let rs = await connection(connector, "results")!
         rs.push(Frame(event: "meet_live", data: .object(["live": .bool(true)])))
-        rs.push(Frame(event: "results_snapshot", data: .object([
-            "event": .string("5"), "heat": .string("1"), "sort": .string("lane"),
-            "lanes": .array([.object(["channel": .number(2), "place": .string("1"), "time": .string("30.00"), "name": .string("B")])]),
-        ])))
+        rs.push(
+            Frame(
+                event: "results_snapshot",
+                data: .object([
+                    "event": .string("5"), "heat": .string("1"), "sort": .string("lane"),
+                    "lanes": .array([
+                        .object([
+                            "channel": .number(2), "place": .string("1"), "time": .string("30.00"),
+                            "name": .string("B"),
+                        ])
+                    ]),
+                ])))
         #expect(await eventually { @MainActor in s.results != nil })
         #expect(s.resultsLive)
         #expect(s.currentHeat == HeatRef(event: "5", heat: "1"))
@@ -88,8 +102,13 @@ import Testing
         let (s, connector) = make()
         s.start()
         let rs = await connection(connector, "results")!
-        rs.push(Frame(event: "results_snapshot", data: .object(["event": .string("5"), "heat": .string("1"),
-            "lanes": .array([.object(["channel": .number(1), "time": .string("1.00")])])])))
+        rs.push(
+            Frame(
+                event: "results_snapshot",
+                data: .object([
+                    "event": .string("5"), "heat": .string("1"),
+                    "lanes": .array([.object(["channel": .number(1), "time": .string("1.00")])]),
+                ])))
         #expect(await eventually { @MainActor in s.results != nil })
         rs.push(Frame(event: "meet_live", data: .object(["live": .bool(false)])))
         #expect(await eventually { @MainActor in s.results == nil })
@@ -103,7 +122,7 @@ import Testing
         let sb = await connection(connector, "scoreboard")!
         sc.push(Frame(event: "schedule_update"))
         sb.push(Frame(event: "reload", data: .object([:])))
-        sb.push(Frame(event: "test_mode", data: .object(["active": .bool(true)])))   // Pi burst, ignored
+        sb.push(Frame(event: "test_mode", data: .object(["active": .bool(true)])))  // Pi burst, ignored
         #expect(await eventually { @MainActor in s.scheduleVersion == 1 && s.reloadVersion == 1 })
         await s.stop()
     }
@@ -115,21 +134,25 @@ import Testing
         let (s, connector) = make()
         s.start()
         let sb = await connection(connector, "scoreboard")!
-        sb.push(Frame(event: "update_scoreboard", data: .object([
-            "current_event": .string("3"), "current_heat": .string("1"),
-            "expected_splits": .number(8), "split_step": .number(2),
-            "lane_name1": .string("SARA LEBLANC"), "lane_splits1": .number(6),
-        ])))
+        sb.push(
+            Frame(
+                event: "update_scoreboard",
+                data: .object([
+                    "current_event": .string("3"), "current_heat": .string("1"),
+                    "expected_splits": .number(8), "split_step": .number(2),
+                    "lane_name1": .string("SARA LEBLANC"), "lane_splits1": .number(6),
+                ])))
         #expect(await eventually { @MainActor in s.scoreboard[lane: 1].splits == 6 })
 
         sb.push(Frame(event: "test_mode", data: .object(["active": .bool(false)])))
         #expect(await eventually { @MainActor in s.scoreboard[lane: 1].splits == 6 })
 
         sb.push(Frame(event: "reset", data: .object([:])))
-        #expect(await eventually { @MainActor in
-            s.scoreboard[lane: 1] == LaneRow() && s.scoreboard.expectedSplits == 0
-                && s.scoreboard.currentEvent == "" && s.currentHeat == nil
-        })
+        #expect(
+            await eventually { @MainActor in
+                s.scoreboard[lane: 1] == LaneRow() && s.scoreboard.expectedSplits == 0
+                    && s.scoreboard.currentEvent == "" && s.currentHeat == nil
+            })
         await s.stop()
     }
 
@@ -138,10 +161,18 @@ import Testing
         s.start()
         let sb = await connection(connector, "scoreboard")!
         let rs = await connection(connector, "results")!
-        rs.push(Frame(event: "results_snapshot", data: .object(["event": .string("5"), "heat": .string("1"),
-            "lanes": .array([.object(["channel": .number(1), "time": .string("1.00")])])])))
+        rs.push(
+            Frame(
+                event: "results_snapshot",
+                data: .object([
+                    "event": .string("5"), "heat": .string("1"),
+                    "lanes": .array([.object(["channel": .number(1), "time": .string("1.00")])]),
+                ])))
         #expect(await eventually { @MainActor in s.currentHeat == HeatRef(event: "5", heat: "1") })
-        sb.push(Frame(event: "update_scoreboard", data: .object(["current_event": .string("5"), "current_heat": .string("2")])))
+        sb.push(
+            Frame(
+                event: "update_scoreboard",
+                data: .object(["current_event": .string("5"), "current_heat": .string("2")])))
         #expect(await eventually { @MainActor in s.currentHeat == HeatRef(event: "5", heat: "2") })
         // A frame without event/heat keys leaves it alone.
         sb.push(Frame(event: "update_scoreboard", data: .object(["lane_name1": .string("x")])))
@@ -190,8 +221,10 @@ import Testing
         s.start()
         let board = await connection(connector, "scoreboard")
         board?.push(Frame(event: "meet_live", data: .object(["live": .bool(true)])))
-        board?.push(Frame(event: "update_scoreboard",
-                          data: .object(["lane_running1": .bool(true), "running_time": .string("10.00")])))
+        board?.push(
+            Frame(
+                event: "update_scoreboard",
+                data: .object(["lane_running1": .bool(true), "running_time": .string("10.00")])))
         #expect(await eventually { @MainActor in s.scoreboard.clock.isRunning })
 
         s.suspend()

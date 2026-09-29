@@ -12,9 +12,11 @@ public struct SocketTiming: Sendable, Equatable {
     public var backoffMin: Duration
     public var backoffMax: Duration
 
-    public init(heartbeat: Duration = .seconds(15), stale: Duration = .seconds(35),
-                probe: Duration = .seconds(4), backoffMin: Duration = .milliseconds(500),
-                backoffMax: Duration = .seconds(5)) {
+    public init(
+        heartbeat: Duration = .seconds(15), stale: Duration = .seconds(35),
+        probe: Duration = .seconds(4), backoffMin: Duration = .milliseconds(500),
+        backoffMax: Duration = .seconds(5)
+    ) {
         self.heartbeat = heartbeat
         self.stale = stale
         self.probe = probe
@@ -65,8 +67,10 @@ public actor SplouchSocket {
     private var queue: [String] = []
     private var closed = false
 
-    public init(url: URL, connector: any WebSocketConnector, join: Frame? = nil,
-                timing: SocketTiming = .standard) {
+    public init(
+        url: URL, connector: any WebSocketConnector, join: Frame? = nil,
+        timing: SocketTiming = .standard
+    ) {
         let (stream, cont) = AsyncStream<SocketEvent>.makeStream(bufferingPolicy: .unbounded)
         self.events = stream
         self.continuation = cont
@@ -90,8 +94,10 @@ public actor SplouchSocket {
     /// Stops for good: no reconnect, the event stream ends.
     public func close() async {
         closed = true
-        reconnectTask?.cancel(); reconnectTask = nil
-        probeTask?.cancel(); probeTask = nil
+        reconnectTask?.cancel()
+        reconnectTask = nil
+        probeTask?.cancel()
+        probeTask = nil
         stopHeartbeat()
         if let c = connection { await c.close() }
         runTask?.cancel()
@@ -140,7 +146,8 @@ public actor SplouchSocket {
     private static let pingText = (try? Frame.ping.encoded()) ?? #"{"event":"ping"}"#
 
     private func connect() {
-        reconnectTask?.cancel(); reconnectTask = nil
+        reconnectTask?.cancel()
+        reconnectTask = nil
         guard runTask == nil, !closed else { return }
         runTask = Task { await self.run() }
     }
@@ -175,7 +182,7 @@ public actor SplouchSocket {
                 let text = try await conn.receive()
                 lastReceived = .now
                 guard let frame = try? Frame.decode(text) else { continue }
-                if frame.event == "pong" { continue }   // liveness only
+                if frame.event == "pong" { continue }  // liveness only
                 continuation.yield(.frame(frame))
             } catch {
                 break
@@ -183,7 +190,8 @@ public actor SplouchSocket {
         }
 
         stopHeartbeat()
-        probeTask?.cancel(); probeTask = nil
+        probeTask?.cancel()
+        probeTask = nil
         connection = nil
         runTask = nil
         continuation.yield(.disconnected)
@@ -227,7 +235,7 @@ public actor SplouchSocket {
     private func heartbeatTick(generation gen: Int) async {
         guard gen == generation, let c = connection else { return }
         if .now - lastReceived > timing.stale {
-            await c.close()   // silently dead: the loop ends and reconnects
+            await c.close()  // silently dead: the loop ends and reconnects
             return
         }
         try? await c.send(Self.pingText)

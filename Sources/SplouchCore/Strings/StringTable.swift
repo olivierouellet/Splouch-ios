@@ -82,8 +82,10 @@ public enum LabelResolver {
     /// selects between them. `settings.labels` stays the fallback for the two
     /// cases where the i18n table cannot answer: no table cached yet, or a
     /// language whose table came back empty.
-    public static func labels(settings: MeetSettings, language: String?, style: LabelStyle,
-                              table: StringTable?) -> [String: String] {
+    public static func labels(
+        settings: MeetSettings, language: String?, style: LabelStyle,
+        table: StringTable?
+    ) -> [String: String] {
         guard let table else { return settings.labels }
         let out = table.labels(style)
         return out.isEmpty ? settings.labels : out

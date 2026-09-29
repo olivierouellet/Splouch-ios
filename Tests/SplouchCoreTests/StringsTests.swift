@@ -1,12 +1,16 @@
 import Testing
+
 @testable import SplouchCore
 
 @Suite struct EventNameTests {
-    let es: [String: String] = ["unit": "m", "separator": "  —  ", "backstroke": "espalda", "girls": "Niñas",
-                                "relay": "Relevos", "freestyle": "libre", "mixed": "Mixto", "open": "Abierto"]
+    let es: [String: String] = [
+        "unit": "m", "separator": "  —  ", "backstroke": "espalda", "girls": "Niñas",
+        "relay": "Relevos", "freestyle": "libre", "mixed": "Mixto", "open": "Abierto",
+    ]
 
     @Test func composesFromParts() {
-        let p = EventNameParts(raw: "200 Backstroke Girls 12 & Under", dist: "200", stroke: "backstroke", gender: "girls", age: "< 12")
+        let p = EventNameParts(
+            raw: "200 Backstroke Girls 12 & Under", dist: "200", stroke: "backstroke", gender: "girls", age: "< 12")
         #expect(EventName.compose(p, vocab: es) == "200 m espalda  —  Niñas < 12")
     }
 
@@ -27,7 +31,10 @@ import Testing
         #expect(EventName.compose(nil, vocab: es) == "")
         #expect(EventName.compose(EventNameParts(dist: "50"), vocab: nil) == "")
         #expect(EventName.resolve(eventName: "200 m dos", parts: nil, vocab: es) == "200 m dos")
-        #expect(EventName.resolve(eventName: "200 m dos", parts: EventNameParts(dist: "200", stroke: "backstroke"), vocab: es) == "200 m espalda")
+        #expect(
+            EventName.resolve(
+                eventName: "200 m dos", parts: EventNameParts(dist: "200", stroke: "backstroke"), vocab: es)
+                == "200 m espalda")
     }
 
     @Test func onlyRightSide() {
@@ -59,18 +66,26 @@ import Testing
 }
 
 @Suite struct StringTableTests {
-    let english = I18nBundle(lang: "en", mobile: ["scoreboard": "Scoreboard", "results": "Results", "brand_new": "New"],
-                             display: ["retrying": "retrying"],
-                             labels: ["short": ["event": "EV", "heat": "HT", "lane": "LN"], "long": ["event": "EVENT", "heat": "HEAT", "lane": "LN"]],
-                             eventName: ["unit": "m", "girls": "Girls", "boys": "Boys"])
-    let builtInFr = I18nBundle(lang: "fr", mobile: ["scoreboard": "Tableau"], labels: ["short": ["event": "ÉP"]], eventName: ["girls": "Filles"])
-    let serverFr = I18nBundle(lang: "fr", mobile: ["results": "Résultats", "scoreboard": ""], labels: ["long": ["event": "ÉPREUVE"]], eventName: ["boys": "Garçons"])
+    let english = I18nBundle(
+        lang: "en", mobile: ["scoreboard": "Scoreboard", "results": "Results", "brand_new": "New"],
+        display: ["retrying": "retrying"],
+        labels: [
+            "short": ["event": "EV", "heat": "HT", "lane": "LN"],
+            "long": ["event": "EVENT", "heat": "HEAT", "lane": "LN"],
+        ],
+        eventName: ["unit": "m", "girls": "Girls", "boys": "Boys"])
+    let builtInFr = I18nBundle(
+        lang: "fr", mobile: ["scoreboard": "Tableau"], labels: ["short": ["event": "ÉP"]],
+        eventName: ["girls": "Filles"])
+    let serverFr = I18nBundle(
+        lang: "fr", mobile: ["results": "Résultats", "scoreboard": ""], labels: ["long": ["event": "ÉPREUVE"]],
+        eventName: ["boys": "Garçons"])
 
     @Test func resolutionOrder() {
         let t = StringTable(language: "fr", server: serverFr, builtIn: builtInFr, english: english)
-        #expect(t.mobile("results") == "Résultats")      // server
-        #expect(t.mobile("scoreboard") == "Tableau")     // server blank → built-in
-        #expect(t.mobile("brand_new") == "New")          // English floor
+        #expect(t.mobile("results") == "Résultats")  // server
+        #expect(t.mobile("scoreboard") == "Tableau")  // server blank → built-in
+        #expect(t.mobile("brand_new") == "New")  // English floor
         #expect(t.mobile("unheard_of") == "unheard_of")  // the key itself
         #expect(t.display("retrying") == "retrying")
     }
@@ -90,9 +105,12 @@ import Testing
 }
 
 @Suite struct LabelResolverTests {
-    let english = I18nBundle(lang: "en",
-                             labels: ["short": ["event": "EV", "heat": "HT", "lane": "LN", "place": "PL"],
-                                      "long": ["event": "EVENT", "heat": "HEAT", "lane": "LN", "place": "PL"]])
+    let english = I18nBundle(
+        lang: "en",
+        labels: [
+            "short": ["event": "EV", "heat": "HT", "lane": "LN", "place": "PL"],
+            "long": ["event": "EVENT", "heat": "HEAT", "lane": "LN", "place": "PL"],
+        ])
     var settings: MeetSettings {
         MeetSettings(locale: "en", labels: ["event": "ÉP", "heat": "SÉR", "lane": "CL"], labelStyle: "short")
     }
@@ -145,9 +163,11 @@ import Testing
     }
 
     @Test func everyContractKeyHasADefault() {
-        for k in ["bg", "header_bg", "header_border", "header_label", "header_value", "th_text", "th_bg",
-                  "row_odd", "row_even", "row_text", "time", "delta_better", "delta_worse",
-                  "schedule_event", "schedule_time", "schedule_name", "schedule_club"] {
+        for k in [
+            "bg", "header_bg", "header_border", "header_label", "header_value", "th_text", "th_bg",
+            "row_odd", "row_even", "row_text", "time", "delta_better", "delta_worse",
+            "schedule_event", "schedule_time", "schedule_name", "schedule_club",
+        ] {
             #expect(ThemeColors.defaults[k] != nil, "\(k)")
         }
     }

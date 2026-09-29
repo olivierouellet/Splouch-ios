@@ -1,4 +1,5 @@
 import Testing
+
 @testable import SplouchCore
 @testable import SplouchUI
 
@@ -18,11 +19,13 @@ import Testing
     }
 
     @Test func headersAreTheirOwnSettings() {
-        let noHeaders = Columns(MeetSettings(showLaneHeader: false, showNameHeader: false, showClubHeader: false,
-                                             showTimeHeader: false, showDeltaHeader: false, showPositionHeader: false))
+        let noHeaders = Columns(
+            MeetSettings(
+                showLaneHeader: false, showNameHeader: false, showClubHeader: false,
+                showTimeHeader: false, showDeltaHeader: false, showPositionHeader: false))
         #expect(!noHeaders.laneHeader && !noHeaders.nameHeader && !noHeaders.clubHeader)
         #expect(!noHeaders.timeHeader && !noHeaders.deltaHeader && !noHeaders.placeHeader)
-        #expect(noHeaders.name && noHeaders.club)   // the columns themselves are untouched
+        #expect(noHeaders.name && noHeaders.club)  // the columns themselves are untouched
     }
 
     /// L-23: with laps on, the delta cell holds lengths for most of a heat, and

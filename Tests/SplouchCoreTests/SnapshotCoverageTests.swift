@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import SplouchCore
 
 /// Every server-owned word the app asks for must exist in the captured snapshot
@@ -42,6 +43,8 @@ import Testing
         #expect(used.count >= 20, "the scan found too few call sites to be trusted")
         let served = BuiltInStrings.english.mobile
         let missing = used.filter { served[$0.key] == nil }.sorted { $0.key < $1.key }
-        #expect(missing.isEmpty, "keys used but not served: \(missing.map { "\($0.key) in \($0.value.joined(separator: ", "))" })")
+        #expect(
+            missing.isEmpty,
+            "keys used but not served: \(missing.map { "\($0.key) in \($0.value.joined(separator: ", "))" })")
     }
 }

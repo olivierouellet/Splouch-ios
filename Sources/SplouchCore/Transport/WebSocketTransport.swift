@@ -47,12 +47,16 @@ public final class URLSessionWebSocketConnector: WebSocketConnector, @unchecked 
             lock.withLock { pending.removeValue(forKey: ObjectIdentifier(task)) }
         }
 
-        func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
+        func urlSession(
+            _ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?
+        ) {
             take(webSocketTask)?.resume()
         }
 
-        func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask,
-                        didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
+        func urlSession(
+            _ session: URLSession, webSocketTask: URLSessionWebSocketTask,
+            didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?
+        ) {
             take(webSocketTask)?.resume(throwing: URLError(.networkConnectionLost))
         }
 

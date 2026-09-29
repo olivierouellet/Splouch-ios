@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import SplouchUI
 
 /// T-05, the native half: every word the app owns must exist in
@@ -86,7 +87,7 @@ import Testing
 
         var faults: [String] = []
         for key in used.keys.sorted() {
-            guard let langs = catalogue.entries[key] else { continue }   // the test above owns this
+            guard let langs = catalogue.entries[key] else { continue }  // the test above owns this
             for lang in Self.languages {
                 guard let unit = langs[lang] else {
                     faults.append("\(key): no \(lang)")
@@ -107,8 +108,10 @@ import Testing
     /// word rather than failing a build.
     @Test func theAccessorsResolveTheirBundleWithoutTrapping() {
         #expect(Bundle.module.url(forResource: "Localizable", withExtension: "xcstrings") != nil)
-        for s in [Native.server, Native.addServer, Native.nearby, Native.retry,
-                  Native.appearanceAuto, Native.laps, Native.meetGone, Native.invalidAddress] {
+        for s in [
+            Native.server, Native.addServer, Native.nearby, Native.retry,
+            Native.appearanceAuto, Native.laps, Native.meetGone, Native.invalidAddress,
+        ] {
             #expect(!s.isEmpty)
         }
     }

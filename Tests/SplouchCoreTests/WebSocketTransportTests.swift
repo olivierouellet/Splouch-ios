@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import SplouchCore
 
 /// `URLSessionWebSocketConnector` is the one class the fakes cannot stand in
@@ -56,7 +57,7 @@ import Testing
         defer { server.stop() }
         let conn = try await connector().open(server.url)
 
-        let long = String(repeating: "lane", count: 200)   // 800 bytes
+        let long = String(repeating: "lane", count: 200)  // 800 bytes
         try await conn.send(long)
         #expect(await eventually { server.received.count == 1 })
         #expect(server.received.first == long)

@@ -52,6 +52,17 @@ jobs:
           swift --version 2>&1 | grep -qE 'Apple Swift version ([6-9]|[1-9][0-9])\.' \
             || { echo "::error::Swift 6 or newer is required"; exit 1; }
 
+      - name: Format
+        # swift-format ships in the toolchain, so there is nothing to install or
+        # pin: the version is the one `swift --version` printed above. Settings are
+        # in .swift-format. Check only — CI never rewrites. `swift format -i -r -p
+        # Sources Tests App Package.swift` locally, or save in VS Code.
+        #
+        # `lint --strict` covers both halves: a line the formatter would move, and
+        # the rules it can only report. Before the tests because it is the cheaper
+        # failure.
+        run: swift format lint --strict -r -p Sources Tests App Package.swift
+
       - name: Tests
         # LiveServerTests skips here by design: its two checks need a real server at
         # SPLOUCH_LIVE_SERVER and there is none on a runner. Everything else uses the

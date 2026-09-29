@@ -1,5 +1,5 @@
-import SwiftUI
 import SplouchCore
+import SwiftUI
 
 /// The Results tab (app.md §4).
 struct ResultsTab: View {
@@ -22,18 +22,25 @@ struct ResultsTab: View {
         VStack(spacing: 0) {
             // The navigation bar hands this back when it is drawing it itself.
             if !headerInBar {
-                BoardHeader(event: snapshot?.event ?? "", heat: snapshot?.heat ?? "",
-                            eventName: snapshot.map { ctx.eventName($0.eventName, parts: $0.eventNameParts) } ?? "",
-                            labels: ctx.labels)
-                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { headerBand = $0 }
+                BoardHeader(
+                    event: snapshot?.event ?? "", heat: snapshot?.heat ?? "",
+                    eventName: snapshot.map { ctx.eventName($0.eventName, parts: $0.eventNameParts) } ?? "",
+                    labels: ctx.labels
+                )
+                .onGeometryChange(for: CGFloat.self) {
+                    $0.size.height
+                } action: {
+                    headerBand = $0
+                }
             }
             GeometryReader { geo in
                 ScrollView {
                     if let snapshot {
-                        BoardTable(rows: ResultsBoard.rows(snapshot, numLanes: n).map(BoardRow.init),
-                                   columns: Columns(ctx.settings), labels: ctx.labels,
-                                   isLandscape: isLandscape,
-                                   height: BoardTable.tableHeight(in: geo))
+                        BoardTable(
+                            rows: ResultsBoard.rows(snapshot, numLanes: n).map(BoardRow.init),
+                            columns: Columns(ctx.settings), labels: ctx.labels,
+                            isLandscape: isLandscape,
+                            height: BoardTable.tableHeight(in: geo))
                     } else {
                         // R-01: an empty lane grid here says nothing. Blank rows
                         // are meaningful on the Scoreboard, where a heat is live
@@ -48,7 +55,7 @@ struct ResultsTab: View {
                 .preference(key: BoardNeedsBarKey.self, value: needsBar(in: geo))
             }
         }
-        .onAppear { ctx.session.resultsTabShown() }   // R-10
+        .onAppear { ctx.session.resultsTabShown() }  // R-10
     }
 
     /// Whether the lanes want the navigation bar to take the header row.

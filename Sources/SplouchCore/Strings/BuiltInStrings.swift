@@ -18,13 +18,16 @@ public enum BuiltInStrings {
     /// cannot be reached (app.md T-08). Empty only if the snapshot is missing.
     public static var locales: [LocaleEntry] {
         guard let url = Bundle.module.url(forResource: "locales", withExtension: "json", subdirectory: directory),
-              let data = try? Data(contentsOf: url),
-              let list = try? JSONDecoder().decode([LocaleEntry].self, from: data) else { return [] }
+            let data = try? Data(contentsOf: url),
+            let list = try? JSONDecoder().decode([LocaleEntry].self, from: data)
+        else { return [] }
         return list
     }
 
     public static func body(for lang: String) -> Data? {
-        guard let url = Bundle.module.url(forResource: lang, withExtension: "json", subdirectory: directory) else { return nil }
+        guard let url = Bundle.module.url(forResource: lang, withExtension: "json", subdirectory: directory) else {
+            return nil
+        }
         return try? Data(contentsOf: url)
     }
 

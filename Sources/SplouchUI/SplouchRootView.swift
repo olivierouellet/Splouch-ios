@@ -1,5 +1,5 @@
-import SwiftUI
 import SplouchCore
+import SwiftUI
 
 /// The app: the meet picker on a cloud, straight to the board on a Pi (P-08,
 /// app.md §0.2), and the way back (A-02, A-09).
@@ -49,7 +49,9 @@ public struct SplouchRootView: View {
             if app.isPi { await open { try await app.openPi() } }
             #if DEBUG
             // `SPLOUCH_MEET=<id>` opens a meet straight away for screenshots.
-            if let id = ProcessInfo.processInfo.environment["SPLOUCH_MEET"], let m = app.meets.first(where: { $0.id == id }) {
+            if let id = ProcessInfo.processInfo.environment["SPLOUCH_MEET"],
+                let m = app.meets.first(where: { $0.id == id })
+            {
                 await open { try await app.open(m) }
             }
             // P-16. `SPLOUCH_LINK=<url>` hands the model a scanned code at launch.
@@ -141,7 +143,7 @@ public struct SplouchRootView: View {
     /// Popped, by the back button, the edge swipe, or A-09's `dismiss()`.
     private func close() {
         guard let meet else { return }
-        if meet.gone { openError = Native.meetGone }   // A-09
+        if meet.gone { openError = Native.meetGone }  // A-09
         Task { await meet.stop() }
         self.meet = nil
     }
@@ -157,7 +159,7 @@ public struct SplouchRootView: View {
             openCount += 1
         } catch APIError.notFound {
             openError = Native.meetGone
-            await app.load()   // the meet is gone: refresh the list (A-09)
+            await app.load()  // the meet is gone: refresh the list (A-09)
         } catch {
             openError = Native.serverUnreachable
         }

@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import SplouchCore
 
 @Suite(.serialized) struct SplouchAPITests {
@@ -44,7 +45,9 @@ import Testing
     @Test func pickerConfigPassesTheChosenLanguage() async throws {
         let stub = StubServer()
         stub.route("/picker/config") { req in
-            let lang = URLComponents(url: req.url!, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "lang" }?.value ?? "none"
+            let lang =
+                URLComponents(url: req.url!, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "lang" }?
+                .value ?? "none"
             return .json(#"{"title":"S","lang":"\#(lang)","strings":{}}"#)
         }
         let api = SplouchAPI(address: stub.address, session: stub.session)
@@ -56,10 +59,11 @@ import Testing
 @Suite struct StringsLoaderTests {
     @Test func tableIsImmediateAndRefreshStores() async throws {
         let stub = StubServer()
-        stub.route("/i18n/fr", json: #"{"lang":"fr","mobile":{"scoreboard":"Tableau serveur"}}"#, headers: ["ETag": "\"1\""])
+        stub.route(
+            "/i18n/fr", json: #"{"lang":"fr","mobile":{"scoreboard":"Tableau serveur"}}"#, headers: ["ETag": "\"1\""])
         let cache = InMemoryBundleCache()
         let loader = StringsLoader(api: SplouchAPI(address: stub.address, session: stub.session), cache: cache)
-        #expect(loader.table(for: "fr").mobile("scoreboard") == "Tableau")   // built-in until fetched
+        #expect(loader.table(for: "fr").mobile("scoreboard") == "Tableau")  // built-in until fetched
         let fresh = await loader.refresh("fr")
         #expect(fresh?.mobile("scoreboard") == "Tableau serveur")
         #expect(loader.table(for: "fr").mobile("scoreboard") == "Tableau serveur")
@@ -69,8 +73,9 @@ import Testing
     @Test func refreshFailureKeepsTheCache() async {
         let stub = StubServer()
         let cache = InMemoryBundleCache()
-        cache.store(try! CachedBundle(body: Data(#"{"lang":"fr","mobile":{"scoreboard":"Cached"}}"#.utf8), etag: nil),
-                    origin: stub.address.origin, lang: "fr")
+        cache.store(
+            try! CachedBundle(body: Data(#"{"lang":"fr","mobile":{"scoreboard":"Cached"}}"#.utf8), etag: nil),
+            origin: stub.address.origin, lang: "fr")
         let loader = StringsLoader(api: SplouchAPI(address: stub.address, session: stub.session), cache: cache)
         #expect(await loader.refresh("fr") == nil)
         #expect(loader.table(for: "fr").mobile("scoreboard") == "Cached")
@@ -85,7 +90,7 @@ import Testing
         cache.store(c, origin: "https://a.example:443", lang: "fr")
         let back = cache.load(origin: "https://a.example:443", lang: "fr")
         #expect(back == c)
-        #expect(back?.body == body)   // verbatim, the snapshot's shape
+        #expect(back?.body == body)  // verbatim, the snapshot's shape
         #expect(back?.bundle.labels["short"]?["event"] == "ÉP")
         #expect(cache.load(origin: "http://pi.local:5000", lang: "fr") == nil)
         // No ETag: none comes back either.
@@ -101,8 +106,9 @@ import Testing
         defer { defaults.removePersistentDomain(forName: suite) }
         let store = UserDefaultsPreferencesStore(defaults: defaults)
         #expect(store.load() == Preferences())
-        let p = Preferences(language: "fr", labelStyle: .long, server: ServerAddress(typed: "pi.local:5000"),
-                            savedServers: [SavedServer(name: "Pool", address: ServerAddress(typed: "pi.local:5000")!)])
+        let p = Preferences(
+            language: "fr", labelStyle: .long, server: ServerAddress(typed: "pi.local:5000"),
+            savedServers: [SavedServer(name: "Pool", address: ServerAddress(typed: "pi.local:5000")!)])
         store.save(p)
         #expect(UserDefaultsPreferencesStore(defaults: defaults).load() == p)
     }

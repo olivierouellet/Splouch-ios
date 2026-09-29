@@ -1,5 +1,5 @@
-import SwiftUI
 import SplouchCore
+import SwiftUI
 
 /// T-08: the language, per device, applying to every meet opened afterwards.
 ///

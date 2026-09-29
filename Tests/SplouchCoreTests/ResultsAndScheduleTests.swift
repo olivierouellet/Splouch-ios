@@ -1,11 +1,15 @@
 import Foundation
 import Testing
+
 @testable import SplouchCore
 
 @Suite struct ResultsBoardTests {
-    func lane(_ ch: Int, place: String = "", time: String = "", name: String = "N\(UUID().uuidString.prefix(2))") -> ResultLane {
-        ResultLane(channel: ch, place: place, placeInt: Int(place), time: time, name: name, club: "C", alt: "",
-                   deltaSeconds: nil, deltaBetter: nil)
+    func lane(_ ch: Int, place: String = "", time: String = "", name: String = "N\(UUID().uuidString.prefix(2))")
+        -> ResultLane
+    {
+        ResultLane(
+            channel: ch, place: place, placeInt: Int(place), time: time, name: name, club: "C", alt: "",
+            deltaSeconds: nil, deltaBetter: nil)
     }
 
     @Test func emptyGridHasNumLanesRows() {
@@ -18,8 +22,9 @@ import Testing
     }
 
     @Test func laneSortPlacesByChannelAndLeavesGaps() {
-        let snap = ResultsSnapshot(event: "3", heat: "1", eventName: "x", eventNameParts: nil, sort: .lane,
-                                   lanes: [lane(4, place: "1", time: "2:20.92", name: "A"), lane(2, place: "2", time: "2:21.00", name: "B")])
+        let snap = ResultsSnapshot(
+            event: "3", heat: "1", eventName: "x", eventNameParts: nil, sort: .lane,
+            lanes: [lane(4, place: "1", time: "2:20.92", name: "A"), lane(2, place: "2", time: "2:21.00", name: "B")])
         let rows = ResultsBoard.rows(snap, numLanes: 6)
         #expect(rows[3].name == "A")
         #expect(rows[1].name == "B")
@@ -30,16 +35,18 @@ import Testing
     }
 
     @Test func absentSortIsLaneNeverPlace() {
-        let snap = ResultsSnapshot(event: "3", heat: "1", eventName: "", eventNameParts: nil, sort: nil,
-                                   lanes: [lane(5, place: "1", time: "1.00", name: "A")])
+        let snap = ResultsSnapshot(
+            event: "3", heat: "1", eventName: "", eventNameParts: nil, sort: nil,
+            lanes: [lane(5, place: "1", time: "1.00", name: "A")])
         let rows = ResultsBoard.rows(snap, numLanes: 8)
         #expect(rows[4].name == "A")
         #expect(rows[0].isEmpty)
     }
 
     @Test func placeSortFillsTopDown() {
-        let snap = ResultsSnapshot(event: "3", heat: "1", eventName: "", eventNameParts: nil, sort: .place,
-                                   lanes: [lane(4, place: "1", time: "1.00", name: "A"), lane(2, place: "2", time: "2.00", name: "B")])
+        let snap = ResultsSnapshot(
+            event: "3", heat: "1", eventName: "", eventNameParts: nil, sort: .place,
+            lanes: [lane(4, place: "1", time: "1.00", name: "A"), lane(2, place: "2", time: "2.00", name: "B")])
         let rows = ResultsBoard.rows(snap, numLanes: 4)
         #expect(rows[0].name == "A" && rows[0].laneLabel == "4")
         #expect(rows[1].name == "B" && rows[1].laneLabel == "2")
@@ -47,8 +54,9 @@ import Testing
     }
 
     @Test func missingTimeIsDashAndMissingPlaceIsEmpty() {
-        let snap = ResultsSnapshot(event: "3", heat: "1", eventName: "", eventNameParts: nil, sort: .lane,
-                                   lanes: [lane(1, place: " ", time: " ", name: "A")])
+        let snap = ResultsSnapshot(
+            event: "3", heat: "1", eventName: "", eventNameParts: nil, sort: .lane,
+            lanes: [lane(1, place: " ", time: " ", name: "A")])
         let row = ResultsBoard.rows(snap, numLanes: 2)[0]
         #expect(row.time == "—")
         #expect(row.place == "")
@@ -57,25 +65,30 @@ import Testing
     }
 
     @Test func channelOutsideTheBoardIsDropped() {
-        let snap = ResultsSnapshot(event: "3", heat: "1", eventName: "", eventNameParts: nil, sort: .lane,
-                                   lanes: [lane(9, place: "1", time: "1.00"), lane(0, place: "2", time: "1.00")])
+        let snap = ResultsSnapshot(
+            event: "3", heat: "1", eventName: "", eventNameParts: nil, sort: .lane,
+            lanes: [lane(9, place: "1", time: "1.00"), lane(0, place: "2", time: "1.00")])
         #expect(ResultsBoard.rows(snap, numLanes: 8).allSatisfy { $0.isEmpty })
     }
 }
 
 @Suite struct ScheduleFilterTests {
     func lane(_ n: Int, _ name: String, club: String, swimmers: [String] = []) -> ScheduleLane {
-        ScheduleLane(lane: n, name: name, club: club, seedTime: "",
-                     swimmers: swimmers.map { ScheduleSwimmer(name: $0, first: String($0.split(separator: " ").last ?? "")) })
+        ScheduleLane(
+            lane: n, name: name, club: club, seedTime: "",
+            swimmers: swimmers.map { ScheduleSwimmer(name: $0, first: String($0.split(separator: " ").last ?? "")) })
     }
     var heats: [ScheduleHeat] {
         [
-            ScheduleHeat(event: "1", heat: "1", eventName: "", eventNameParts: nil, time: "9:00",
-                         lanes: [lane(1, "Doe, Jane", club: "CAMO"), lane(2, "Roe, Rick", club: "PCSC")]),
-            ScheduleHeat(event: "1", heat: "2", eventName: "", eventNameParts: nil, time: "9:05",
-                         lanes: [lane(3, "Poe, Ann", club: "PCSC")]),
-            ScheduleHeat(event: "2", heat: "1", eventName: "", eventNameParts: nil, time: "9:10",
-                         lanes: [lane(4, "CAMO A", club: "CAMO", swimmers: ["Doe Jane", "Foo Bar"])]),
+            ScheduleHeat(
+                event: "1", heat: "1", eventName: "", eventNameParts: nil, time: "9:00",
+                lanes: [lane(1, "Doe, Jane", club: "CAMO"), lane(2, "Roe, Rick", club: "PCSC")]),
+            ScheduleHeat(
+                event: "1", heat: "2", eventName: "", eventNameParts: nil, time: "9:05",
+                lanes: [lane(3, "Poe, Ann", club: "PCSC")]),
+            ScheduleHeat(
+                event: "2", heat: "1", eventName: "", eventNameParts: nil, time: "9:10",
+                lanes: [lane(4, "CAMO A", club: "CAMO", swimmers: ["Doe Jane", "Foo Bar"])]),
             ScheduleHeat(event: "3", heat: "1", eventName: "", eventNameParts: nil, time: "", lanes: []),
         ]
     }
@@ -84,10 +97,11 @@ import Testing
     /// beside it lands in the same place on every row.
     @Test func widestSeedTimeSizesTheColumn() {
         func heat(_ times: [String]) -> ScheduleHeat {
-            ScheduleHeat(event: "1", heat: "1", eventName: "", eventNameParts: nil, time: "",
-                         lanes: times.enumerated().map { i, t in
-                             ScheduleLane(lane: i + 1, name: "N", club: "C", seedTime: t, swimmers: [])
-                         })
+            ScheduleHeat(
+                event: "1", heat: "1", eventName: "", eventNameParts: nil, time: "",
+                lanes: times.enumerated().map { i, t in
+                    ScheduleLane(lane: i + 1, name: "N", club: "C", seedTime: t, swimmers: [])
+                })
         }
         func widest(_ heats: [ScheduleHeat]) -> String {
             ScheduleView.widestSeedTime(ScheduleView.visible(heats, filter: ScheduleFilter(), current: nil))
@@ -169,14 +183,20 @@ import Testing
     }
 
     @Test func pruneKeepsFiltersThatStillMatchTheNewSchedule() {
-        var f = ScheduleFilter(terms: [.init(kind: .swimmer, name: "Foo Bar"), .init(kind: .swimmer, name: "Gone"), .init(kind: .club, name: "CAMO")], showAllHeats: true)
+        var f = ScheduleFilter(
+            terms: [
+                .init(kind: .swimmer, name: "Foo Bar"), .init(kind: .swimmer, name: "Gone"),
+                .init(kind: .club, name: "CAMO"),
+            ], showAllHeats: true)
         f.prune(to: heats)
         #expect(f.terms.map(\.name) == ["Foo Bar", "CAMO"])
         #expect(f.showAllHeats)
     }
 
     @Test func relayDisplayNameJoinsFirstNames() {
-        #expect(ScheduleView.displayName(lane(4, "CAMO A", club: "CAMO", swimmers: ["Doe Jane", "Foo Bar"])) == "Jane · Bar")
+        #expect(
+            ScheduleView.displayName(lane(4, "CAMO A", club: "CAMO", swimmers: ["Doe Jane", "Foo Bar"])) == "Jane · Bar"
+        )
         #expect(ScheduleView.displayName(lane(1, "Doe, Jane", club: "CAMO")) == "Doe, Jane")
         #expect(ScheduleView.displayName(lane(1, "", club: "")) == "—")
         var l = lane(4, "Relay", club: "C", swimmers: ["X"])

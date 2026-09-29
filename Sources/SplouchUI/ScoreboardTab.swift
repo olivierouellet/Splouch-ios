@@ -1,5 +1,5 @@
-import SwiftUI
 import SplouchCore
+import SwiftUI
 
 /// The live board (app.md §3).
 struct ScoreboardTab: View {
@@ -22,23 +22,30 @@ struct ScoreboardTab: View {
         VStack(spacing: 0) {
             // The navigation bar hands this back when it is drawing it itself.
             if !headerInBar {
-                BoardHeader(event: board.currentEvent, heat: board.currentHeat,
-                            eventName: ctx.eventName(board.eventName, parts: board.eventNameParts), labels: ctx.labels)
-                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { headerBand = $0 }
+                BoardHeader(
+                    event: board.currentEvent, heat: board.currentHeat,
+                    eventName: ctx.eventName(board.eventName, parts: board.eventNameParts), labels: ctx.labels
+                )
+                .onGeometryChange(for: CGFloat.self) {
+                    $0.size.height
+                } action: {
+                    headerBand = $0
+                }
             }
             // The table sits in a scroll view for pull-to-refresh (A-05); in
             // landscape it is given the whole height so the rows share it (L-16).
             GeometryReader { geo in
                 ScrollView {
-                    BoardTable(rows: (1...board.numLanes).map {
-                                   // L-23: the lap is derived from the merged
-                                   // board and the meet's two settings, here,
-                                   // where both are in hand.
-                                   BoardRow($0, board[lane: $0], lap: board.lap(lane: $0, laps))
-                               },
-                               columns: Columns(ctx.settings, laps: laps), labels: ctx.labels,
-                               isLandscape: isLandscape,
-                                   height: BoardTable.tableHeight(in: geo))
+                    BoardTable(
+                        rows: (1...board.numLanes).map {
+                            // L-23: the lap is derived from the merged
+                            // board and the meet's two settings, here,
+                            // where both are in hand.
+                            BoardRow($0, board[lane: $0], lap: board.lap(lane: $0, laps))
+                        },
+                        columns: Columns(ctx.settings, laps: laps), labels: ctx.labels,
+                        isLandscape: isLandscape,
+                        height: BoardTable.tableHeight(in: geo))
                 }
                 .refreshable { await ctx.refresh() }
                 .onPreferenceChange(LaneIdealKey.self) { laneIdeal = $0 }

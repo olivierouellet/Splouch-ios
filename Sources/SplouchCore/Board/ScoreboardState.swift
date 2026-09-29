@@ -277,7 +277,7 @@ public struct ScoreboardState: Sendable, Equatable {
         }
         if heatChanged {
             if wasRunning {
-                clock.stop()   // the ticker stops either way (L-12)
+                clock.stop()  // the ticker stops either way (L-12)
             } else {
                 blankForNewHeat()
             }

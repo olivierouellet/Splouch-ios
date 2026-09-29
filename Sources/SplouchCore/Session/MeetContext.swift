@@ -41,10 +41,12 @@ public final class MeetContext {
     public private(set) var language: String?
     public private(set) var labelStyle: LabelStyle
 
-    public init(api: SplouchAPI, kind: ServerKind, meetID: String?, title: String, settings: MeetSettings,
-                stringsLoader: StringsLoader, preferences: Preferences, vidStore: any VidStore,
-                connector: any WebSocketConnector = URLSessionWebSocketConnector(),
-                timing: SocketTiming = .standard) {
+    public init(
+        api: SplouchAPI, kind: ServerKind, meetID: String?, title: String, settings: MeetSettings,
+        stringsLoader: StringsLoader, preferences: Preferences, vidStore: any VidStore,
+        connector: any WebSocketConnector = URLSessionWebSocketConnector(),
+        timing: SocketTiming = .standard
+    ) {
         self.api = api
         self.kind = kind
         self.meetID = kind == .cloud ? meetID : nil
@@ -53,17 +55,20 @@ public final class MeetContext {
         self.stringsLoader = stringsLoader
         self.language = preferences.language
         self.labelStyle = preferences.effectiveLabelStyle
-        self.session = MeetSession(address: api.address, kind: kind, meetID: meetID, settings: settings,
-                                   vidStore: vidStore, connector: connector, timing: timing)
+        self.session = MeetSession(
+            address: api.address, kind: kind, meetID: meetID, settings: settings,
+            vidStore: vidStore, connector: connector, timing: timing)
         let lang = preferences.language ?? settings.locale
         self.strings = stringsLoader.table(for: lang)
         self.labels = [:]
         self.shortLabels = [:]
         self.fonts = ThemeFonts(settings.themeFonts)
-        self.labels = LabelResolver.labels(settings: settings, language: preferences.language,
-                                           style: preferences.effectiveLabelStyle, table: strings)
-        self.shortLabels = LabelResolver.labels(settings: settings, language: preferences.language,
-                                                style: .short, table: strings)
+        self.labels = LabelResolver.labels(
+            settings: settings, language: preferences.language,
+            style: preferences.effectiveLabelStyle, table: strings)
+        self.shortLabels = LabelResolver.labels(
+            settings: settings, language: preferences.language,
+            style: .short, table: strings)
         session.onReload = { [weak self] in Task { await self?.refresh() } }
         session.onScheduleUpdate = { [weak self] in Task { await self?.loadSchedule() } }
         session.onReconnected = { [weak self] in Task { await self?.checkMeet() } }

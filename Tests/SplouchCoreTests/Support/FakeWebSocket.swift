@@ -1,4 +1,5 @@
 import Foundation
+
 @testable import SplouchCore
 
 /// A scripted server end of one WebSocket.
@@ -68,7 +69,10 @@ final class FakeConnection: WebSocketConnection, @unchecked Sendable {
     /// The server sends a frame.
     func push(_ text: String) {
         let w: CheckedContinuation<String, any Error>? = lock.withLock {
-            if let w = waiter { waiter = nil; return w }
+            if let w = waiter {
+                waiter = nil
+                return w
+            }
             pending.append(text)
             return nil
         }
@@ -109,7 +113,10 @@ final class FakeConnector: WebSocketConnector, @unchecked Sendable {
         try lock.withLock {
             attemptCount += 1
             times.append(.now)
-            if failures > 0 { failures -= 1; throw URLError(.cannotConnectToHost) }
+            if failures > 0 {
+                failures -= 1
+                throw URLError(.cannotConnectToHost)
+            }
             let c = FakeConnection(url: url)
             opened.append(c)
             return c

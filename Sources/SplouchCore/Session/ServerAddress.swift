@@ -8,8 +8,9 @@ public struct ServerAddress: Sendable, Hashable, Codable {
     /// From a URL. Trailing slashes are dropped; scheme and host are lowercased.
     public init?(url: URL) {
         guard var comps = URLComponents(url: url, resolvingAgainstBaseURL: false),
-              let scheme = comps.scheme?.lowercased(), scheme == "http" || scheme == "https",
-              let host = comps.host?.lowercased(), !host.isEmpty else { return nil }
+            let scheme = comps.scheme?.lowercased(), scheme == "http" || scheme == "https",
+            let host = comps.host?.lowercased(), !host.isEmpty
+        else { return nil }
         comps.scheme = scheme
         comps.host = host
         comps.query = nil
@@ -43,7 +44,8 @@ public struct ServerAddress: Sendable, Hashable, Codable {
 
     private static func looksLikeIPv4(_ s: String) -> Bool {
         let parts = s.split(separator: ".", omittingEmptySubsequences: false)
-        return parts.count == 4 && parts.allSatisfy { !$0.isEmpty && $0.allSatisfy(\.isNumber) && Int($0).map { $0 <= 255 } == true }
+        return parts.count == 4
+            && parts.allSatisfy { !$0.isEmpty && $0.allSatisfy(\.isNumber) && Int($0).map { $0 <= 255 } == true }
     }
 
     /// P-12's cleartext floor: `http` is for the local network only — a `.local`

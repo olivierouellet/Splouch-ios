@@ -50,8 +50,10 @@ public struct Preferences: Sendable, Codable, Equatable {
     public var server: ServerAddress?
     public var savedServers: [SavedServer]
 
-    public init(language: String? = nil, labelStyle: LabelStyle = .long, appearance: Appearance = .dark,
-                server: ServerAddress? = nil, savedServers: [SavedServer] = []) {
+    public init(
+        language: String? = nil, labelStyle: LabelStyle = .long, appearance: Appearance = .dark,
+        server: ServerAddress? = nil, savedServers: [SavedServer] = []
+    ) {
         self.language = language
         self.labelStyle = labelStyle
         self.appearance = appearance
@@ -95,7 +97,8 @@ public struct UserDefaultsPreferencesStore: PreferencesStore {
 
     public func load() -> Preferences {
         guard let data = box.defaults.data(forKey: Self.key),
-              let p = try? JSONDecoder().decode(Preferences.self, from: data) else { return Preferences() }
+            let p = try? JSONDecoder().decode(Preferences.self, from: data)
+        else { return Preferences() }
         return p
     }
 
