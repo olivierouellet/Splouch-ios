@@ -12,6 +12,10 @@ struct PickerScreen: View {
 
     @State private var showServers = false
     @State private var showLanguages = false
+    /// P-17. State of the picker, which is the root of the navigation stack, so
+    /// it outlives a pushed meet (A-02) and a pull-to-refresh (P-09) and is
+    /// gone on a cold launch — what the web keeps in `sessionStorage`.
+    @State private var query = ""
 
     /// Landscape on a phone is a compact height, which is the one axis the
     /// branding has to give ground on.
@@ -53,6 +57,15 @@ struct PickerScreen: View {
                 .foregroundStyle(.secondary)
             }
 
+            // P-17, directly above the cards, as the web places it.
+            if searchShown, !app.unreachable, !app.isPi {
+                Section {
+                    MeetSearchField(text: $query, prompt: served("meet_search"))
+                }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 0, leading: 8, bottom: 0, trailing: 8))
+            }
             meets
             footer
         }
@@ -69,6 +82,18 @@ struct PickerScreen: View {
         // stylesheet's hex, so they track Increase Contrast, match every other
         // app on the device, and follow whichever scheme P-15 resolves to —
         // which SplouchRootView owns for the whole window.
+    }
+
+    /// A picker string: `GET /picker/config` first, then the `mobile` table an
+    /// older server that predates the key still falls back through (T-10).
+    private func served(_ key: String) -> String { picker?.strings[key] ?? strings.mobile(key) }
+
+    /// P-17: under five meets there is no field, and nothing is filtered — a
+    /// query typed before a refresh shrank the list waits for it to grow back,
+    /// as the web's does.
+    private var searchShown: Bool { MeetSearch.isShown(meetCount: app.meets.count) }
+    private var shownMeets: [MeetSummary] {
+        searchShown ? MeetSearch.filter(app.meets, query: query) : app.meets
     }
 
     @ViewBuilder private var meets: some View {
@@ -102,21 +127,29 @@ struct PickerScreen: View {
                 // P-04 on the platform's empty state. The words stay the
                 // server's (T-05); only the presentation is the system's.
                 Unavailable(
-                    text: picker?.strings["no_meets"] ?? strings.mobile("no_meets"),
+                    text: served("no_meets"),
                     symbol: "calendar.badge.exclamationmark", fillsContainer: false)
+            }
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+        } else if shownMeets.isEmpty, !app.meets.isEmpty {
+            Section {
+                // P-17's own empty state: the search hid every meet. Not P-04,
+                // which says the server has none at all.
+                Unavailable(text: served("no_meets_match"), symbol: "magnifyingglass", fillsContainer: false)
             }
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
         } else {
             Section {
-                ForEach(app.meets) { meet in
+                ForEach(shownMeets) { meet in
                     Button {
                         Task { await open(meet) }
                     } label: {
                         MeetCard(
                             meet: meet,
                             imageURL: meet.hasPickerImage ? app.api.pickerImageURL(meetID: meet.id) : nil,
-                            unnamed: picker?.strings["unnamed_meet"] ?? strings.mobile("unnamed_meet"),
+                            unnamed: served("unnamed_meet"),
                             offline: strings.mobile("offline"))
                     }
                     .buttonStyle(CardButtonStyle())
@@ -356,3 +389,54 @@ struct MeetCard: View {
         }
     }
 }
+
+/// P-17's field: the platform's own `UISearchBar`, as a row above the cards.
+/// Not `.searchable`, which on iOS 26 moves the field to a bar at the bottom of
+/// an iPhone screen, away from the list it narrows. Return dismisses the
+/// keyboard and leaves the filter standing; the prompt is both the placeholder
+/// and what VoiceOver reads the field as.
+#if os(iOS)
+struct MeetSearchField: UIViewRepresentable {
+    @Binding var text: String
+    let prompt: String
+
+    func makeUIView(context: Context) -> UISearchBar {
+        let bar = UISearchBar()
+        bar.searchBarStyle = .minimal
+        bar.autocapitalizationType = .none  // folded either way
+        bar.autocorrectionType = .no
+        bar.returnKeyType = .search
+        bar.enablesReturnKeyAutomatically = false
+        bar.delegate = context.coordinator
+        return bar
+    }
+
+    func updateUIView(_ bar: UISearchBar, context: Context) {
+        context.coordinator.text = $text
+        if bar.text != text { bar.text = text }
+        bar.placeholder = prompt
+        bar.searchTextField.accessibilityLabel = prompt
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator(text: $text) }
+
+    final class Coordinator: NSObject, UISearchBarDelegate {
+        var text: Binding<String>
+        init(text: Binding<String>) { self.text = text }
+
+        // No debounce: the filter is local (P-17, as S-09).
+        func searchBar(_ bar: UISearchBar, textDidChange searchText: String) { text.wrappedValue = searchText }
+        func searchBarSearchButtonClicked(_ bar: UISearchBar) { bar.resignFirstResponder() }
+    }
+}
+#else
+/// On macOS the picker is checked for compilation, not looked at.
+struct MeetSearchField: View {
+    @Binding var text: String
+    let prompt: String
+
+    var body: some View {
+        TextField(prompt, text: $text).accessibilityLabel(prompt)
+    }
+}
+#endif

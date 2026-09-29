@@ -35,6 +35,8 @@ import Testing
         let en = BuiltInStrings.english.mobile
         for k in [
             "page_title", "no_meets", "unnamed_meet", "results_disclaimer", "privacy_note", "offline",
+            // P-17's two, for a server older than the search.
+            "meet_search", "no_meets_match",
             // `prefs_auto` is deliberately absent: the server still sends it for the
             // web picker's "Meet default" row, which this app no longer offers.
             "language", "language_auto", "prefs_title", "prefs_labels", "prefs_short", "prefs_long",
