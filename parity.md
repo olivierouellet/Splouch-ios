@@ -1,6 +1,6 @@
 # Splouch for iOS — parity ledger
 
-One row per feature ID in [`app.md`](../Splouch/docs/app.md) **v1**, the behaviour contract.
+One row per feature ID in [`app.md`](https://github.com/olivierouellet/Splouch/blob/master/docs/app.md) **v1**, the behaviour contract.
 That document owns *what* each feature is and whether it is required; this file owns
 *whether it is implemented here, and why not* (`app.md` §0.1).
 
