@@ -57,15 +57,6 @@ struct PickerScreen: View {
                 .foregroundStyle(.secondary)
             }
 
-            // P-17, directly above the cards, as the web places it.
-            if searchShown, !app.unreachable, !app.isPi {
-                Section {
-                    MeetSearchField(text: $query, prompt: served("meet_search"))
-                }
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 0, leading: 8, bottom: 0, trailing: 8))
-            }
             meets
             footer
         }
@@ -74,6 +65,7 @@ struct PickerScreen: View {
         // portrait and costly on the axis that has no height to spare.
         .trimmedTop(shortScreen)
         .refreshable { await app.load() }  // P-09
+        .meetSearch(shown: searchShown, text: $query, prompt: served("meet_search"))
         .overlay { if app.loading && app.meets.isEmpty { ProgressView() } }
         .toolbar { toolbar }
         .sheet(isPresented: $showServers) { ServerSheet(app: app) }
@@ -279,6 +271,26 @@ struct PickerScreen: View {
 }
 
 extension View {
+    /// P-17 on the platform's own search field. In the bar's drawer on iOS 17
+    /// to 25, above the list; iOS 26 moves it to a bar at the bottom of an
+    /// iPhone screen, which is the system's place for search now and a
+    /// departure from the contract's "above the cards" (parity.md P-17). Its
+    /// Search key dismisses the keyboard and leaves the filter standing. The
+    /// prompt is also what VoiceOver reads the field as.
+    @ViewBuilder fileprivate func meetSearch(shown: Bool, text: Binding<String>, prompt: String) -> some View {
+        if shown {
+            #if os(iOS)
+            self.searchable(text: text, placement: .navigationBarDrawer(displayMode: .always), prompt: Text(prompt))
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)  // folded either way
+            #else
+            self.searchable(text: text, prompt: Text(prompt))
+            #endif
+        } else {
+            self
+        }
+    }
+
     @ViewBuilder fileprivate func trimmedTop(_ trim: Bool) -> some View {
         if trim {
             self.contentMargins(.top, 0, for: .scrollContent)
@@ -389,54 +401,3 @@ struct MeetCard: View {
         }
     }
 }
-
-/// P-17's field: the platform's own `UISearchBar`, as a row above the cards.
-/// Not `.searchable`, which on iOS 26 moves the field to a bar at the bottom of
-/// an iPhone screen, away from the list it narrows. Return dismisses the
-/// keyboard and leaves the filter standing; the prompt is both the placeholder
-/// and what VoiceOver reads the field as.
-#if os(iOS)
-struct MeetSearchField: UIViewRepresentable {
-    @Binding var text: String
-    let prompt: String
-
-    func makeUIView(context: Context) -> UISearchBar {
-        let bar = UISearchBar()
-        bar.searchBarStyle = .minimal
-        bar.autocapitalizationType = .none  // folded either way
-        bar.autocorrectionType = .no
-        bar.returnKeyType = .search
-        bar.enablesReturnKeyAutomatically = false
-        bar.delegate = context.coordinator
-        return bar
-    }
-
-    func updateUIView(_ bar: UISearchBar, context: Context) {
-        context.coordinator.text = $text
-        if bar.text != text { bar.text = text }
-        bar.placeholder = prompt
-        bar.searchTextField.accessibilityLabel = prompt
-    }
-
-    func makeCoordinator() -> Coordinator { Coordinator(text: $text) }
-
-    final class Coordinator: NSObject, UISearchBarDelegate {
-        var text: Binding<String>
-        init(text: Binding<String>) { self.text = text }
-
-        // No debounce: the filter is local (P-17, as S-09).
-        func searchBar(_ bar: UISearchBar, textDidChange searchText: String) { text.wrappedValue = searchText }
-        func searchBarSearchButtonClicked(_ bar: UISearchBar) { bar.resignFirstResponder() }
-    }
-}
-#else
-/// On macOS the picker is checked for compilation, not looked at.
-struct MeetSearchField: View {
-    @Binding var text: String
-    let prompt: String
-
-    var body: some View {
-        TextField(prompt, text: $text).accessibilityLabel(prompt)
-    }
-}
-#endif
