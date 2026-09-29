@@ -142,15 +142,23 @@ import Testing
         await socket.close()
     }
 
+    /// Its own timing. Under `timing`, the pong has 40 ms to cross the fake and be
+    /// read before the probe gives up, and the unanswered heartbeat closes the socket
+    /// 100 ms after it. A busy runner overruns both. Here the pong has 300 ms, the
+    /// watchdog stays out of the way, and the check lands after the window has shut.
     @Test func wakeProbeAnsweredKeepsTheSocket() async {
-        let (socket, connector, recorder) = make(join: join)
+        let connector = FakeConnector()
+        let socket = SplouchSocket(url: url, connector: connector, join: join,
+                                   timing: SocketTiming(heartbeat: .seconds(60), stale: .seconds(60),
+                                                        probe: .milliseconds(300)))
+        let recorder = EventRecorder(socket.events)
         await socket.start()
         #expect(await eventually { await recorder.events.contains(.connected) })
         let first = connector.latest!
         await socket.wake()
         #expect(await eventually { first.sentEvents.contains("ping") })
         first.push(Frame(event: "pong"))
-        try? await Task.sleep(for: .milliseconds(80))
+        try? await Task.sleep(for: .milliseconds(400))
         #expect(!first.isClosed)
         #expect(connector.openCount == 1)
         await socket.close()

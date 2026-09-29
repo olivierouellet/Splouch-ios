@@ -4,9 +4,14 @@ import Testing
 
 @Suite(.serialized) @MainActor struct MeetSessionTests {
     let address = ServerAddress(typed: "https://cloud.test")!
-    let timing = SocketTiming(heartbeat: .milliseconds(40), stale: .milliseconds(100),
-                              probe: .milliseconds(40), backoffMin: .milliseconds(10),
-                              backoffMax: .milliseconds(40))
+    /// Nothing here is about the watchdog or the probe (SplouchSocketTests owns
+    /// those), and the fake never answers a ping. With a short `stale`, every socket
+    /// is recycled about every 100 ms, so a test that holds a connection to push
+    /// frames into, or counts opens or config checks, loses whenever a busy runner
+    /// makes it take longer than that. Only a backoff this short is needed; nothing
+    /// closes a socket unless the test does.
+    let timing = SocketTiming(heartbeat: .seconds(60), stale: .seconds(60), probe: .seconds(60),
+                              backoffMin: .milliseconds(10), backoffMax: .milliseconds(40))
 
     func make(kind: ServerKind = .cloud, lanes: Int = 4) -> (MeetSession, FakeConnector) {
         let connector = FakeConnector()
