@@ -132,6 +132,36 @@ invisible to a green local run. The `iOS app target` job is what compiles those,
 with Info.plist and the asset catalogue, which no test reads. If your change is in one of
 those blocks, build for the simulator before you push rather than finding out from CI.
 
+Both Swift builds treat a warning as an error, and the tree has none. To run the same
+checks locally before pushing:
+
+```sh
+swift test -Xswiftc -warnings-as-errors
+swift build --triple arm64-apple-ios17.0-simulator \
+  --sdk "$(xcrun --sdk iphonesimulator --show-sdk-path)" \
+  --scratch-path .build/ios -Xswiftc -warnings-as-errors
+uvx rumdl check .          # `uvx rumdl fmt .` fixes what it flags
+```
+
+### Tooling by language
+
+What checks each kind of file, and whether CI fails on it. The versions CI runs are
+pinned in `ci.yml`.
+
+| Language | Where | Linter | Formatter | Types / schema | Tests | Coverage | Editor (VS Code) | Gated in CI |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **Swift 6** | `Sources/`, `Tests/` | The compiler, with `-warnings-as-errors`, once for macOS and once for the iOS simulator | None, on purpose — see [Conventions](#conventions) | swiftc, strict concurrency | Swift Testing under `swift test`; CI also fails if fewer than 150 tests ran | llvm-cov, one table per module, printed in the CI log and never gated | Swift, LLDB DAP | Yes: warnings and tests |
+| **iOS app target** | `App/` | — | — | `xcodebuild` for the simulator | The built bundle's Info.plist is checked for the four keys the contract needs | — | Xcode | Yes |
+| **Strings** | `Localizable.xcstrings`, `Sources/SplouchCore/Resources/i18n/` | — | — | — | Every native string in en, fr and es (`SplouchUITests`); every served key the app asks for is in the snapshot (`SnapshotCoverageTests`) | — | — | Yes, through `swift test` |
+| **Shell (zsh)** | `scripts/` | `zsh -n`, syntax only (ShellCheck has no zsh dialect) | — | — | — | — | — | Yes |
+| **Markdown** | `*.md` | rumdl in CI, markdownlint in the editor — both read `.markdownlint.json` | `rumdl fmt` fixes what the check flags | — | — | — | markdownlint | Yes, rumdl |
+| **YAML** | `.github/` | actionlint (with ShellCheck over every `run:` block) and zizmor (security) for the workflow | — | The Red Hat YAML extension, in the editor only — nothing in CI checks the issue forms or `dependabot.yml` | — | — | Red Hat YAML | Yes, actionlint and zizmor |
+| **Dependencies** | the actions in `ci.yml` | zizmor rejects an action not pinned to a commit | — | — | — | — | — | Yes |
+
+`Package.swift` has no dependencies, so the only thing to keep current is the actions.
+Dependabot opens a pull request for them monthly. The lint tools' versions are pinned in
+the `lint` job and are moved by hand, in step with the server repo's `uv.lock`.
+
 ---
 
 ## Conventions
