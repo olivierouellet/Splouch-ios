@@ -21,10 +21,8 @@ import Testing
     }
 
     func connection(_ connector: FakeConnector, _ path: String) async -> FakeConnection? {
-        // Sockets connect in start order: scoreboard, results, schedule.
-        let index = ["scoreboard": 0, "results": 1, "schedule": 2][path]!
-        _ = await eventually { @MainActor in connector.openCount >= 3 }
-        return connector.openCount > index ? connector.connections[index] : nil
+        _ = await eventually { @MainActor in connector.connection(to: "/ws/\(path)") != nil }
+        return connector.connection(to: "/ws/\(path)")
     }
 
     @Test func opensThreeSocketsAndJoinsEachWithTheSameVid() async {

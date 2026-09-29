@@ -30,7 +30,7 @@ import Testing
         #expect(await eventually { @MainActor in ctx.schedule?.heats.count == 1 })
         #expect(ctx.filter.terms.map(\.name) == ["A"])   // pruned to names that still exist
         _ = await eventually { connector.openCount == 3 }
-        connector.connections[2].push(Frame(event: "schedule_update"))
+        connector.connection(to: "/ws/schedule")!.push(Frame(event: "schedule_update"))
         #expect(await eventually { stub.requestCount("/meet/m1/schedule") == 2 })
         await ctx.stop()
     }
@@ -46,11 +46,11 @@ import Testing
         ctx.start()
         _ = await eventually { connector.openCount == 3 }
         #expect(ctx.currentHeat == nil)
-        connector.connections[0].push(Frame(event: "update_scoreboard",
+        connector.connection(to: "/ws/scoreboard")!.push(Frame(event: "update_scoreboard",
                                             data: .object(["current_event": .string("7"),
                                                            "current_heat": .string("3")])))
         #expect(await eventually { @MainActor in ctx.currentHeat == HeatRef(event: "7", heat: "3") })
-        connector.connections[0].push(Frame(event: "reset", data: .object([:])))
+        connector.connection(to: "/ws/scoreboard")!.push(Frame(event: "reset", data: .object([:])))
         #expect(await eventually { @MainActor in ctx.currentHeat == nil })
         await ctx.stop()
     }
@@ -81,7 +81,7 @@ import Testing
         let ctx = make(stub: stub, connector: connector)
         ctx.start()
         _ = await eventually { connector.openCount == 3 }
-        connector.connections[0].push(Frame(event: "reload", data: .object([:])))
+        connector.connection(to: "/ws/scoreboard")!.push(Frame(event: "reload", data: .object([:])))
         #expect(await eventually { @MainActor in ctx.settings.numLanes == 6 })
         #expect(ctx.title == "Open 2")
         // P-15: the palette is still decoded off the wire and still reaches
@@ -109,7 +109,7 @@ import Testing
 
         // C-08 `reload` — the Pi re-registers and broadcasts it when the
         // operator switches, so the tab goes while the app is open.
-        connector.connections[0].push(Frame(event: "reload", data: .object([:])))
+        connector.connection(to: "/ws/scoreboard")!.push(Frame(event: "reload", data: .object([:])))
         #expect(await eventually { @MainActor in !ctx.showsResults })
 
         // The console turns up at last: the same fetch brings the tab back, on
@@ -139,7 +139,7 @@ import Testing
         #expect(await eventually { stub.requestCount("/meet/m1/config") == 1 })
         #expect(await eventually { connector.connections.allSatisfy { $0.sentEvents.contains("ping") } })
         // The scoreboard socket drops and comes back: checked again.
-        await connector.connections[0].dropFromServer()
+        await connector.connection(to: "/ws/scoreboard")!.dropFromServer()
         #expect(await eventually { stub.requestCount("/meet/m1/config") == 2 })
         #expect(!ctx.gone)
         // The meet expires: the next check sends the user back.

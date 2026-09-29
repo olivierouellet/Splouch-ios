@@ -140,7 +140,9 @@ import Testing
         cloud(stub, kind: "pi", name: "Rebooted")
         app.acceptInvite()
         #expect(await eventually { @MainActor in app.invite == nil })
-        #expect(app.serverInfo?.name == "Rebooted")
+        // Waited for, not read: the prompt closes before the switch re-asks the new
+        // server for its name, so for one round trip there is no name yet.
+        #expect(await eventually { @MainActor in app.serverInfo?.name == "Rebooted" })
     }
 
     /// A no is allowed right up to the end. On iOS the prompt's Cancel cannot be

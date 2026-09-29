@@ -3,6 +3,10 @@ import Foundation
 
 /// A scripted server end of one WebSocket.
 final class FakeConnection: WebSocketConnection, @unchecked Sendable {
+    /// What it was opened for. A session opens its three sockets concurrently, so
+    /// the order they land in `FakeConnector.connections` is whichever task ran
+    /// first. Find one by its path, never by its index.
+    let url: URL?
     private let lock = NSLock()
     private var sentFrames: [String] = []
     private var pending: [String] = []
@@ -12,6 +16,10 @@ final class FakeConnection: WebSocketConnection, @unchecked Sendable {
     var sent: [String] { lock.withLock { sentFrames } }
     var sentEvents: [String] { sent.compactMap { try? Frame.decode($0).event } }
     var isClosed: Bool { lock.withLock { closed } }
+
+    init(url: URL? = nil) {
+        self.url = url
+    }
 
     func send(_ text: String) async throws {
         try record(text)
@@ -82,6 +90,10 @@ final class FakeConnector: WebSocketConnector, @unchecked Sendable {
 
     var connections: [FakeConnection] { lock.withLock { opened } }
     var latest: FakeConnection? { connections.last }
+    /// The newest connection opened to `path`, such as "/ws/scoreboard".
+    func connection(to path: String) -> FakeConnection? {
+        connections.last { $0.url?.path == path }
+    }
     var openCount: Int { lock.withLock { opened.count } }
     var attempts: Int { lock.withLock { attemptCount } }
     var attemptTimes: [ContinuousClock.Instant] { lock.withLock { times } }
@@ -90,15 +102,15 @@ final class FakeConnector: WebSocketConnector, @unchecked Sendable {
     func failNextOpens(_ n: Int) { lock.withLock { failures = n } }
 
     func open(_ url: URL) async throws -> any WebSocketConnection {
-        try attempt()
+        try attempt(url)
     }
 
-    private func attempt() throws -> any WebSocketConnection {
+    private func attempt(_ url: URL) throws -> any WebSocketConnection {
         try lock.withLock {
             attemptCount += 1
             times.append(.now)
             if failures > 0 { failures -= 1; throw URLError(.cannotConnectToHost) }
-            let c = FakeConnection()
+            let c = FakeConnection(url: url)
             opened.append(c)
             return c
         }
