@@ -117,6 +117,12 @@ import Testing
         let conn = try await connector().open(server.url)
         #expect(await eventually { server.handshakeCount == 1 })
 
+        // Open a moment first, as every socket the app closes has been. Cancelled
+        // within a few milliseconds of opening, URLSessionWebSocketTask sometimes
+        // ends the TCP connection with no close frame: about 1 in 250, with or
+        // without load. After 30 ms it never did in 1,800 runs. The server still
+        // sees the connection end at once, so it only loses the 1000 close code.
+        try await Task.sleep(for: .milliseconds(30))
         await conn.close()
         #expect(await eventually { server.sawClientClose })
     }
