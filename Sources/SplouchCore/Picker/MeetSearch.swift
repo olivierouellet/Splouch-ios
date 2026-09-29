@@ -7,8 +7,9 @@ import Foundation
 /// `montreal` find `Montréal` on one client and not another.
 public enum MeetSearch {
     /// The field appears once the list holds this many meets. Under it the
-    /// picker looks as it always has, and nothing is filtered.
-    public static let threshold = 5
+    /// picker looks as it always has, and nothing is filtered. Three, not the
+    /// contract's five: a departure chosen for this app (parity.md P-17).
+    public static let threshold = 3
 
     public static func isShown(meetCount: Int) -> Bool { meetCount >= threshold }
 

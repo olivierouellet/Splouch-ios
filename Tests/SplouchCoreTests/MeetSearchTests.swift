@@ -44,10 +44,10 @@ import Testing
         #expect(MeetSearch.matches(text, query: query) == expected)
     }
 
-    @Test func noFieldAtFourMeetsAndAFieldAtFive() {
+    @Test func noFieldAtTwoMeetsAndAFieldAtThree() {
         #expect(!MeetSearch.isShown(meetCount: 0))
-        #expect(!MeetSearch.isShown(meetCount: 4))
-        #expect(MeetSearch.isShown(meetCount: 5))
+        #expect(!MeetSearch.isShown(meetCount: 2))
+        #expect(MeetSearch.isShown(meetCount: 3))
         #expect(MeetSearch.isShown(meetCount: 200))
     }
 

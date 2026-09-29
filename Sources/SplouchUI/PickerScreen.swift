@@ -80,7 +80,7 @@ struct PickerScreen: View {
     /// older server that predates the key still falls back through (T-10).
     private func served(_ key: String) -> String { picker?.strings[key] ?? strings.mobile(key) }
 
-    /// P-17: under five meets there is no field, and nothing is filtered — a
+    /// P-17: under three meets there is no field, and nothing is filtered — a
     /// query typed before a refresh shrank the list waits for it to grow back,
     /// as the web's does.
     private var searchShown: Bool { MeetSearch.isShown(meetCount: app.meets.count) }
