@@ -70,13 +70,19 @@ jobs:
       - name: Check the suite really ran
         # The guard that makes green mean green. A test target that builds but
         # discovers nothing exits 0 and reports a pass, which is the one failure mode
-        # a green tick cannot be trusted about. The floor is well under the current
-        # count — raise it if it ever starts catching real growth instead of breakage.
+        # a green tick cannot be trusted about.
+        #
+        # The floor has to sit above the larger target's count, or losing the smaller
+        # one goes unseen: at 292 tests, SplouchCoreTests is 259 and SplouchUITests is
+        # 33, so 270 catches either target going missing and still leaves room to
+        # delete a few tests. Raise it as the suite grows. If tests were removed on
+        # purpose and this fires, lower it in the same commit.
         run: |
+          floor=270
           count=$(sed -n 's/.*Test run with \([0-9]*\) tests.*/\1/p' test.log | tail -1)
-          echo "discovered ${count:-0} tests"
-          [ "${count:-0}" -ge 150 ] \
-            || { echo "::error::only ${count:-0} tests ran; the suite is around 195"; exit 1; }
+          echo "discovered ${count:-0} tests (floor $floor)"
+          [ "${count:-0}" -ge "$floor" ] \
+            || { echo "::error::only ${count:-0} tests ran, under the floor of $floor"; exit 1; }
 
       - name: Coverage
         # Printed into this log and nothing else: not uploaded, not gated, no badge.

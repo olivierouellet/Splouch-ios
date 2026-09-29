@@ -150,7 +150,7 @@ pinned in `ci.yml`.
 
 | Language | Where | Linter | Formatter | Types / schema | Tests | Coverage | Editor (VS Code) | Gated in CI |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **Swift 6** | `Sources/`, `Tests/` | The compiler, with `-warnings-as-errors`, once for macOS and once for the iOS simulator | None, on purpose — see [Conventions](#conventions) | swiftc, strict concurrency | Swift Testing under `swift test`; CI also fails if fewer than 150 tests ran | llvm-cov, one table per module, printed in the CI log and never gated | Swift, LLDB DAP | Yes: warnings and tests |
+| **Swift 6** | `Sources/`, `Tests/` | The compiler, with `-warnings-as-errors`, once for macOS and once for the iOS simulator | None, on purpose — see [Conventions](#conventions) | swiftc, strict concurrency | Swift Testing under `swift test`; CI also fails if fewer than 270 tests ran, a floor set so that a whole test target going missing is caught | llvm-cov, one table per module, printed in the CI log and never gated | Swift, LLDB DAP | Yes: warnings and tests |
 | **iOS app target** | `App/` | — | — | `xcodebuild` for the simulator | The built bundle's Info.plist is checked for the four keys the contract needs | — | Xcode | Yes |
 | **Strings** | `Localizable.xcstrings`, `Sources/SplouchCore/Resources/i18n/` | — | — | — | Every native string in en, fr and es (`SplouchUITests`); every served key the app asks for is in the snapshot (`SnapshotCoverageTests`) | — | — | Yes, through `swift test` |
 | **Shell (zsh)** | `scripts/` | `zsh -n`, syntax only (ShellCheck has no zsh dialect) | — | — | — | — | — | Yes |
