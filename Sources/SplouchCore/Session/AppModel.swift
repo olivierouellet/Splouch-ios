@@ -69,6 +69,7 @@ public final class AppModel {
     public let defaultServer: ServerAddress
     private let preferencesStore: any PreferencesStore
     private let vidStore: any VidStore
+    private let noticeFoldStore: any NoticeFoldStore
     private let bundleCache: any BundleCache
     private let session: URLSession
     private let connector: any WebSocketConnector
@@ -93,15 +94,22 @@ public final class AppModel {
     /// P-14: the contract versions that differ from the ones this app was built
     /// against, as `api v1 ≠ v2`; nil when they match. A notice, never a gate.
     public private(set) var contractNotice: String?
+    /// P-06, P-07: the words this server's notices were folded at, read from
+    /// `noticeFoldStore` whenever the picker loads. Observed here because the
+    /// store is not.
+    private var folds: [PickerNotice: String] = [:]
 
     public init(
         defaultServer: ServerAddress, preferencesStore: any PreferencesStore = UserDefaultsPreferencesStore(),
-        vidStore: any VidStore = UserDefaultsVidStore(), bundleCache: any BundleCache = FileBundleCache.standard(),
+        vidStore: any VidStore = UserDefaultsVidStore(),
+        noticeFoldStore: any NoticeFoldStore = UserDefaultsNoticeFoldStore(),
+        bundleCache: any BundleCache = FileBundleCache.standard(),
         session: URLSession = .shared, connector: any WebSocketConnector = URLSessionWebSocketConnector()
     ) {
         self.defaultServer = defaultServer
         self.preferencesStore = preferencesStore
         self.vidStore = vidStore
+        self.noticeFoldStore = noticeFoldStore
         self.bundleCache = bundleCache
         self.session = session
         self.connector = connector
@@ -146,9 +154,11 @@ public final class AppModel {
                 async let meets = api.meets()
                 self.picker = try await picker
                 self.meets = try await meets
+                reconcileFolds()
                 directory = (try? await api.servers().servers) ?? []
             } else {
                 picker = nil
+                folds = [:]
                 meets = []
                 directory = []
             }
@@ -158,6 +168,46 @@ public final class AppModel {
             Self.log.error("load failed: \(String(describing: error))")
             unreachable = true
         }
+    }
+
+    // MARK: - Picker notices (P-06, P-07)
+
+    /// A notice's full text, nil when it is not shown: absent or empty, or P-07
+    /// while this server is not counting.
+    public func noticeText(_ notice: PickerNotice) -> String? {
+        guard let picker, notice != .attendance || picker.analyticsEnabled,
+            let text = picker.strings[notice.textKey], !text.isEmpty
+        else { return nil }
+        return text
+    }
+
+    /// Folded only while the words stored for this server are the words it
+    /// just sent.
+    public func isFolded(_ notice: PickerNotice) -> Bool {
+        guard let text = noticeText(notice) else { return false }
+        return folds[notice] == text
+    }
+
+    public func fold(_ notice: PickerNotice) {
+        guard let text = noticeText(notice) else { return }
+        noticeFoldStore.setFolded(text, notice, origin: server.origin)
+        folds[notice] = text
+    }
+
+    public func unfold(_ notice: PickerNotice) {
+        noticeFoldStore.setFolded(nil, notice, origin: server.origin)
+        folds[notice] = nil
+    }
+
+    /// A server that reports counting off forgets P-07's fold, so turning it
+    /// back on says so in full.
+    private func reconcileFolds() {
+        let origin = server.origin
+        if picker?.analyticsEnabled == false { noticeFoldStore.setFolded(nil, .attendance, origin: origin) }
+        folds = Dictionary(
+            uniqueKeysWithValues: PickerNotice.allCases.compactMap { n in
+                noticeFoldStore.folded(n, origin: origin).map { (n, $0) }
+            })
     }
 
     // MARK: - Servers (P-11, P-13)
@@ -192,6 +242,7 @@ public final class AppModel {
         contractNotice = nil
         meets = []
         picker = nil
+        folds = [:]
         var p = preferences
         p.server = address == defaultServer ? nil : address
         preferences = p

@@ -251,7 +251,7 @@ import Testing
     func make(_ stub: StubServer, prefs: Preferences = Preferences()) -> AppModel {
         AppModel(
             defaultServer: stub.address, preferencesStore: InMemoryPreferencesStore(prefs),
-            vidStore: InMemoryVidStore(),
+            vidStore: InMemoryVidStore(), noticeFoldStore: InMemoryNoticeFoldStore(),
             bundleCache: InMemoryBundleCache(), session: stub.session, connector: FakeConnector())
     }
 
@@ -297,7 +297,8 @@ import Testing
         let store = InMemoryPreferencesStore()
         let app = AppModel(
             defaultServer: ServerAddress(typed: "https://default.example")!, preferencesStore: store,
-            vidStore: InMemoryVidStore(), bundleCache: InMemoryBundleCache(), session: stub.session,
+            vidStore: InMemoryVidStore(), noticeFoldStore: InMemoryNoticeFoldStore(),
+            bundleCache: InMemoryBundleCache(), session: stub.session,
             connector: FakeConnector())
         await app.start()
         #expect(app.unreachable)
@@ -324,6 +325,7 @@ import Testing
         let store = InMemoryPreferencesStore()
         let app = AppModel(
             defaultServer: stub.address, preferencesStore: store, vidStore: InMemoryVidStore(),
+            noticeFoldStore: InMemoryNoticeFoldStore(),
             bundleCache: InMemoryBundleCache(), session: stub.session, connector: FakeConnector())
         await app.start()
         #expect(app.picker?.lang == "auto")
@@ -464,7 +466,8 @@ import Testing
         let store = InMemoryPreferencesStore()
         let app = AppModel(
             defaultServer: ServerAddress(typed: "https://default.example")!, preferencesStore: store,
-            vidStore: InMemoryVidStore(), bundleCache: InMemoryBundleCache(), session: stub.session,
+            vidStore: InMemoryVidStore(), noticeFoldStore: InMemoryNoticeFoldStore(),
+            bundleCache: InMemoryBundleCache(), session: stub.session,
             connector: FakeConnector())
         await app.addServer(
             stub.address, info: ServerInfo(kind: .cloud, name: "Pool", contract: .init(api: "v2", app: "v1")))
@@ -552,6 +555,7 @@ import Testing
         let store = InMemoryPreferencesStore(Preferences(language: "es"))
         let app = AppModel(
             defaultServer: stub.address, preferencesStore: store, vidStore: InMemoryVidStore(),
+            noticeFoldStore: InMemoryNoticeFoldStore(),
             bundleCache: InMemoryBundleCache(), session: stub.session, connector: FakeConnector())
         await app.start()
         #expect(store.load().language == "es")
@@ -575,7 +579,8 @@ import Testing
         let cache = InMemoryBundleCache()
         let app = AppModel(
             defaultServer: stub.address, preferencesStore: InMemoryPreferencesStore(),
-            vidStore: InMemoryVidStore(), bundleCache: cache, session: stub.session,
+            vidStore: InMemoryVidStore(), noticeFoldStore: InMemoryNoticeFoldStore(), bundleCache: cache,
+            session: stub.session,
             connector: FakeConnector())
         await app.start()
         #expect(app.strings.language == "fr")
@@ -592,7 +597,8 @@ import Testing
         let cache = InMemoryBundleCache()
         let app = AppModel(
             defaultServer: stub.address, preferencesStore: InMemoryPreferencesStore(),
-            vidStore: InMemoryVidStore(), bundleCache: cache, session: stub.session,
+            vidStore: InMemoryVidStore(), noticeFoldStore: InMemoryNoticeFoldStore(), bundleCache: cache,
+            session: stub.session,
             connector: FakeConnector())
         await app.start()
         #expect(!app.unreachable)

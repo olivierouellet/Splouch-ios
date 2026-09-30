@@ -16,6 +16,9 @@ struct PickerScreen: View {
     /// it outlives a pushed meet (A-02) and a pull-to-refresh (P-09) and is
     /// gone on a cold launch — what the web keeps in `sessionStorage`.
     @State private var query = ""
+    /// P-06, P-07: where VoiceOver goes after a fold or an unfold, since the
+    /// control it was on has just been replaced.
+    @AccessibilityFocusState private var noticeFocus: NoticeFocus?
 
     /// Landscape on a phone is a compact height, which is the one axis the
     /// branding has to give ground on.
@@ -57,8 +60,8 @@ struct PickerScreen: View {
                 .foregroundStyle(.secondary)
             }
 
+            notices
             meets
-            footer
         }
         .groupedList()
         // The grouped list's own top inset is generous, which is right in
@@ -185,38 +188,111 @@ struct PickerScreen: View {
         .padding(.vertical, shortScreen ? 2 : 8)
     }
 
-    // P-06, P-07: served, never compiled in.
+    // P-06, P-07: served, never compiled in, and above the list — under the
+    // branding, before the meets — because under it a season of meets pushed
+    // them out of sight. Each folds to a pill and never goes away.
     //
-    // The two are not the same kind of text and were being drawn as though
-    // they were — both footnote-sized, both greyed, both trailing off the
-    // bottom of the list. P-06 is the only thing standing between a live feed
-    // and a spectator taking it for a result, so it gets a block of its own at
-    // full contrast. P-07 really is fine print, and stays fine print, just
-    // large enough to read.
-    @ViewBuilder private var footer: some View {
-        if let p = picker {
-            if let d = p.strings["results_disclaimer"], !d.isEmpty {
-                Section {
-                    Text(d)
-                        .font(.subheadline)
-                        .foregroundStyle(.primary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 4)
-                }
-            }
-            if p.analyticsEnabled, let n = p.strings["privacy_note"], !n.isEmpty {
-                Section {
-                    Text(n)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity)
-                }
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
+    // The two are not the same kind of text. P-06 is the only thing standing
+    // between a live feed and a spectator taking it for a result, so it is at
+    // full contrast; P-07 really is fine print, and stays secondary.
+    @ViewBuilder private var notices: some View {
+        let shown = PickerNotice.allCases.filter { app.noticeText($0) != nil }
+        let open = shown.filter { !app.isFolded($0) }
+        let folded = shown.filter { app.isFolded($0) }
+        // Expanded, a notice has the row to itself.
+        if !open.isEmpty {
+            Section {
+                ForEach(open, id: \.self) { expanded($0) }
             }
         }
+        // Folded, the pills share one, centred, and stack when Dynamic Type
+        // leaves no room for both side by side. A section of its own, so a
+        // grouped block above it keeps its corners.
+        if !folded.isEmpty {
+            Section {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 8) { pills(folded, oneLine: true) }
+                    VStack(spacing: 8) { pills(folded, oneLine: false) }
+                }
+                .frame(maxWidth: .infinity)
+                // No cell here, so no cell margins: the pills get the width.
+                .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+            }
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+        }
+    }
+
+    private func expanded(_ notice: PickerNotice) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Text(app.noticeText(notice) ?? "")
+                .font(.subheadline)
+                .foregroundStyle(notice == .results ? .primary : .secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+            Button {
+                app.fold(notice)
+                focus(.pill(notice))
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.footnote.weight(.semibold))
+                    // The HIG's 44pt target, with the glyph kept in the corner.
+                    .frame(minWidth: 44, minHeight: 44, alignment: .topTrailing)
+                    .contentShape(Rectangle())
+            }
+            // Borderless, so a tap on the text is not a tap on the X; grey
+            // rather than the accent, as the system's own close glyphs are.
+            .buttonStyle(.borderless)
+            .tint(.secondary)
+            .accessibilityLabel(served(PickerNotice.collapseKey, or: PickerNotice.fallbackCollapse))
+            .accessibilityFocused($noticeFocus, equals: .close(notice))
+        }
+        .padding(.vertical, 4)
+    }
+
+    /// `oneLine` holds each label at its natural width, or a label would wrap
+    /// inside its capsule rather than let the stack take over.
+    @ViewBuilder private func pills(_ folded: [PickerNotice], oneLine: Bool) -> some View {
+        ForEach(folded, id: \.self) { notice in
+            let label = served(notice.shortKey, or: notice.fallbackShort)
+            Button {
+                app.unfold(notice)
+                focus(.close(notice))
+            } label: {
+                // Not a `Label`: inside a List that takes the row's style, whose
+                // fixed icon column pushes the words off to the right.
+                HStack(spacing: 6) {
+                    Image(systemName: notice.symbol)
+                    Text(label).fixedSize(horizontal: oneLine, vertical: false)
+                }
+                .font(.footnote)
+                .foregroundStyle(.primary)
+            }
+            .accessibilityLabel(label)
+            // A neutral capsule: the pill is a way back to the words, not an
+            // action, so it does not take the accent.
+            .buttonStyle(.bordered)
+            .buttonBorderShape(.capsule)
+            .controlSize(.small)
+            .tint(.gray)
+            .accessibilityFocused($noticeFocus, equals: .pill(notice))
+        }
+    }
+
+    /// The control that should take the focus exists only on the next pass.
+    private func focus(_ target: NoticeFocus) {
+        Task { @MainActor in
+            await Task.yield()
+            noticeFocus = target
+        }
+    }
+
+    /// A notice string from `GET /picker/config`, never through `mobile`: this
+    /// is compliance text, and an older server that predates the key gets the
+    /// English the contract names.
+    private func served(_ key: String, or fallback: String) -> String {
+        if let v = picker?.strings[key], !v.isEmpty { return v }
+        return fallback
     }
 
     // P-11 (native words), T-08 and T-09 (the server's words).
@@ -266,6 +342,22 @@ struct PickerScreen: View {
             } label: {
                 Image(systemName: "ellipsis.circle")
             }
+        }
+    }
+}
+
+private enum NoticeFocus: Hashable {
+    case pill(PickerNotice)
+    case close(PickerNotice)
+}
+
+extension PickerNotice {
+    /// The pill's icon, the same thing on every client. Not a shield or a
+    /// raised hand: those read as a privacy control, and there is none.
+    fileprivate var symbol: String {
+        switch self {
+        case .results: "hourglass"  // pending validation, not an error
+        case .attendance: "person.2"  // the visitors being counted
         }
     }
 }
