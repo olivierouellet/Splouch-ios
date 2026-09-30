@@ -62,7 +62,9 @@ import Testing
         #expect(pi.requestCount("/server") >= 1)
         #expect(app.server == pi.address)
         #expect(app.preferences.savedServers.map(\.name) == ["Poolside Pi"])
-        #expect(app.serverInfo?.kind == .pi)
+        // The prompt goes before the new server's own `GET /server` answers, so the
+        // handshake is waited for, not assumed.
+        #expect(await eventually { @MainActor in app.serverInfo?.kind == .pi })
     }
 
     /// A server that cannot be reached fails *in* the prompt, retryably, rather than
