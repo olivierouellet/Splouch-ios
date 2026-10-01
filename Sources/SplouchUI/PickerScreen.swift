@@ -40,23 +40,11 @@ struct PickerScreen: View {
         // insets every other iOS list uses.
         List {
             Section {
+                serverLine
                 branding
             }
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
-
-            // P-11: the meet list always names its server — every card on it came
-            // from there, whichever one it is. Inside a meet only a non-default one
-            // is named (MeetShell.subtitle).
-            // P-14: a notice naming both versions, never a gate.
-            Section {
-                Label(app.serverName, systemImage: "server.rack")
-                if let notice = app.contractNotice {
-                    Label(notice, systemImage: "exclamationmark.triangle")
-                }
-            }
-            .font(.footnote)
-            .foregroundStyle(.secondary)
 
             notices
             meets
@@ -159,6 +147,20 @@ struct PickerScreen: View {
     // edge. Two reasons, both fixed here: an operator who sets a logo and no
     // title still got an empty `.title2` line holding its full height, and the
     // 80pt logo box plus its padding is sized for the axis that has room.
+    /// P-11: the meet list always names its server — every card on it came
+    /// from there, whichever one it is. Inside a meet only a non-default one is
+    /// named (MeetShell.subtitle). By its address rather than its name: the
+    /// address is what a spectator can check against a poster or a URL bar.
+    /// P-14: the contract notice sits beside it, never a gate.
+    private var serverLine: some View {
+        let parts = [app.server.display, app.contractNotice].compactMap { $0 }
+        return Label(parts.joined(separator: " \u{00B7} "), systemImage: "server.rack")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity)
+            .accessibilityElement(children: .combine)
+    }
+
     @ViewBuilder private var branding: some View {
         let title = picker?.title ?? app.serverName
         let above = picker?.logoAbove ?? false
