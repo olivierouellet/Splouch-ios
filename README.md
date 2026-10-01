@@ -76,6 +76,10 @@ empty password by default, form `action=add&organizer=Dev`; the key lands in
 device screen through System Events (the terminal needs Accessibility access), and
 `xcrun simctl io <udid> screenshot out.png` captures it.
 
+[`Screenshots/`](Screenshots/) holds every screen in English and French, light and
+dark, at the App Store sizes, plus the App Store set; `scripts/screenshots.sh`
+recaptures them.
+
 ## Strings
 
 Two kinds, split by what the word is about (app.md T-05):
