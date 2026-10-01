@@ -4,7 +4,7 @@ Every screen in English and French, light and dark, at the two sizes App Store
 Connect requires: 6.9" iPhone (iPhone 17 Pro Max, 1320 × 2868) and 13" iPad
 (iPad Pro 13-inch, 2064 × 2752).
 
-```
+```text
 <device>/<lang>/<light|dark>/1-picker.png
                              2-scoreboard.png
                              3-results.png
