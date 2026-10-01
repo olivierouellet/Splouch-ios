@@ -37,6 +37,19 @@ import Testing
                 == "200 m espalda")
     }
 
+    /// T-11 `round`: after the name, behind its own separator; an unknown key
+    /// renders as itself, an empty one adds nothing.
+    @Test func roundFollowsTheName() {
+        let vocab = es.merging(["final": "Final"]) { a, _ in a }
+        let p = EventNameParts(dist: "200", stroke: "backstroke", gender: "girls", round: "final")
+        #expect(EventName.compose(p, vocab: vocab) == "200 m espalda  —  Niñas  —  Final")
+        #expect(
+            EventName.compose(EventNameParts(raw: "Club Handicap", round: "final"), vocab: vocab)
+                == "Club Handicap  —  Final")
+        #expect(EventName.compose(EventNameParts(dist: "50", round: "swimoff"), vocab: vocab) == "50 m  —  swimoff")
+        #expect(EventName.compose(EventNameParts(dist: "50", round: ""), vocab: vocab) == "50 m")
+    }
+
     @Test func onlyRightSide() {
         #expect(EventName.compose(EventNameParts(gender: "girls"), vocab: es) == "Niñas")
     }

@@ -133,7 +133,7 @@ extension EventNameParts {
         self.init(
             raw: json.str("raw"), dist: json.str("dist"), stroke: json.str("stroke"),
             relay: json.flag("relay", default: false), gender: json.str("gender"),
-            age: json.str("age"), ageKey: json.str("age_key"))
+            age: json.str("age"), ageKey: json.str("age_key"), round: json.str("round"))
     }
 }
 

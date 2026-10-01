@@ -7,9 +7,9 @@ import Foundation
 /// of `GET /i18n/{lang}`. It never parses the name itself. Mirrors
 /// `composeEventName` in the reference `ws.js` exactly.
 public enum EventName {
-    /// `dist + unit`, stroke, relay — then `separator`, then gender and age.
-    /// Empty when there are no parts or no vocabulary; the raw name when the
-    /// parts compose to nothing.
+    /// `dist + unit`, stroke, relay — then `separator`, then gender and age;
+    /// then, when `round` is set, `separator` and its word. Empty when there are
+    /// no parts or no vocabulary; the raw name when the parts compose to nothing.
     public static func compose(_ parts: EventNameParts?, vocab: [String: String]?) -> String {
         guard let parts, let vocab else { return "" }
         func word(_ k: String) -> String { k.isEmpty ? "" : (vocab[k] ?? k) }
@@ -20,10 +20,17 @@ public enum EventName {
         let age = parts.age.isEmpty ? word(parts.ageKey) : parts.age
         let right = [word(parts.gender), age].filter { !$0.isEmpty }.joined(separator: " ")
         let l = left.joined(separator: " ")
-        if !l.isEmpty, !right.isEmpty { return l + (vocab["separator"] ?? "  \u{2014}  ") + right }
-        if !l.isEmpty { return l }
-        if !right.isEmpty { return right }
-        return parts.raw
+        let sep = vocab["separator"] ?? "  \u{2014}  "
+        var name = parts.raw
+        if !l.isEmpty, !right.isEmpty {
+            name = l + sep + right
+        } else if !l.isEmpty {
+            name = l
+        } else if !right.isEmpty {
+            name = right
+        }
+        if !parts.round.isEmpty { name += sep + word(parts.round) }
+        return name
     }
 
     /// The name to show: composed when the parts and vocabulary allow it,

@@ -70,10 +70,11 @@ import Testing
         var s = liveBoard()
         s.apply(
             frame(
-                #"{"event_name":"200 m dos","event_name_parts":{"raw":"200 Backstroke","dist":"200","stroke":"backstroke","relay":false,"gender":"girls","age":"< 12","age_key":""},"heat_time":"10:42","expected_splits":4}"#
+                #"{"event_name":"200 m dos","event_name_parts":{"raw":"200 Backstroke","dist":"200","stroke":"backstroke","relay":false,"gender":"girls","age":"< 12","age_key":"","round":"final"},"heat_time":"10:42","expected_splits":4}"#
             ), at: t0)
         #expect(s.eventName == "200 m dos")
         #expect(s.eventNameParts?.stroke == "backstroke")
+        #expect(s.eventNameParts?.round == "final")
         #expect(s.heatTime == "10:42")
         #expect(s.expectedSplits == 4)
         s.apply(frame(#"{"event_name_parts":null}"#), at: t0)

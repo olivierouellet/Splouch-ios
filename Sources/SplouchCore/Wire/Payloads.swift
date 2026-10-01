@@ -183,10 +183,13 @@ public struct EventNameParts: Sendable, Equatable {
     public var gender: String
     public var age: String
     public var ageKey: String
+    /// Lenex round key (`final`, `prelims`, …) or `""`; already filtered by the
+    /// operator's phone setting (api.md §5.1).
+    public var round: String
 
     public init(
         raw: String = "", dist: String = "", stroke: String = "", relay: Bool = false,
-        gender: String = "", age: String = "", ageKey: String = ""
+        gender: String = "", age: String = "", ageKey: String = "", round: String = ""
     ) {
         self.raw = raw
         self.dist = dist
@@ -195,6 +198,7 @@ public struct EventNameParts: Sendable, Equatable {
         self.gender = gender
         self.age = age
         self.ageKey = ageKey
+        self.round = round
     }
 }
 
