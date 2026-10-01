@@ -318,7 +318,7 @@ struct PickerScreen: View {
                 Button {
                     showLanguages = true
                 } label: {
-                    Label(strings.mobile("language"), systemImage: "globe")
+                    Label(Native.language, systemImage: "globe")
                 }
                 // P-15. A menu Picker rather than a sheet of its own: three
                 // fixed choices the app owns, unlike the server list and the

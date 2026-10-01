@@ -19,7 +19,7 @@ struct LanguageSheet: View {
                 Section {
                     // The device's own language, which is what the picker
                     // resolves from when nothing is stored.
-                    row(strings.mobile("language_auto"), code: nil)
+                    row(Native.languageAuto, code: nil)
                 }
                 Section {
                     ForEach(app.locales, id: \.code) { locale in
@@ -27,7 +27,7 @@ struct LanguageSheet: View {
                     }
                 }
             }
-            .navigationTitle(strings.mobile("language"))
+            .navigationTitle(Native.language)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { cancelButton }
             }

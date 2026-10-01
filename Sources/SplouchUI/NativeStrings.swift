@@ -31,12 +31,15 @@ enum Native {
     static var switchTo: String { String(localized: "switch_to", bundle: .module) }
     static var badServerLink: String { String(localized: "bad_server_link", bundle: .module) }
     static var cleartextNotLocal: String { String(localized: "cleartext_not_local", bundle: .module) }
-    // P-15. Light and dark are about the device, not about anything a web page
-    // shows, so the words are the app's (T-05) and the server serves none.
+    // P-15 and T-08. The picker menu's own settings: shown before any server
+    // answers, so the words are the app's (T-05) even though the web picker has
+    // its own served copy of each.
     static var appearance: String { String(localized: "appearance", bundle: .module) }
     static var appearanceDark: String { String(localized: "appearance_dark", bundle: .module) }
     static var appearanceLight: String { String(localized: "appearance_light", bundle: .module) }
     static var appearanceAuto: String { String(localized: "appearance_auto", bundle: .module) }
+    static var language: String { String(localized: "language", bundle: .module) }
+    static var languageAuto: String { String(localized: "language_auto", bundle: .module) }
     /// L-23, VoiceOver only. The lap count has no column of its own and no word
     /// on the wire: `GET /i18n/{lang}`'s `labels` names the six columns and
     /// nothing else, so there is no server string to speak it with. Sighted
