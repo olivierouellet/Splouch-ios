@@ -25,6 +25,16 @@ import Testing
             bundleCache: InMemoryBundleCache(), session: stub.session, connector: FakeConnector())
     }
 
+    /// P-06: no picker config yet — a first launch offline — means no notice,
+    /// not the snapshot's copy of another server's words. Same on Android.
+    @Test func noPickerConfigMeansNoNotice() async {
+        let stub = StubServer()
+        let app = make(stub, folds: InMemoryNoticeFoldStore())
+        await app.load()  // nothing routed: the server never answers
+        #expect(app.noticeText(.results) == nil)
+        #expect(app.noticeText(.attendance) == nil)
+    }
+
     @Test func aStoredTextThatMatchesStartsFolded() async {
         let stub = StubServer()
         serve(stub)
