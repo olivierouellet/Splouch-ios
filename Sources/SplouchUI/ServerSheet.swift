@@ -38,14 +38,13 @@ struct ServerSheet: View {
                 // P-12: nothing is browsed until this is tapped. A browse in an
                 // idle sheet costs battery, and iOS's local-network prompt should
                 // answer something the reader did rather than the sheet opening.
+                // One scan per tap; what it found stays listed after it ends.
                 Section(Native.localServer) {
+                    ForEach(bonjour.found) { f in row(f.name, f.address) }
                     if bonjour.browsing {
-                        if bonjour.found.isEmpty {
-                            ProgressView().frame(maxWidth: .infinity)
-                        }
-                        ForEach(bonjour.found) { f in row(f.name, f.address) }
+                        ProgressView().frame(maxWidth: .infinity)
                     } else {
-                        if search > 0 {
+                        if search > 0 && bonjour.found.isEmpty {
                             Text(Native.localNoneFound).foregroundStyle(.secondary)
                         }
                         Button(search > 0 ? Native.localSearchAgain : Native.localSearch) {
@@ -111,12 +110,12 @@ struct ServerSheet: View {
             try? await Task.sleep(for: .seconds(6))
             if removed == shown { removed = nil }
         }
-        // P-12: ~10 s with nothing found ends the browse and says so. Once
-        // something answers, it runs on until the sheet closes. A failed browse
-        // stops itself, and lands on the same answer.
+        // P-12: a scan, not a watch — ~10 s and the browse ends whatever it
+        // found, so nothing is left running for the sheet's lifetime or across a
+        // background. A failed browse stops itself, and lands on the same answer.
         .task(id: search) {
             guard search > 0, (try? await Task.sleep(for: .seconds(10))) != nil else { return }
-            if bonjour.found.isEmpty { bonjour.stop() }
+            bonjour.finish()
         }
         .onDisappear { bonjour.stop() }
     }

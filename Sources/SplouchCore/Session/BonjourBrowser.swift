@@ -28,9 +28,12 @@ public final class BonjourBrowser {
 
     public init() {}
 
+    /// A fresh scan: the last one's hits go, since the reader may have changed
+    /// networks since.
     public func start() {
         #if canImport(Network)
         guard browser == nil else { return }
+        found = []
         let b = NWBrowser(for: .bonjour(type: Self.serviceType, domain: nil), using: .tcp)
         b.browseResultsChangedHandler = { [weak self] results, _ in
             let endpoints = results.map { ($0.endpoint, $0.metadata) }
@@ -47,7 +50,9 @@ public final class BonjourBrowser {
         #endif
     }
 
-    public func stop() {
+    /// P-12: the scan is over. What it found stays on offer; nothing is left
+    /// running on the network.
+    public func finish() {
         #if canImport(Network)
         browser?.cancel()
         browser = nil
@@ -55,6 +60,11 @@ public final class BonjourBrowser {
         resolvers = []
         #endif
         browsing = false
+    }
+
+    /// The sheet closed: the scan ends and its hits go with it.
+    public func stop() {
+        finish()
         found = []
     }
 

@@ -219,6 +219,22 @@ import Network
         #expect(!b.browsing)
     }
 
+    /// P-12: the scan ending keeps its hits on offer; the next scan starts
+    /// clean, so a network left since does not haunt the list.
+    @MainActor
+    @Test func finishingKeepsTheHitsAndTheNextScanDropsThem() {
+        let b = BonjourBrowser()
+        b.start()
+        b.resolved(name: "Piscine", remote: endpoint(.ipv4(IPv4Address("192.168.1.9")!)))
+        b.finish()
+        #expect(!b.browsing)
+        #expect(b.found.count == 1)
+        b.start()
+        #expect(b.browsing)
+        #expect(b.found.isEmpty)
+        b.stop()
+    }
+
     /// One Pi answering on two interfaces is one row. Identity is the origin, so
     /// the same host twice collapses and a second interface does not.
     @MainActor
