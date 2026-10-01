@@ -36,7 +36,7 @@ swift test
 
 ## Also
 
-- [ ] `README.md` / `emulator.md` updated, if this changes something a developer runs.
+- [ ] `docs/development.md` / `emulator.md` updated, if this changes something a developer runs.
 - [ ] Commits read `[Area] What changed`, one topic each.
 - [ ] Accessibility held up: Dynamic Type at an accessibility size, and VoiceOver order and labels, for any screen this touches.
 

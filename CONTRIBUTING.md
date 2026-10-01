@@ -59,7 +59,7 @@ xcodebuild -project App/Splouch.xcodeproj -scheme Splouch \
 ```
 
 [`emulator.md`](emulator.md) has the full simulator recipe — booting a device, installing,
-launching against a local server, taking screenshots. The [README](README.md) has the
+launching against a local server, taking screenshots. [`docs/development.md`](docs/development.md) has the
 two dev servers and how to push live frames without a timing console.
 
 Debug builds read `SPLOUCH_SERVER`, `SPLOUCH_MEET` and `SPLOUCH_TAB` from the launch

@@ -96,7 +96,7 @@ body:
       label: Steps to reproduce
       description: >
         If it needs live frames, say so. A recorded session played through the server's
-        Test tab that reproduces it is worth more than any description — see the README.
+        Test tab that reproduces it is worth more than any description — see docs/development.md.
       placeholder: |
         1. Open the meet on the default cloud
         2. Start a heat from a recorded session
