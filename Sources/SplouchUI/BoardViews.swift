@@ -169,7 +169,8 @@ struct WallClock: View {
         TimelineView(.periodic(from: .now, by: 1)) { ctx in
             Text(Self.hhmm(ctx.date))
                 .font(faces.clock(size))
-                .foregroundStyle(palette.headerValue)
+                // The accent blue, like the EVENT/HEAT words, as on every board.
+                .foregroundStyle(palette.headerLabel)
                 .monospacedDigit()
         }
     }
