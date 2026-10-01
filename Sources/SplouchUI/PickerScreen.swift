@@ -45,6 +45,9 @@ struct PickerScreen: View {
             }
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
+            // The branding has no cell to separate from what follows, so the
+            // grouped list's full section gap only pushes the notices away.
+            .compactSectionSpacing()
 
             notices
             meets
@@ -140,13 +143,6 @@ struct PickerScreen: View {
         }
     }
 
-    // P-05
-    //
-    // In landscape this block was taking the top third of the screen with the
-    // logo floating in the middle of it and the meet list pushed to the bottom
-    // edge. Two reasons, both fixed here: an operator who sets a logo and no
-    // title still got an empty `.title2` line holding its full height, and the
-    // 80pt logo box plus its padding is sized for the axis that has room.
     /// P-11: the meet list always names its server — every card on it came
     /// from there, whichever one it is. Inside a meet only a non-default one is
     /// named (MeetShell.subtitle). By its address rather than its name: the
@@ -154,13 +150,25 @@ struct PickerScreen: View {
     /// P-14: the contract notice sits beside it, never a gate.
     private var serverLine: some View {
         let parts = [app.server.display, app.contractNotice].compactMap { $0 }
-        return Label(parts.joined(separator: " \u{00B7} "), systemImage: "server.rack")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity)
-            .accessibilityElement(children: .combine)
+        // An HStack rather than a Label: in a list row a Label's icon takes the
+        // row's leading column, which left a wide gap before the address.
+        return HStack(spacing: 4) {
+            Image(systemName: "server.rack")
+            Text(parts.joined(separator: " \u{00B7} "))
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
     }
 
+    // P-05
+    //
+    // In landscape this block was taking the top third of the screen with the
+    // logo floating in the middle of it and the meet list pushed to the bottom
+    // edge. Two reasons, both fixed here: an operator who sets a logo and no
+    // title still got an empty `.title2` line holding its full height, and the
+    // 80pt logo box plus its padding is sized for the axis that has room.
     @ViewBuilder private var branding: some View {
         let title = picker?.title ?? app.serverName
         let above = picker?.logoAbove ?? false
@@ -185,7 +193,10 @@ struct PickerScreen: View {
             if !above { logo }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, shortScreen ? 2 : 8)
+        .padding(.top, shortScreen ? 2 : 8)
+        // Nothing under the logo but the notices, which read as its caption:
+        // the row's bottom inset is what kept them a screen-third away.
+        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 0, trailing: 16))
     }
 
     // P-06, P-07: served, never compiled in, and above the list — under the
@@ -216,7 +227,7 @@ struct PickerScreen: View {
                 }
                 .frame(maxWidth: .infinity)
                 // No cell here, so no cell margins: the pills get the width.
-                .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 4, trailing: 0))
             }
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
@@ -398,6 +409,14 @@ extension View {
         self.listStyle(.insetGrouped)
         #else
         self.listStyle(.sidebar)
+        #endif
+    }
+
+    @ViewBuilder fileprivate func compactSectionSpacing() -> some View {
+        #if os(iOS)
+        self.listSectionSpacing(.compact)
+        #else
+        self
         #endif
     }
 }
