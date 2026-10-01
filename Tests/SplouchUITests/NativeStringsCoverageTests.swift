@@ -109,7 +109,7 @@ import Testing
     @Test func theAccessorsResolveTheirBundleWithoutTrapping() {
         #expect(Bundle.module.url(forResource: "Localizable", withExtension: "xcstrings") != nil)
         for s in [
-            Native.server, Native.addServer, Native.nearby, Native.retry,
+            Native.server, Native.addServer, Native.localServer, Native.retry,
             Native.appearanceAuto, Native.meetGone, Native.invalidAddress,
         ] {
             #expect(!s.isEmpty)

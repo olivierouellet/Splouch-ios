@@ -1,13 +1,16 @@
 import SplouchCore
 import SwiftUI
 
-/// P-11: the servers on offer; P-12: the ones found on the local network;
+/// P-11: the servers on offer; P-12: the ones found on the local network, once
+/// asked for;
 /// P-13: one added by hand, checked with `GET /server` before it is saved.
 /// Every word here is about the app or the device, so it is native (T-05).
 struct ServerSheet: View {
     let app: AppModel
     @Environment(\.dismiss) private var dismiss
     @State private var bonjour = BonjourBrowser()
+    /// P-12: bumped by each tap on Search; the browse's time limit runs per tap.
+    @State private var search = 0
     @State private var typed = ""
     @State private var checking = false
     @State private var checkError: String?
@@ -32,12 +35,23 @@ struct ServerSheet: View {
                             }
                     }
                 }
-                if bonjour.browsing {
-                    Section(Native.nearby) {
+                // P-12: nothing is browsed until this is tapped. A browse in an
+                // idle sheet costs battery, and iOS's local-network prompt should
+                // answer something the reader did rather than the sheet opening.
+                Section(Native.localServer) {
+                    if bonjour.browsing {
                         if bonjour.found.isEmpty {
-                            ProgressView()
+                            ProgressView().frame(maxWidth: .infinity)
                         }
                         ForEach(bonjour.found) { f in row(f.name, f.address) }
+                    } else {
+                        if search > 0 {
+                            Text(Native.localNoneFound).foregroundStyle(.secondary)
+                        }
+                        Button(search > 0 ? Native.localSearchAgain : Native.localSearch) {
+                            search += 1
+                            bonjour.start()
+                        }
                     }
                 }
                 // One row, not three. The section header already says "Add
@@ -97,7 +111,13 @@ struct ServerSheet: View {
             try? await Task.sleep(for: .seconds(6))
             if removed == shown { removed = nil }
         }
-        .onAppear { bonjour.start() }
+        // P-12: ~10 s with nothing found ends the browse and says so. Once
+        // something answers, it runs on until the sheet closes. A failed browse
+        // stops itself, and lands on the same answer.
+        .task(id: search) {
+            guard search > 0, (try? await Task.sleep(for: .seconds(10))) != nil else { return }
+            if bonjour.found.isEmpty { bonjour.stop() }
+        }
         .onDisappear { bonjour.stop() }
     }
 

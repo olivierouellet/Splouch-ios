@@ -8,7 +8,12 @@ enum Native {
     static var server: String { String(localized: "server", bundle: .module) }
     static var addServer: String { String(localized: "add_server", bundle: .module) }
     static var serverPlaceholder: String { String(localized: "server_placeholder", bundle: .module) }
-    static var nearby: String { String(localized: "nearby", bundle: .module) }
+    // P-12. The browse runs only when asked, so the section names who it is for
+    // and carries its own button and its own empty answer.
+    static var localServer: String { String(localized: "local_server", bundle: .module) }
+    static var localSearch: String { String(localized: "local_search", bundle: .module) }
+    static var localSearchAgain: String { String(localized: "local_search_again", bundle: .module) }
+    static var localNoneFound: String { String(localized: "local_none_found", bundle: .module) }
     static var cancel: String { String(localized: "cancel", bundle: .module) }
     static var ok: String { String(localized: "ok", bundle: .module) }
     static var retry: String { String(localized: "retry", bundle: .module) }
