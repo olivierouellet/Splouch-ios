@@ -132,8 +132,16 @@ struct HeatCard: View {
         // event name beside it and said nothing the gap does not. Twice the
         // within-pair gap is what groups "EV 12" against "HT 3" in a monospaced
         // face, so the reading is the same and the line is shorter.
-        let eventHeat = Text("\(labels["event"] ?? "") \(heat.heat.event)  \(labels["heat"] ?? "") \(heat.heat.heat)")
-            .font(faces.text(17 * typeScale, weight: .semibold)).foregroundStyle(palette.scheduleEvent)
+        //
+        // The words take `schedule_event` and the numbers `schedule_name`, as the
+        // board header splits `header_label` from `header_value`: the colour is
+        // what tells a word from its number on one line.
+        let word = { (s: String) in Text(s).foregroundStyle(palette.scheduleEvent) }
+        let number = { (s: String) in Text(s).foregroundStyle(palette.scheduleName) }
+        let eventHeat =
+            (word("\(labels["event"] ?? "") ") + number(heat.heat.event)
+            + word("  \(labels["heat"] ?? "") ") + number(heat.heat.heat))
+            .font(faces.text(17 * typeScale, weight: .semibold))
         let name =
             eventName.isEmpty ? nil : Text(eventName).font(faces.text(17 * typeScale)).foregroundStyle(palette.rowText)
         // At its own width, not the seed column's. The heading's time is a clock
