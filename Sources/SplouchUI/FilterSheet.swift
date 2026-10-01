@@ -90,7 +90,7 @@ struct FilterSheet: View {
                     Button {
                         dismiss()
                     } label: {
-                        Label(Native.done, systemImage: "checkmark")
+                        Label(strings.mobile("filter_done"), systemImage: "checkmark")
                             .labelStyle(.iconOnly)
                     }
                 }

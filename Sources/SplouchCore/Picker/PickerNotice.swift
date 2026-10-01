@@ -25,19 +25,10 @@ public enum PickerNotice: String, Sendable, CaseIterable {
         }
     }
 
-    /// What an older server that predates `shortKey` gets instead. English,
-    /// because the full text beside it is the server's and a pill in a second
-    /// language would be worse than a pill in the first.
-    public var fallbackShort: String {
-        switch self {
-        case .results: "Unofficial results"
-        case .attendance: "Attendance counting"
-        }
-    }
-
-    /// The X's accessibility label, shared by both notices.
+    /// The X's accessibility label, shared by both notices. Like `shortKey`,
+    /// missing from an older server's `strings`; both then come from the
+    /// strings snapshot, in the reader's language, never from the app.
     public static let collapseKey = "notice_collapse"
-    public static let fallbackCollapse = "Collapse"
 }
 
 /// Which notices the reader folded, per server (app.md P-06).

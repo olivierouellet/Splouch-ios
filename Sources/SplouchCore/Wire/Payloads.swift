@@ -278,17 +278,15 @@ public struct ScheduleSwimmer: Sendable, Equatable {
 public struct I18nBundle: Sendable, Equatable, Codable {
     public var lang: String
     public var mobile: [String: String]
-    public var display: [String: String]
     public var labels: [String: [String: String]]
     public var eventName: [String: String]
 
     public init(
-        lang: String, mobile: [String: String] = [:], display: [String: String] = [:],
+        lang: String, mobile: [String: String] = [:],
         labels: [String: [String: String]] = [:], eventName: [String: String] = [:]
     ) {
         self.lang = lang
         self.mobile = mobile
-        self.display = display
         self.labels = labels
         self.eventName = eventName
     }

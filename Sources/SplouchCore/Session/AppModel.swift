@@ -229,9 +229,27 @@ public final class AppModel {
         await switchServer(address)
     }
 
-    public func removeSavedServer(_ saved: SavedServer) {
+    /// P-13. Returns what it took away, or nil if there was nothing to take:
+    /// removing a hand-added server is one swipe, so it has to be undoable, and
+    /// an undo that cannot put the row back where it was is not one.
+    @discardableResult
+    public func removeSavedServer(_ saved: SavedServer) -> RemovedServer? {
+        guard let index = preferences.savedServers.firstIndex(where: { $0.id == saved.id }) else { return nil }
         var p = preferences
+        let removed = p.savedServers.remove(at: index)
         p.savedServers.removeAll { $0.id == saved.id }
+        preferences = p
+        preferencesStore.save(p)
+        return RemovedServer(server: removed, index: index)
+    }
+
+    /// The inverse of `removeSavedServer`: the row goes back at its own index.
+    /// No `GET /server` — it answered once when it was added (P-13), and undoing
+    /// a slip on a pool deck's network is not the moment to ask again.
+    public func restoreSavedServer(_ removed: RemovedServer) {
+        guard !preferences.savedServers.contains(where: { $0.id == removed.server.id }) else { return }
+        var p = preferences
+        p.savedServers.insert(removed.server, at: min(removed.index, p.savedServers.count))
         preferences = p
         preferencesStore.save(p)
     }

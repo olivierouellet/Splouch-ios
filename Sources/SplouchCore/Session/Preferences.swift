@@ -13,6 +13,13 @@ public struct SavedServer: Sendable, Codable, Equatable, Identifiable {
     }
 }
 
+/// What `AppModel.removeSavedServer` took away, so Undo can put it back where
+/// it was (P-13).
+public struct RemovedServer: Sendable, Equatable {
+    public let server: SavedServer
+    public let index: Int
+}
+
 /// Light or dark for the app's own chrome (P-15). A meet themes itself (app.md
 /// §7), so this governs the picker and the sheets over it; inside a meet the
 /// board's own background decides, which is why there is no "follow the meet"

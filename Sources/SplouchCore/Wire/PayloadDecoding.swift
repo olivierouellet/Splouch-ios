@@ -205,7 +205,7 @@ extension I18nBundle {
             }
         }
         self.init(
-            lang: json.str("lang"), mobile: json.strings("mobile"), display: json.strings("display"),
+            lang: json.str("lang"), mobile: json.strings("mobile"),
             labels: labels, eventName: json.strings("event_name"))
     }
     public init(data: Data) throws { self.init(json: try JSONValue.parse(data)) }

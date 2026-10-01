@@ -1,0 +1,44 @@
+# The strings snapshot is a copy of the default cloud's `GET /i18n/{lang}` (app.md
+# T-10), and nothing else would notice it going stale: the app still builds, it just
+# ships English, or the key itself, wherever the server has gained a word since the
+# last capture. So this compares the committed snapshot with what the cloud serves
+# today and fails with the keys that differ.
+#
+# A workflow of its own, not a job in ci.yml, because it can go red without anything
+# in this repo changing: the server's locale files moved. The weekly run is what
+# catches that between commits. The fix is always the same — run the script without
+# --check and commit what it writes.
+name: Strings snapshot
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+# Reads the tree and fetches a public URL; pushes, comments and uploads nothing.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  snapshot:
+    name: Snapshot matches the default cloud
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install zsh
+        # The script is zsh (glob qualifiers), like everything else in scripts/.
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends zsh
+
+      - name: Compare with https://splouch.ca
+        run: zsh scripts/update-strings.sh --check https://splouch.ca

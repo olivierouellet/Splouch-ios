@@ -110,7 +110,7 @@ import Testing
         #expect(Bundle.module.url(forResource: "Localizable", withExtension: "xcstrings") != nil)
         for s in [
             Native.server, Native.addServer, Native.nearby, Native.retry,
-            Native.appearanceAuto, Native.laps, Native.meetGone, Native.invalidAddress,
+            Native.appearanceAuto, Native.meetGone, Native.invalidAddress,
         ] {
             #expect(!s.isEmpty)
         }

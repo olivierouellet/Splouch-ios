@@ -526,6 +526,32 @@ import Testing
         #expect(app.preferences.savedServers.map(\.name) == ["Club B"])
     }
 
+    /// P-13: Undo puts the row back where it was, and only once.
+    @Test func undoingARemovalPutsTheServerBackInPlace() async {
+        let stub = StubServer()
+        cloud(stub)
+        let app = make(stub)
+        for (name, url) in [
+            ("Club A", "https://a.example"), ("Club B", "https://b.example"), ("Club C", "https://c.example"),
+        ] {
+            await app.addServer(
+                ServerAddress(typed: url)!,
+                info: ServerInfo(kind: .cloud, name: name, contract: .init(api: "v2", app: "v2")))
+        }
+        let b = app.preferences.savedServers[1]
+        let removed = app.removeSavedServer(b)
+        #expect(removed == RemovedServer(server: b, index: 1))
+        #expect(app.preferences.savedServers.map(\.name) == ["Club A", "Club C"])
+        app.restoreSavedServer(removed!)
+        #expect(app.preferences.savedServers.map(\.name) == ["Club A", "Club B", "Club C"])
+        // A second Undo of the same removal changes nothing.
+        app.restoreSavedServer(removed!)
+        #expect(app.preferences.savedServers.map(\.name) == ["Club A", "Club B", "Club C"])
+        // Nothing to undo when nothing was removed.
+        #expect(
+            app.removeSavedServer(SavedServer(name: "x", address: ServerAddress(typed: "https://z.example")!)) == nil)
+    }
+
     /// The directory is the one part of the load that is allowed to fail on its
     /// own: a cloud that cannot list its siblings still has meets to show, so
     /// `/servers` falling over empties the directory instead of the screen.

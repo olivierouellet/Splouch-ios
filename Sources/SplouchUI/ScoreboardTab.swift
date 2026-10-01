@@ -44,7 +44,7 @@ struct ScoreboardTab: View {
                             BoardRow($0, board[lane: $0], lap: board.lap(lane: $0, laps))
                         },
                         columns: Columns(ctx.settings, laps: laps), labels: ctx.labels,
-                        isWide: isWide,
+                        lapsWord: ctx.strings.mobile("spoken_laps"), isWide: isWide,
                         height: BoardTable.tableHeight(in: geo))
                 }
                 .refreshable { await ctx.refresh() }

@@ -97,7 +97,10 @@ Two kinds, split by what the word is about (app.md T-05):
 
   `SnapshotCoverageTests` fails if the app asks for a `mobile` key the captured
   snapshot does not carry, so a new key is added on the server first and
-  captured here second.
+  captured here second. The other direction is CI's:
+  `.github/workflows/strings.yml` runs the script with `--check` against
+  `https://splouch.ca` on every push and weekly, and fails with the keys that
+  differ when the server has moved on.
 - **Native.** Words about the app or the device — the server sheet, "nearby",
   connection and address errors, retry, open board — live in
   `Sources/SplouchUI/Resources/Localizable.xcstrings` (en, fr, es) behind the

@@ -11,6 +11,8 @@ struct ServerSheet: View {
     @State private var typed = ""
     @State private var checking = false
     @State private var checkError: String?
+    /// P-13: the row a swipe just took away, while its Undo is on offer.
+    @State private var removed: RemovedServer?
 
     var body: some View {
         NavigationStack {
@@ -22,7 +24,7 @@ struct ServerSheet: View {
                                 if let saved = app.preferences.savedServers.first(where: { $0.id == s.id }) {
                                     // Only hand-added servers can be removed; the rest are data.
                                     Button(role: .destructive) {
-                                        app.removeSavedServer(saved)
+                                        removed = app.removeSavedServer(saved)
                                     } label: {
                                         Label(Native.remove, systemImage: "trash")
                                     }
@@ -84,8 +86,41 @@ struct ServerSheet: View {
                 ToolbarItem(placement: .cancellationAction) { cancelButton }
             }
         }
+        .overlay(alignment: .bottom) { undoBar }
+        .animation(.default, value: removed)
+        // One Undo at a time, for a few seconds: long enough to read and reach,
+        // short enough that it is not still offering a server removed a while ago.
+        // A second removal restarts it for the new row, as a snackbar would.
+        .task(id: removed) {
+            guard let shown = removed else { return }
+            AccessibilityNotification.Announcement(Native.serverRemoved).post()
+            try? await Task.sleep(for: .seconds(6))
+            if removed == shown { removed = nil }
+        }
         .onAppear { bonjour.start() }
         .onDisappear { bonjour.stop() }
+    }
+
+    /// The platform has no snackbar, so this is one: the message and the one
+    /// action that answers it, floating over the foot of the sheet.
+    @ViewBuilder private var undoBar: some View {
+        if let shown = removed {
+            HStack(spacing: 12) {
+                Text(Native.serverRemoved)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Button(Native.undo) {
+                    app.restoreSavedServer(shown)
+                    removed = nil
+                }
+                .fontWeight(.semibold)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.regularMaterial, in: Capsule())
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
     }
 
     /// The platform's own Cancel where it offers one, ours below that.

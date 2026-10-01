@@ -10,10 +10,11 @@ enum Native {
     static var serverPlaceholder: String { String(localized: "server_placeholder", bundle: .module) }
     static var nearby: String { String(localized: "nearby", bundle: .module) }
     static var cancel: String { String(localized: "cancel", bundle: .module) }
-    static var done: String { String(localized: "done", bundle: .module) }
     static var ok: String { String(localized: "ok", bundle: .module) }
     static var retry: String { String(localized: "retry", bundle: .module) }
     static var remove: String { String(localized: "remove", bundle: .module) }
+    static var serverRemoved: String { String(localized: "server_removed", bundle: .module) }
+    static var undo: String { String(localized: "undo", bundle: .module) }
     static var checking: String { String(localized: "checking", bundle: .module) }
     static var openBoard: String { String(localized: "open_board", bundle: .module) }
     static var meetGone: String { String(localized: "meet_gone", bundle: .module) }
@@ -40,13 +41,4 @@ enum Native {
     static var appearanceAuto: String { String(localized: "appearance_auto", bundle: .module) }
     static var language: String { String(localized: "language", bundle: .module) }
     static var languageAuto: String { String(localized: "language_auto", bundle: .module) }
-    /// L-23, VoiceOver only. The lap count has no column of its own and no word
-    /// on the wire: `GET /i18n/{lang}`'s `labels` names the six columns and
-    /// nothing else, so there is no server string to speak it with. Sighted
-    /// readers get the colour and the moment of the swap; a screen reader would
-    /// otherwise get a bare integer after the time. The word is the app's, which
-    /// means it is in the app's three languages rather than the meet's — the one
-    /// place on the board where T-04 does not hold, and worth it against a
-    /// number nobody can identify.
-    static var laps: String { String(localized: "laps", bundle: .module) }
 }

@@ -39,7 +39,7 @@ struct ResultsTab: View {
                         BoardTable(
                             rows: ResultsBoard.rows(snapshot, numLanes: n).map(BoardRow.init),
                             columns: Columns(ctx.settings), labels: ctx.labels,
-                            isWide: isWide,
+                            lapsWord: ctx.strings.mobile("spoken_laps"), isWide: isWide,
                             height: BoardTable.tableHeight(in: geo))
                     } else {
                         // R-01: an empty lane grid here says nothing. Blank rows

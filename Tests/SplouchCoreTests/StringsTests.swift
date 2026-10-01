@@ -68,7 +68,6 @@ import Testing
 @Suite struct StringTableTests {
     let english = I18nBundle(
         lang: "en", mobile: ["scoreboard": "Scoreboard", "results": "Results", "brand_new": "New"],
-        display: ["retrying": "retrying"],
         labels: [
             "short": ["event": "EV", "heat": "HT", "lane": "LN"],
             "long": ["event": "EVENT", "heat": "HEAT", "lane": "LN"],
@@ -87,7 +86,6 @@ import Testing
         #expect(t.mobile("scoreboard") == "Tableau")  // server blank → built-in
         #expect(t.mobile("brand_new") == "New")  // English floor
         #expect(t.mobile("unheard_of") == "unheard_of")  // the key itself
-        #expect(t.display("retrying") == "retrying")
     }
 
     @Test func vocabularyAndLabelsMergePerKey() {

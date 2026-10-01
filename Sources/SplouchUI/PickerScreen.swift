@@ -70,7 +70,11 @@ struct PickerScreen: View {
 
     /// A picker string: `GET /picker/config` first, then the `mobile` table an
     /// older server that predates the key still falls back through (T-10).
-    private func served(_ key: String) -> String { picker?.strings[key] ?? strings.mobile(key) }
+    /// Empty counts as absent, as it does in `StringTable`.
+    private func served(_ key: String) -> String {
+        if let v = picker?.strings[key], !v.isEmpty { return v }
+        return strings.mobile(key)
+    }
 
     /// P-17: under three meets there is no field, and nothing is filtered — a
     /// query typed before a refresh shrank the list waits for it to grow back,
@@ -255,7 +259,7 @@ struct PickerScreen: View {
             // rather than the accent, as the system's own close glyphs are.
             .buttonStyle(.borderless)
             .tint(.secondary)
-            .accessibilityLabel(served(PickerNotice.collapseKey, or: PickerNotice.fallbackCollapse))
+            .accessibilityLabel(served(PickerNotice.collapseKey))
             .accessibilityFocused($noticeFocus, equals: .close(notice))
         }
         .padding(.vertical, 4)
@@ -265,7 +269,7 @@ struct PickerScreen: View {
     /// inside its capsule rather than let the stack take over.
     @ViewBuilder private func pills(_ folded: [PickerNotice], oneLine: Bool) -> some View {
         ForEach(folded, id: \.self) { notice in
-            let label = served(notice.shortKey, or: notice.fallbackShort)
+            let label = served(notice.shortKey)
             Button {
                 app.unfold(notice)
                 focus(.close(notice))
@@ -301,11 +305,6 @@ struct PickerScreen: View {
     /// A notice string from `GET /picker/config`, never through `mobile`: this
     /// is compliance text, and an older server that predates the key gets the
     /// English the contract names.
-    private func served(_ key: String, or fallback: String) -> String {
-        if let v = picker?.strings[key], !v.isEmpty { return v }
-        return fallback
-    }
-
     // P-11 (native words), T-08 and T-09 (the server's words).
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .automatic) {

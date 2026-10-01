@@ -180,6 +180,9 @@ struct BoardTable: View {
     let rows: [BoardRow]
     let columns: Columns
     let labels: [String: String]
+    /// X-01: the word a lap count is spoken with — `[mobile] spoken_laps`,
+    /// the server's (T-05), as the web board speaks it.
+    let lapsWord: String
     let isWide: Bool
     /// How far the table holds off the floating tab bar, so the last lane is
     /// not read against the glass.
@@ -351,10 +354,10 @@ struct BoardTable: View {
         if columns.club { parts.append(pair("club", row.club)) }
         parts.append(pair("time", row.time))
         // L-23: whichever tenant the cell has. The delta keeps the server's own
-        // column word; the lap has none to keep — see `Native.laps`.
+        // column word; no column names a lap, so it gets `spoken_laps` (X-01).
         if columns.delta {
             if row.delta.isEmpty, let lap = row.lap {
-                parts.append(Native.laps + " " + lap.text)
+                parts.append(lapsWord + " " + lap.text)
             } else {
                 parts.append(pair("delta", row.delta))
             }

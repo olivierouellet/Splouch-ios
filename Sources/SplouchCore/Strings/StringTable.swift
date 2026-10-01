@@ -36,11 +36,6 @@ public struct StringTable: Sendable, Equatable {
         resolve(key) { $0.mobile }
     }
 
-    /// Status messages: `waiting_server`, `connection_lost`, `retrying`.
-    public func display(_ key: String) -> String {
-        resolve(key) { $0.display }
-    }
-
     /// The vocabulary `event_name_parts` composes against, merged per key.
     public var eventVocabulary: [String: String] {
         merged { $0.eventName }
