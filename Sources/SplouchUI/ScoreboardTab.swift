@@ -4,7 +4,7 @@ import SwiftUI
 /// The live board (app.md §3).
 struct ScoreboardTab: View {
     let ctx: MeetContext
-    let isLandscape: Bool
+    let isWide: Bool
     /// The navigation bar is drawing the EVENT / HEAT row instead of this tab.
     /// Always so in landscape; in portrait only when the lanes need the height
     /// (`MeetShell.crowdedPortrait`).
@@ -44,7 +44,7 @@ struct ScoreboardTab: View {
                             BoardRow($0, board[lane: $0], lap: board.lap(lane: $0, laps))
                         },
                         columns: Columns(ctx.settings, laps: laps), labels: ctx.labels,
-                        isLandscape: isLandscape,
+                        isWide: isWide,
                         height: BoardTable.tableHeight(in: geo))
                 }
                 .refreshable { await ctx.refresh() }
@@ -73,7 +73,7 @@ struct ScoreboardTab: View {
     /// back. Nothing here is a constant: the lane's height and the header's band
     /// are both measured on the device in front of the reader.
     private func needsBar(in geo: GeometryProxy) -> Bool {
-        guard !isLandscape, laneIdeal > 0, headerBand > 0 else { return false }
+        guard !isWide, laneIdeal > 0, headerBand > 0 else { return false }
         let available = BoardTable.tableHeight(in: geo)
         let withTheBar = headerInBar ? available : available + headerBand
         return CGFloat(max(1, ctx.settings.numLanes)) * laneIdeal > withTheBar

@@ -233,7 +233,7 @@ import Testing
 
 @Suite(.serialized) @MainActor struct AppModelTests {
     func cloud(_ stub: StubServer) {
-        stub.route("/server", json: #"{"kind":"cloud","name":"Splouch","contract":{"api":"v2","app":"v1"}}"#)
+        stub.route("/server", json: #"{"kind":"cloud","name":"Splouch","contract":{"api":"v2","app":"v2"}}"#)
         stub.route(
             "/picker/config",
             json: #"{"title":"Splouch","lang":"fr","analytics_enabled":true,"strings":{"no_meets":"Aucune"}}"#)
@@ -302,7 +302,7 @@ import Testing
             connector: FakeConnector())
         await app.start()
         #expect(app.unreachable)
-        let info = ServerInfo(kind: .cloud, name: "Stub", contract: .init(api: "v2", app: "v1"))
+        let info = ServerInfo(kind: .cloud, name: "Stub", contract: .init(api: "v2", app: "v2"))
         await app.addServer(stub.address, info: info)
         #expect(!app.isDefaultServer)
         #expect(app.serverInfo?.name == "Splouch")
@@ -352,6 +352,32 @@ import Testing
         #expect(ThemeColors.dark.rowText == "#e0e0e0")
         // A meet that names its own colours changes neither.
         #expect(ThemeColors.dark == ThemeColors())
+    }
+
+    /// `api.md` §6.1, copied by hand: a hand-copied palette drifts — `header_label`
+    /// sat at white instead of the accent blue — so every key the app carries is held
+    /// to the published table.
+    @Test func bothPalettesMatchThePublishedTable() {
+        let dark = [
+            "bg": "#0d0d0d", "header_bg": "#1a1a1a", "header_border": "#2e2e2e",
+            "header_label": "#3b9eff", "header_value": "#e0e0e0", "th_text": "#666666",
+            "th_bg": "#1a1a1a", "row_odd": "#141414", "row_even": "#202020",
+            "row_text": "#e0e0e0", "time": "#FFD700", "delta_better": "#4CAF50",
+            "delta_worse": "#808080", "podium_gold": "#545454", "podium_silver": "#424242",
+            "podium_bronze": "#343434", "schedule_event": "#3b9eff",
+            "schedule_time": "#FFD700", "schedule_name": "#e0e0e0", "schedule_club": "#666666",
+        ]
+        let light = [
+            "bg": "#f8f8f8", "header_bg": "#ffffff", "header_border": "#dddddd",
+            "header_label": "#333333", "header_value": "#111111", "th_text": "#888888",
+            "th_bg": "#f0f0f0", "row_odd": "#f5f5f5", "row_even": "#ffffff",
+            "row_text": "#111111", "time": "#0055aa", "delta_better": "#2e7d32",
+            "delta_worse": "#757575", "podium_gold": "#d0d0d0", "podium_silver": "#dcdcdc",
+            "podium_bronze": "#e8e8e8", "schedule_event": "#0055cc",
+            "schedule_time": "#0055aa", "schedule_name": "#111111", "schedule_club": "#888888",
+        ]
+        for (key, value) in ThemeColors.defaults { #expect(dark[key] == value, "dark \(key)") }
+        for (key, value) in ThemeColors.lightDefaults { #expect(light[key] == value, "light \(key)") }
     }
 
     /// P-15: preferences written before the control existed carry no key, and
@@ -406,20 +432,20 @@ import Testing
     @Test func contractMismatchIsANoticeNotAGate() async {
         let stub = StubServer()
         cloud(stub)
-        stub.route("/server", json: #"{"kind":"cloud","name":"Old","contract":{"api":"v1","app":"v1"}}"#)
+        stub.route("/server", json: #"{"kind":"cloud","name":"Old","contract":{"api":"v1","app":"v2"}}"#)
         let app = make(stub)
         await app.start()
         #expect(!app.unreachable)
         #expect(app.meets.count == 1)  // connected regardless
         #expect(app.contractNotice == "api v1 ≠ v2")
-        stub.route("/server", json: #"{"kind":"cloud","name":"New","contract":{"api":"v2","app":"v1"}}"#)
+        stub.route("/server", json: #"{"kind":"cloud","name":"New","contract":{"api":"v2","app":"v2"}}"#)
         await app.load()
         #expect(app.contractNotice == nil)
     }
 
     @Test func piStartSkipsThePicker() async throws {
         let stub = StubServer()
-        stub.route("/server", json: #"{"kind":"pi","name":"Piscine","contract":{"api":"v2","app":"v1"}}"#)
+        stub.route("/server", json: #"{"kind":"pi","name":"Piscine","contract":{"api":"v2","app":"v2"}}"#)
         stub.route("/config", json: #"{"num_lanes":10,"meet_title":"Regional","locale":"fr"}"#)
         let app = make(stub)
         await app.start()
@@ -470,9 +496,9 @@ import Testing
             bundleCache: InMemoryBundleCache(), session: stub.session,
             connector: FakeConnector())
         await app.addServer(
-            stub.address, info: ServerInfo(kind: .cloud, name: "Pool", contract: .init(api: "v2", app: "v1")))
+            stub.address, info: ServerInfo(kind: .cloud, name: "Pool", contract: .init(api: "v2", app: "v2")))
         await app.addServer(
-            stub.address, info: ServerInfo(kind: .cloud, name: "Pool renamed", contract: .init(api: "v2", app: "v1")))
+            stub.address, info: ServerInfo(kind: .cloud, name: "Pool renamed", contract: .init(api: "v2", app: "v2")))
         #expect(store.load().savedServers.map(\.name) == ["Pool renamed"])
         // And the menu does not show the same origin twice either.
         #expect(app.knownServers.filter { $0.address == stub.address }.count == 1)
@@ -487,9 +513,9 @@ import Testing
         let a = SavedServer(name: "Club A", address: ServerAddress(typed: "https://a.example")!)
         let b = SavedServer(name: "Club B", address: ServerAddress(typed: "https://b.example")!)
         await app.addServer(
-            a.address, info: ServerInfo(kind: .cloud, name: a.name, contract: .init(api: "v2", app: "v1")))
+            a.address, info: ServerInfo(kind: .cloud, name: a.name, contract: .init(api: "v2", app: "v2")))
         await app.addServer(
-            b.address, info: ServerInfo(kind: .cloud, name: b.name, contract: .init(api: "v2", app: "v1")))
+            b.address, info: ServerInfo(kind: .cloud, name: b.name, contract: .init(api: "v2", app: "v2")))
         #expect(app.preferences.savedServers.map(\.name) == ["Club A", "Club B"])
         // A different SavedServer value with the same address is the same row.
         app.removeSavedServer(SavedServer(name: "whatever", address: a.address))
@@ -541,10 +567,10 @@ import Testing
         stub.route("/server", json: #"{"kind":"cloud","name":"Old","contract":{"api":"v2","app":"v9"}}"#)
         let app = make(stub)
         await app.start()
-        #expect(app.contractNotice == "app v9 ≠ v1")
+        #expect(app.contractNotice == "app v9 ≠ v2")
         stub.route("/server", json: #"{"kind":"cloud","name":"Old","contract":{"api":"v1","app":"v9"}}"#)
         await app.load()
-        #expect(app.contractNotice == "api v1 ≠ v2 · app v9 ≠ v1")
+        #expect(app.contractNotice == "api v1 ≠ v2 · app v9 ≠ v2")
     }
 
     /// T-08: choosing "follow the device" clears the stored language, and the
@@ -610,7 +636,7 @@ import Testing
     /// resort is English rather than an empty language code.
     @Test func clearingTheLanguageOnAPiFallsBackToEnglish() async {
         let stub = StubServer()
-        stub.route("/server", json: #"{"kind":"pi","name":"Piscine","contract":{"api":"v2","app":"v1"}}"#)
+        stub.route("/server", json: #"{"kind":"pi","name":"Piscine","contract":{"api":"v2","app":"v2"}}"#)
         stub.route("/config", json: #"{"num_lanes":8,"meet_title":"Local"}"#)
         let app = make(stub, prefs: Preferences(language: "fr"))
         await app.start()

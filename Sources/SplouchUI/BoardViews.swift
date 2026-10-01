@@ -180,7 +180,7 @@ struct BoardTable: View {
     let rows: [BoardRow]
     let columns: Columns
     let labels: [String: String]
-    let isLandscape: Bool
+    let isWide: Bool
     /// How far the table holds off the floating tab bar, so the last lane is
     /// not read against the glass.
     static let bottomGap: CGFloat = 14
@@ -249,7 +249,7 @@ struct BoardTable: View {
     var body: some View {
         let count = CGFloat(max(1, rows.count))
         let landscape = landscapeType()
-        let rowFont = isLandscape ? landscape.rowFont : 17
+        let rowFont = isWide ? landscape.rowFont : 17
         // Portrait rows share the height the way the landscape table does. They
         // used to be exactly 52pt under a Spacer, so a six-lane board left a
         // band of bare background below the last lane and the stripes stopped
@@ -277,10 +277,10 @@ struct BoardTable: View {
         let portraitWant = showsAlt ? wantAlt : wantPlain
         let portraitScale = min(1, max(Self.portraitTypeFloor, portraitRow / portraitWant))
         VStack(spacing: 0) {
-            if isLandscape, landscape.showsHeader { header(size: rowFont) }
+            if isWide, landscape.showsHeader { header(size: rowFont) }
             ForEach(Array(rows.enumerated()), id: \.offset) { i, row in
                 Group {
-                    if isLandscape {
+                    if isWide {
                         LandscapeRow(row: row, columns: columns, size: rowFont)
                     } else {
                         PortraitRow(row: row, columns: columns, scale: portraitScale, showsAlt: showsAlt)
@@ -288,8 +288,8 @@ struct BoardTable: View {
                 }
                 .frame(
                     maxWidth: .infinity,
-                    minHeight: isLandscape ? 0 : portraitRow,
-                    maxHeight: isLandscape ? .infinity : nil
+                    minHeight: isWide ? 0 : portraitRow,
+                    maxHeight: isWide ? .infinity : nil
                 )
                 .background(i % 2 == 0 ? palette.rowOdd : palette.rowEven)
                 // A lane is one thing. Left as six separate Texts, VoiceOver
@@ -301,7 +301,7 @@ struct BoardTable: View {
         }
         // Exactly the height in landscape, so rows with no minimum actually
         // divide it; in portrait the rows above set it, and overflow scrolls.
-        .frame(height: isLandscape ? height : nil)
+        .frame(height: isWide ? height : nil)
         .background(alignment: .top) { rulers }
         .preference(key: LaneIdealKey.self, value: portraitWant)
     }
@@ -312,7 +312,7 @@ struct BoardTable: View {
     /// cannot move the table that measured it — the feedback a `GeometryReader`
     /// among the rows would have made.
     @ViewBuilder private var rulers: some View {
-        if !isLandscape, let first = rows.first {
+        if !isWide, let first = rows.first {
             VStack(spacing: 0) {
                 PortraitRow(row: first, columns: columns, scale: 1, showsAlt: false)
                     .fixedSize(horizontal: false, vertical: true)

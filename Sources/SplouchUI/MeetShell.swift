@@ -48,7 +48,14 @@ struct MeetShell: View {
     @Environment(\.dismiss) private var dismiss
     @State private var network = NetworkWatcher()
     @State private var showFilter = false
+    /// The window is wider than it is tall: a phone on its side, short of height.
+    /// Decides the bar (the EVENT / HEAT row moves into it), never the board's layout.
     @State private var isLandscape = false
+    /// L-15 / L-16: the board's layout follows width, not orientation — the full
+    /// table from 600pt, the two-line row below. Not `horizontalSizeClass`, which
+    /// is compact on most iPhones held sideways; 600 is Android's and the web's
+    /// line too, so a tablet held upright gets the table on every client.
+    @State private var isWide = false
     /// Width of the shell, so the landscape header can be given a real width to
     /// align inside (see `toolbar`).
     @State private var width: CGFloat = 0
@@ -99,6 +106,7 @@ struct MeetShell: View {
                 $0.size
             } action: {
                 isLandscape = $0.width > $0.height
+                isWide = $0.width >= 600
                 width = $0.width
             }
             .onPreferenceChange(BoardNeedsBarKey.self) { boardNeedsBar = $0 }
@@ -155,11 +163,11 @@ struct MeetShell: View {
     // iOS a tab bar switches on tap — see the parity.md note.
     private var tabs: some View {
         TabView(selection: tab) {
-            ScoreboardTab(ctx: ctx, isLandscape: isLandscape, headerInBar: showsBoardInBar)
+            ScoreboardTab(ctx: ctx, isWide: isWide, headerInBar: showsBoardInBar)
                 .tabItem { label(.scoreboard) }
                 .tag(MeetTab.scoreboard)
             if ctx.showsResults {
-                ResultsTab(ctx: ctx, isLandscape: isLandscape, headerInBar: showsBoardInBar)
+                ResultsTab(ctx: ctx, isWide: isWide, headerInBar: showsBoardInBar)
                     .tabItem { label(.results) }
                     .tag(MeetTab.results)
             }

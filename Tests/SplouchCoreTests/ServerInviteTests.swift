@@ -9,7 +9,7 @@ import Testing
 /// link may name — so the links here are built from it the way the cloud builds them.
 @Suite(.serialized) @MainActor struct ServerInviteTests {
     func cloud(_ stub: StubServer, kind: String = "cloud", name: String = "Splouch") {
-        stub.route("/server", json: #"{"kind":"\#(kind)","name":"\#(name)","contract":{"api":"v2","app":"v1"}}"#)
+        stub.route("/server", json: #"{"kind":"\#(kind)","name":"\#(name)","contract":{"api":"v2","app":"v2"}}"#)
         stub.route("/picker/config", json: #"{"title":"Splouch","lang":"en"}"#)
         stub.route("/meets", json: #"{"meets":[]}"#)
         stub.route("/servers", json: #"{"servers":[]}"#)
@@ -162,7 +162,7 @@ import Testing
         let slow = StubServer()
         slow.route("/server") { _ in
             Thread.sleep(forTimeInterval: 0.2)
-            return .json(#"{"kind":"pi","name":"Slow","contract":{"api":"v2","app":"v1"}}"#)
+            return .json(#"{"kind":"pi","name":"Slow","contract":{"api":"v2","app":"v2"}}"#)
         }
 
         app.openServerLink(link(stub, server: slow.address.origin))

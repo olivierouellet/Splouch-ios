@@ -6,7 +6,7 @@ import Testing
 @Suite(.serialized) struct SplouchAPITests {
     @Test func serverHandshake() async throws {
         let stub = StubServer()
-        stub.route("/server", json: #"{"kind":"cloud","name":"Club X","contract":{"api":"v2","app":"v1"}}"#)
+        stub.route("/server", json: #"{"kind":"cloud","name":"Club X","contract":{"api":"v2","app":"v2"}}"#)
         let api = SplouchAPI(address: stub.address, session: stub.session)
         let info = try await api.server()
         #expect(info.kind == .cloud)

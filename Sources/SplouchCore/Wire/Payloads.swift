@@ -27,7 +27,7 @@ public struct ServerInfo: Sendable, Equatable, Decodable {
     }
 
     /// The contract versions this client was written against.
-    public static let expectedContract = Contract(api: "v2", app: "v1")
+    public static let expectedContract = Contract(api: "v2", app: "v2")
 }
 
 /// Decides the shape of the session, not just the base URL: a Pi has one meet

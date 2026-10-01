@@ -45,20 +45,18 @@ struct PickerScreen: View {
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
 
-            // P-11: a user who switched and forgot must be able to see it.
+            // P-11: the meet list always names its server — every card on it came
+            // from there, whichever one it is. Inside a meet only a non-default one
+            // is named (MeetShell.subtitle).
             // P-14: a notice naming both versions, never a gate.
-            if !app.isDefaultServer || app.contractNotice != nil {
-                Section {
-                    if !app.isDefaultServer {
-                        Label(app.serverName, systemImage: "server.rack")
-                    }
-                    if let notice = app.contractNotice {
-                        Label(notice, systemImage: "exclamationmark.triangle")
-                    }
+            Section {
+                Label(app.serverName, systemImage: "server.rack")
+                if let notice = app.contractNotice {
+                    Label(notice, systemImage: "exclamationmark.triangle")
                 }
-                .font(.footnote)
-                .foregroundStyle(.secondary)
             }
+            .font(.footnote)
+            .foregroundStyle(.secondary)
 
             notices
             meets

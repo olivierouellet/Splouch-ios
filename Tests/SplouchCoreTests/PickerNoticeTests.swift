@@ -9,7 +9,7 @@ import Testing
     let note = "Les visites sont comptées"
 
     func serve(_ stub: StubServer, disclaimer: String? = nil, analytics: Bool = true) {
-        stub.route("/server", json: #"{"kind":"cloud","name":"Splouch","contract":{"api":"v2","app":"v1"}}"#)
+        stub.route("/server", json: #"{"kind":"cloud","name":"Splouch","contract":{"api":"v2","app":"v2"}}"#)
         stub.route(
             "/picker/config",
             json:
