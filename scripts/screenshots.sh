@@ -1,8 +1,9 @@
 #!/bin/sh
-# Captures the screenshots in Screenshots/: every screen, in English and French,
-# light and dark, on the two App Store sizes (6.9" iPhone, 13" iPad).
+# Captures the screenshots in Screenshots/: every screen, in English, French and
+# Spanish, light and dark, on the two App Store sizes (6.9" iPhone, 13" iPad).
 #
 #   scripts/screenshots.sh [pi] [cloud]
+#   LANGS=es scripts/screenshots.sh     # recapture one language only
 #
 # The meet screens come from a local Pi (default http://127.0.0.1:5056) playing a
 # recording, so the board and results carry real names and times; start it first:
@@ -33,6 +34,7 @@ APP="$ROOT/.build/xcode/Build/Products/Debug-iphonesimulator/Splouch.app"
 OUT="$ROOT/Screenshots"
 BUNDLE=app.splouch.ios
 WAIT=${WAIT:-8}
+LANGS=${LANGS:-en fr es}
 
 udid() { xcrun simctl list devices available | grep -F "$1 (" | head -1 | sed 's/.*(\([0-9A-F-]*\)).*/\1/'; }
 
@@ -44,7 +46,7 @@ capture() { # device-name folder
     --cellularBars 4 --batteryState charged --batteryLevel 100
   xcrun simctl uninstall "$D" "$BUNDLE" 2>/dev/null || true
   xcrun simctl install "$D" "$APP"
-  for lang in en fr; do
+  for lang in $LANGS; do
     for theme in light dark; do
       xcrun simctl ui "$D" appearance "$theme"
       dir="$OUT/$2/$lang/$theme"
@@ -87,13 +89,17 @@ for p in pathlib.Path(sys.argv[1]).rglob("*.png"):
 PY
 
 # The App Store set: the dark captures (the app's default appearance) per
-# listing language. No marketing icon: App Store Connect takes it from the
-# build's AppIcon.icon, and ictool only renders it pre-masked.
+# listing language (Spanish lists as es-MX, the North American Spanish store).
+# Rebuilt from every language on disk, so a LANGS=es run keeps en and fr. No
+# marketing icon: App Store Connect takes it from the build's AppIcon.icon, and
+# ictool only renders it pre-masked.
 STORE="$OUT/AppStore"
 rm -rf "$STORE"
-for lang in en fr; do
+for listing in en-CA fr-CA es-MX; do
+  lang=${listing%-*}
   for dev in iphone-6.9 ipad-13; do
-    mkdir -p "$STORE/$lang-CA/$dev"
-    cp "$OUT/$dev/$lang/dark/"*.png "$STORE/$lang-CA/$dev/"
+    [ -d "$OUT/$dev/$lang/dark" ] || continue
+    mkdir -p "$STORE/$listing/$dev"
+    cp "$OUT/$dev/$lang/dark/"*.png "$STORE/$listing/$dev/"
   done
 done
