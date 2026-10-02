@@ -48,7 +48,8 @@ struct MeetShell: View {
     @Environment(\.dismiss) private var dismiss
     @State private var network = NetworkWatcher()
     @State private var showFilter = false
-    /// The window is wider than it is tall: a phone on its side, short of height.
+    /// The window is wider than it is tall and under 600pt tall: a phone on its
+    /// side, short of height. An iPad on its side is not, and does not count.
     /// Decides the bar (the EVENT / HEAT row moves into it), never the board's layout.
     @State private var isLandscape = false
     /// L-15 / L-16: the board's layout follows width, not orientation — the full
@@ -105,7 +106,7 @@ struct MeetShell: View {
             .onGeometryChange(for: CGSize.self) {
                 $0.size
             } action: {
-                isLandscape = $0.width > $0.height
+                isLandscape = $0.width > $0.height && $0.height < 600
                 isWide = $0.width >= 600
                 width = $0.width
             }
@@ -195,10 +196,13 @@ struct MeetShell: View {
         return parts.isEmpty ? nil : parts.joined(separator: " \u{00B7} ")
     }
 
-    /// Landscape is short of height and the navigation bar was mostly empty —
+    /// A phone on its side is short of height and the navigation bar was mostly empty —
     /// a back button in the corner and nothing beside it, with the board's own
     /// EVENT / HEAT / clock row stacked underneath. On a board tab the bar
-    /// takes that row instead, which buys back its whole height.
+    /// takes that row instead, which buys back its whole height. An iPad on
+    /// its side is not short of anything — 700pt and up — and the bar's one
+    /// row set the header at a size nobody could read across a room, so it
+    /// keeps the stacked header portrait has (`isLandscape` is short-only).
     ///
     /// Portrait does it too, but only on need (below): there the bar is already
     /// carrying the meet's title, so the trade is a real one and not worth
