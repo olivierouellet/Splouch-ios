@@ -40,7 +40,7 @@ struct ResultsTab: View {
                             rows: ResultsBoard.rows(snapshot, numLanes: n).map(BoardRow.init),
                             columns: Columns(ctx.settings), labels: ctx.labels,
                             lapsWord: ctx.strings.mobile("spoken_laps"), isWide: isWide,
-                            height: BoardTable.tableHeight(in: geo))
+                            height: BoardTable.tableHeight(in: geo), width: geo.size.width)
                     } else {
                         // R-01: an empty lane grid here says nothing. Blank rows
                         // are meaningful on the Scoreboard, where a heat is live

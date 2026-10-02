@@ -128,12 +128,22 @@ public struct Faces: Equatable, Sendable {
     /// Both paths are now fixed, so a size means the same thing whichever face
     /// the server names, and scaling is the caller's to do and only once.
     public static func font(_ name: String, size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        if let ps = bundled[name]
-            ?? bundled.first(where: { $0.key.caseInsensitiveCompare(name) == .orderedSame })?.value
-        {
-            return .custom(ps, fixedSize: size)
-        }
+        if let ps = postScriptName(name) { return .custom(ps, fixedSize: size) }
         return .system(size: size, weight: weight, design: .monospaced)
+    }
+
+    static func postScriptName(_ name: String) -> String? {
+        bundled[name] ?? bundled.first(where: { $0.key.caseInsensitiveCompare(name) == .orderedSame })?.value
+    }
+
+    /// How wide `text` sets in the timing face — the same face, or the same
+    /// fallback, that `timing(_:)` draws with.
+    @MainActor public func timingWidth(_ text: String, size: CGFloat) -> CGFloat {
+        TextRuler.width(text, face: timing, size: size)
+    }
+
+    @MainActor public func textWidth(_ text: String, size: CGFloat) -> CGFloat {
+        TextRuler.width(text, face: family, size: size)
     }
 
     public func text(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
@@ -145,10 +155,42 @@ public struct Faces: Equatable, Sendable {
     }
 }
 
+/// Text measured once per face, size and string. The board asks the same few
+/// questions — a template, a handful of deltas — on every 10Hz tick, so a
+/// measurement is taken only when one of the three changes: on a resize, or
+/// when a new delta lands.
+@MainActor enum TextRuler {
+    #if canImport(UIKit)
+        private typealias PlatformFont = UIFont
+    #else
+        private typealias PlatformFont = NSFont
+    #endif
+    private static var cache: [String: CGFloat] = [:]
+
+    static func width(_ text: String, face: String, size: CGFloat) -> CGFloat {
+        let key = "\(face)|\(size)|\(text)"
+        if let w = cache[key] { return w }
+        let font =
+            Faces.postScriptName(face).flatMap { PlatformFont(name: $0, size: size) }
+            ?? PlatformFont.monospacedSystemFont(ofSize: size, weight: .regular)
+        let w = ceil((text as NSString).size(withAttributes: [.font: font]).width)
+        if cache.count > 512 { cache.removeAll() }
+        cache[key] = w
+        return w
+    }
+}
+
 /// L-17 / R-08: shrink to fit, ellipsis only as a floor.
 extension View {
     public func fitOneLine(minimumScale: CGFloat = 0.5) -> some View {
         self.lineLimit(1).minimumScaleFactor(minimumScale).truncationMode(.tail)
+    }
+
+    /// A name or a club: half its size at most, and never under 10pt — past
+    /// that it is too small to read from a seat, and the ellipsis says there
+    /// is more instead (the web board's `FIT_FLOOR` / `FIT_FLOOR_PX`).
+    func fitOneLine(size: CGFloat) -> some View {
+        fitOneLine(minimumScale: BoardFit.nameFloor(size))
     }
 }
 

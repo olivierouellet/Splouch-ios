@@ -45,7 +45,7 @@ struct ScoreboardTab: View {
                         },
                         columns: Columns(ctx.settings, laps: laps), labels: ctx.labels,
                         lapsWord: ctx.strings.mobile("spoken_laps"), isWide: isWide,
-                        height: BoardTable.tableHeight(in: geo))
+                        height: BoardTable.tableHeight(in: geo), width: geo.size.width)
                 }
                 .refreshable { await ctx.refresh() }
                 .onPreferenceChange(LaneIdealKey.self) { laneIdeal = $0 }

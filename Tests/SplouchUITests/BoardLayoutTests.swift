@@ -1,3 +1,4 @@
+import CoreGraphics
 import Testing
 
 @testable import SplouchCore
@@ -142,5 +143,116 @@ import Testing
         #expect(a.id != b.id)
         #expect(a.id != c.id)
         #expect(a.id == heat("1", "1").id)
+    }
+}
+
+/// L-15 / L-16 / L-17: the board's sizes as numbers — the same rules the web
+/// board writes down in `scoreboard_base.html`.
+@Suite struct BoardFitTests {
+    /// L-16: 55% of each lane's share, from 11pt up to 56 — no longer 32, which
+    /// left most of a tablet row empty.
+    @Test func theRowFontIsCappedAt56() {
+        // Four lanes on a 13" iPad in landscape: far past the cap.
+        let tablet = BoardFit.landscapeType(height: 900, lanes: 4)
+        #expect(tablet.rowFont == 56)
+        #expect(tablet.showsHeader)
+        // Six lanes on a phone on its side: under the cap, and 0.55 of the share
+        // left once the title band is withheld.
+        let phone = BoardFit.landscapeType(height: 330, lanes: 6)
+        #expect(abs(phone.rowFont - (330 - BoardFit.headerBand) * 0.55 / 6) < 0.001)
+        #expect(phone.showsHeader)
+    }
+
+    /// The titles go when keeping them would set the lanes under 14pt; the rows
+    /// are then sized over the whole height, floored at 11.
+    @Test func aShortBoardDropsItsTitlesFirst() {
+        let crowded = BoardFit.landscapeType(height: 300, lanes: 12)
+        #expect(!crowded.showsHeader)
+        #expect(abs(crowded.rowFont - 300 * 0.55 / 12) < 0.001)
+        #expect(BoardFit.landscapeType(height: 100, lanes: 10).rowFont == 11)
+    }
+
+    /// Bigger rows must not grow the title row past the band the rows were
+    /// sized without: its type stops where the band does.
+    @Test func theTitleRowStaysInsideItsBand() {
+        #expect(BoardFit.headerFont(56) == BoardFit.headerFontRange.upperBound)
+        #expect(BoardFit.headerFont(11) == 10)
+        // A line of the largest title type, with its padding, fits the band.
+        #expect(BoardFit.headerFontRange.upperBound * 1.3 + 4 <= BoardFit.headerBand)
+    }
+
+    /// L-15: the narrow board's base is 0.26 of each lane's share, 13…24 —
+    /// a function of the share alone, so measuring a row cannot move it.
+    @Test func theNarrowBaseComesFromTheShare() {
+        #expect(BoardFit.portraitBase(share: 80) == 80 * 0.26)
+        #expect(BoardFit.portraitBase(share: 30) == 13)
+        #expect(BoardFit.portraitBase(share: 200) == 24)
+    }
+
+    /// One factor per column, from its widest case: 1 when it fits, the ratio
+    /// with a little air when it doesn't, never under half.
+    @Test func aColumnFitsItsWidestCase() {
+        #expect(BoardFit.columnFit(room: 120, need: 100) == 1)
+        #expect(abs(BoardFit.columnFit(room: 100, need: 125) - 0.8 * 0.97) < 0.0001)
+        #expect(BoardFit.columnFit(room: 10, need: 100) == 0.5)
+        // Before the first layout there is no room to fit to.
+        #expect(BoardFit.columnFit(room: 0, need: 100) == 1)
+    }
+
+    /// The time column is fitted to the template, not to the value: the clock
+    /// running from 59.9 to 1:00.0 must not move its size, and a 1500 fits the
+    /// template.
+    @Test @MainActor func theTimeIsFittedToItsTemplate() {
+        let faces = Faces(ThemeFonts())
+        let template = faces.timingWidth(BoardFit.timeTemplate, size: 30)
+        #expect(faces.timingWidth("18:05.33", size: 30) <= template)
+        #expect(faces.timingWidth("1:00.0", size: 30) <= template)
+        // 17% of a 600pt row is 102pt; a 30pt time does not fit that and shrinks.
+        let room = TableColumns(width: 600, columns: Columns(MeetSettings())).time
+        let fit = BoardFit.columnFit(room: room, need: template)
+        #expect(fit < 1 && fit >= 0.5)
+        #expect(template * fit <= room)
+    }
+
+    /// L-17: a name or club shrinks to half, and never under 10pt.
+    @Test func aNameShrinksToHalfButNotUnder10() {
+        #expect(BoardFit.nameFloor(40) == 0.5)
+        #expect(BoardFit.nameFloor(16) == 10.0 / 16)
+        #expect(BoardFit.nameFloor(9) == 1)
+    }
+}
+
+/// L-16: the full table's columns are shares of the row, and the title row and
+/// the lanes read them from the same place.
+@Suite struct TableColumnsTests {
+    @Test func theSharesAreFractionsOfTheRow() {
+        let w = TableColumns(width: 1016, columns: Columns(MeetSettings()))
+        let inner: CGFloat = 1000
+        #expect(abs(w.lane - inner * 0.06) < 0.001)
+        #expect(abs(w.club - inner * 0.14) < 0.001)
+        #expect(abs(w.time - inner * 0.17) < 0.001)
+        #expect(abs(w.delta - inner * 0.12) < 0.001)
+        #expect(abs(w.place - inner * 0.06) < 0.001)
+        #expect(abs(w.name - (inner * 0.45 - 5 * TableColumns.gap)) < 0.001)
+    }
+
+    /// Every show_* combination fills the row exactly: a hidden column is 0 and
+    /// its share goes to the name — or, with no name, to the columns that show.
+    @Test(arguments: 0..<16) func everyCombinationFillsTheRow(_ mask: Int) {
+        let settings = MeetSettings(
+            showName: mask & 1 != 0, showClub: mask & 2 != 0, showDelta: mask & 4 != 0,
+            showPosition: mask & 8 != 0)
+        let columns = Columns(settings)
+        let w = TableColumns(width: 800, columns: columns)
+        #expect(abs(w.total - (800 - 2 * TableColumns.inset)) < 0.001)
+        #expect((w.name > 0) == columns.name)
+        #expect((w.club > 0) == columns.club)
+        #expect((w.delta > 0) == columns.delta)
+        #expect((w.place > 0) == columns.place)
+        #expect(w.lane > 0 && w.time > 0)
+        if columns.name {
+            // The fixed columns keep their shares whatever else is hidden.
+            #expect(abs(w.time - 784 * TableColumns.timeShare) < 0.001)
+        }
     }
 }

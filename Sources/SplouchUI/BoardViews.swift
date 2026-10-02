@@ -71,6 +71,138 @@ struct Columns: Equatable {
     }
 }
 
+/// The board's sizing rules as plain numbers, so they can be checked without
+/// drawing anything (L-15, L-16, L-17). The same rules the web board and the
+/// Android app use; `scoreboard_base.html` is where they are written down.
+enum BoardFit {
+    // ── The full table (L-16) ──
+
+    /// How tall a row's type may be, as a fraction of the height that row is
+    /// given. It was 0.42, which left well over half of every row as leading:
+    /// on a six-lane board in landscape the rows are 55pt tall and the numbers a
+    /// spectator came to read were set at 23. A `LandscapeRow` has no vertical
+    /// padding at all, so this — not padding — is the whole of what held them
+    /// down. 0.55 still leaves room for a name with an alt line under it
+    /// (0.85 + 0.55 of the row font, so 77% of the row).
+    static let typeShare: CGFloat = 0.55
+    /// 56 at the top so four lanes on a tablet are not set at poster size. It
+    /// was 32, which on an iPad left most of every row empty.
+    static let rowFontRange: ClosedRange<CGFloat> = 11...56
+    /// Below this the column titles cost more height than their words are worth,
+    /// so the table drops them and gives the band back to the lanes.
+    static let headerFloor: CGFloat = 14
+    /// What the title row costs, and is held to (`BoardTable.header`). Its type
+    /// stops at `headerFontRange`'s top so a 56pt row font cannot grow the band
+    /// past the height withheld for it — the rows and the titles would then be
+    /// sized from two different budgets.
+    static let headerBand: CGFloat = 30
+    static let headerFontRange: ClosedRange<CGFloat> = 10...17
+
+    /// The row font, and whether the titles survive at that size. Sized once with
+    /// the header's band withheld; if that comes out cramped the header goes and
+    /// the rows are sized again over the whole height.
+    static func landscapeType(height: CGFloat, lanes: Int) -> (rowFont: CGFloat, showsHeader: Bool) {
+        let count = CGFloat(max(1, lanes))
+        func font(_ available: CGFloat) -> CGFloat {
+            (available * typeShare / count).clamped(to: rowFontRange)
+        }
+        let withHeader = font(height - headerBand)
+        if withHeader >= headerFloor { return (withHeader, true) }
+        return (font(height), false)
+    }
+
+    static func headerFont(_ rowFont: CGFloat) -> CGFloat {
+        (rowFont * 0.55).clamped(to: headerFontRange)
+    }
+
+    // ── The two-line rows (L-15) ──
+
+    /// The row's base size — the name's — from the height each lane gets, as on
+    /// Android. Decided from the share alone and never from a measured row: the
+    /// rulers measure at this size, and a base that read them back would chase
+    /// its own measurement. Everything else in the row is a ratio of it.
+    static func portraitBase(share: CGFloat) -> CGFloat {
+        (share * 0.26).clamped(to: 13...24)
+    }
+
+    /// The size the row's proportions below were drawn at: name 17, time 20.
+    static let portraitReference: CGFloat = 17
+
+    // ── Shrink to fit (L-17) ──
+
+    /// A cell never shrinks below half its size; past that it truncates.
+    static let fitFloor: CGFloat = 0.5
+    /// The widest time a column has to hold — a 1500 included — and the widest
+    /// delta. Fitted to these rather than to the value on screen: the clock
+    /// rewrites the time 10× a second, and a size fitted to each value would
+    /// jump the moment `59.9` became `1:00.0`.
+    static let timeTemplate = "88:88.88"
+    static let deltaTemplate = "+88.88"
+    static let placeTemplate = "#88"
+
+    /// One factor for a whole column: 1 when `need` fits `room`, else the ratio
+    /// with a little air, floored.
+    static func columnFit(room: CGFloat, need: CGFloat) -> CGFloat {
+        guard room > 0, need > room else { return 1 }
+        return max(fitFloor, room / need * 0.97)
+    }
+
+    /// A name or a club: half its size at most, and never under 10pt — past that
+    /// it is too small to read from a seat, and the ellipsis says there is more.
+    static func nameFloor(_ size: CGFloat) -> CGFloat {
+        size <= 0 ? fitFloor : min(1, max(fitFloor, 10 / size))
+    }
+}
+
+extension Comparable {
+    fileprivate func clamped(to range: ClosedRange<Self>) -> Self {
+        min(range.upperBound, max(range.lowerBound, self))
+    }
+}
+
+/// L-16: the full table's column widths, as shares of the row, in one place so
+/// the title row and every lane line up. A hidden column is 0 and its share goes
+/// to the name; with no name at all, the shown columns stretch to fill the row,
+/// as the web's `table-layout: fixed` does.
+struct TableColumns: Equatable {
+    static let laneShare: CGFloat = 0.06
+    static let clubShare: CGFloat = 0.14
+    static let timeShare: CGFloat = 0.17
+    static let deltaShare: CGFloat = 0.12
+    static let placeShare: CGFloat = 0.06
+    /// Between two cells, and either side of the row.
+    static let gap: CGFloat = 8
+    static let inset: CGFloat = 8
+
+    var lane: CGFloat = 0
+    var name: CGFloat = 0
+    var club: CGFloat = 0
+    var time: CGFloat = 0
+    var delta: CGFloat = 0
+    var place: CGFloat = 0
+    /// How many cells the row draws, for the gaps between them.
+    private(set) var cells = 0
+
+    init(width: CGFloat, columns: Columns) {
+        let inner = max(0, width - 2 * Self.inset)
+        let fixed: [(WritableKeyPath<TableColumns, CGFloat>, CGFloat)] =
+            [(\.lane, Self.laneShare)]
+            + (columns.club ? [(\.club, Self.clubShare)] : [])
+            + [(\.time, Self.timeShare)]
+            + (columns.delta ? [(\.delta, Self.deltaShare)] : [])
+            + (columns.place ? [(\.place, Self.placeShare)] : [])
+        cells = fixed.count + (columns.name ? 1 : 0)
+        let room = max(0, inner - Self.gap * CGFloat(cells - 1))
+        let shares = fixed.map(\.1).reduce(0, +)
+        let unit = columns.name ? inner : room / shares
+        for (path, share) in fixed { self[keyPath: path] = share * unit }
+        if columns.name { name = max(0, room - shares * unit) }
+    }
+
+    /// Every cell and every gap: the row's inner width whenever it fits.
+    var total: CGFloat { lane + name + club + time + delta + place + Self.gap * CGFloat(max(0, cells - 1)) }
+}
+
 /// The EVENT / HEAT / event name / wall clock bar (L-01, L-02, L-03, R-03).
 struct BoardHeader: View {
     let event: String
@@ -214,36 +346,11 @@ struct BoardTable: View {
     /// band floating mid-screen. The caller's reader is outside the scroll view
     /// and has a real height.
     let height: CGFloat
+    /// The row's width, from the same reader: every column of the full table
+    /// is a share of it (`TableColumns`).
+    let width: CGFloat
     @Environment(\.palette) private var palette
     @Environment(\.faces) private var faces
-
-    /// How tall a row's type may be, as a fraction of the height that row is
-    /// given. It was 0.42, which left well over half of every row as leading:
-    /// on a six-lane board in landscape the rows are 55pt tall and the numbers a
-    /// spectator came to read were set at 23. A `LandscapeRow` has no vertical
-    /// padding at all, so this — not padding — is the whole of what held them
-    /// down. 0.55 still leaves room for a name with an alt line under it
-    /// (0.85 + 0.55 of the row font, so 77% of the row).
-    private static let typeShare: CGFloat = 0.55
-    /// Below this the column titles cost more height than their words are worth,
-    /// so the table drops them and gives the band back to the lanes.
-    private static let headerFloor: CGFloat = 14
-
-    /// The row font, and whether the titles survive at that size. Sized once with
-    /// the header's band withheld; if that comes out cramped the header goes and
-    /// the rows are sized again over the whole height.
-    private func landscapeType() -> (rowFont: CGFloat, showsHeader: Bool) {
-        let count = CGFloat(max(1, rows.count))
-        func font(_ available: CGFloat) -> CGFloat {
-            max(11, min(32, available * Self.typeShare / count))
-        }
-        let withHeader = font(height - Self.headerBand)
-        if withHeader >= Self.headerFloor { return (withHeader, true) }
-        return (font(height), false)
-    }
-
-    /// What `header(size:)` costs: its own line plus 4pt above and below.
-    private static let headerBand: CGFloat = 26
 
     /// A lane's natural height, and the same lane carrying a relay name. Both
     /// come off the rulers below, and are 0 until the first layout has run.
@@ -252,8 +359,8 @@ struct BoardTable: View {
 
     var body: some View {
         let count = CGFloat(max(1, rows.count))
-        let landscape = landscapeType()
-        let rowFont = isWide ? landscape.rowFont : 17
+        let landscape = BoardFit.landscapeType(height: height, lanes: rows.count)
+        let rowFont = landscape.rowFont
         // Portrait rows share the height the way the landscape table does. They
         // used to be exactly 52pt under a Spacer, so a six-lane board left a
         // band of bare background below the last lane and the stripes stopped
@@ -265,6 +372,9 @@ struct BoardTable: View {
         // phone has, and the miss was the floor, not the type. The share each
         // row gets is the floor, and the type shrinks to meet it.
         let portraitRow = height / count
+        // L-15: the base comes off the share and nothing else, so the rulers
+        // below measure at a size their answer cannot move.
+        let base = BoardFit.portraitBase(share: portraitRow)
         // What the rows in *this* heat want — a relay with alt names needs a
         // third line, so the same twelve lanes ask for 780pt rather than 600.
         //
@@ -280,14 +390,20 @@ struct BoardTable: View {
         let showsAlt = rows.contains { !$0.alt.isEmpty } && portraitRow >= wantAlt
         let portraitWant = showsAlt ? wantAlt : wantPlain
         let portraitScale = min(1, max(Self.portraitTypeFloor, portraitRow / portraitWant))
+        let wide = isWide ? wideSizes(rowFont) : nil
+        let numbersFit = isWide ? 1 : narrowNumbersFit(base: base, scale: portraitScale)
         VStack(spacing: 0) {
-            if isWide, landscape.showsHeader { header(size: rowFont) }
+            if let wide, landscape.showsHeader { header(size: rowFont, widths: wide.widths) }
             ForEach(Array(rows.enumerated()), id: \.offset) { i, row in
                 Group {
-                    if isWide {
-                        LandscapeRow(row: row, columns: columns, size: rowFont)
+                    if let wide {
+                        LandscapeRow(
+                            row: row, columns: columns, size: rowFont, widths: wide.widths,
+                            timeSize: wide.timeSize, deltaSize: wide.deltaSize)
                     } else {
-                        PortraitRow(row: row, columns: columns, scale: portraitScale, showsAlt: showsAlt)
+                        PortraitRow(
+                            row: row, columns: columns, base: base, scale: portraitScale, showsAlt: showsAlt,
+                            numbersFit: numbersFit)
                     }
                 }
                 .frame(
@@ -316,9 +432,12 @@ struct BoardTable: View {
     /// cannot move the table that measured it — the feedback a `GeometryReader`
     /// among the rows would have made.
     @ViewBuilder private var rulers: some View {
+        let base = BoardFit.portraitBase(share: height / CGFloat(max(1, rows.count)))
         if !isWide, let first = rows.first {
             VStack(spacing: 0) {
-                PortraitRow(row: first, columns: columns, scale: 1, showsAlt: false)
+                PortraitRow(
+                    row: first, columns: columns, base: base, scale: 1, showsAlt: false,
+                    numbersFit: narrowNumbersFit(base: base, scale: 1))
                     .fixedSize(horizontal: false, vertical: true)
                     .onGeometryChange(for: CGFloat.self) {
                         $0.size.height
@@ -326,7 +445,9 @@ struct BoardTable: View {
                         laneIdeal = $0
                     }
                 if let relay = rows.first(where: { !$0.alt.isEmpty }) {
-                    PortraitRow(row: relay, columns: columns, scale: 1, showsAlt: true)
+                    PortraitRow(
+                        row: relay, columns: columns, base: base, scale: 1, showsAlt: true,
+                        numbersFit: narrowNumbersFit(base: base, scale: 1))
                         .fixedSize(horizontal: false, vertical: true)
                         .onGeometryChange(for: CGFloat.self) {
                             $0.size.height
@@ -367,30 +488,66 @@ struct BoardTable: View {
         return parts.compactMap { $0 }.joined(separator: ", ")
     }
 
-    private func header(size: CGFloat) -> some View {
-        HStack(spacing: 8) {
-            cell(columns.laneHeader ? labels["lane"] : nil, width: 44)
-            if columns.name { cell(columns.nameHeader ? labels["name"] : nil, flex: true) }
-            if columns.club { cell(columns.clubHeader ? labels["club"] : nil, width: 140) }
-            cell(columns.timeHeader ? labels["time"] : nil, width: 130, trailing: true)
-            if columns.delta { cell(columns.deltaHeader ? labels["delta"] : nil, width: 110, trailing: true) }
-            if columns.place { cell(columns.placeHeader ? labels["place"] : nil, width: 50, trailing: true) }
+    /// What every lane's delta cell may hold, for its column's one size: the
+    /// template, and whatever has landed. A delta lands once, at the finish,
+    /// so this changes per lane per heat — not per tick.
+    private var deltaTexts: [String] {
+        guard columns.delta else { return [] }
+        return [BoardFit.deltaTemplate] + rows.map { $0.delta.isEmpty ? ($0.lap?.text ?? "") : $0.delta }
+    }
+
+    /// L-16: the column widths, and one size each for the time and delta columns,
+    /// fitted to the widest case they can hold. Same size on every lane, so the
+    /// columns never go ragged.
+    private func wideSizes(_ rowFont: CGFloat) -> (widths: TableColumns, timeSize: CGFloat, deltaSize: CGFloat) {
+        let widths = TableColumns(width: width, columns: columns)
+        let size = rowFont * 0.85
+        let timeFit = BoardFit.columnFit(
+            room: widths.time, need: faces.timingWidth(BoardFit.timeTemplate, size: size))
+        let deltaNeed = deltaTexts.map { faces.timingWidth($0, size: size) }.max() ?? 0
+        let deltaFit = BoardFit.columnFit(room: widths.delta, need: deltaNeed)
+        return (widths, size * timeFit, size * deltaFit)
+    }
+
+    /// L-15: one factor for the time and the delta together, which share the
+    /// row's second line in flow, fitted the same way — the widest time, the
+    /// widest delta, against what the lane number and the place leave.
+    private func narrowNumbersFit(base: CGFloat, scale: CGFloat) -> CGFloat {
+        let u = base / BoardFit.portraitReference * scale
+        let lead = PortraitRow.padding * 2 + 34 * u + 10 * u
+        var need = faces.timingWidth(BoardFit.timeTemplate, size: 20 * u)
+        var room = width - lead
+        if columns.delta {
+            need += deltaTexts.map { faces.timingWidth($0, size: 17 * u) }.max() ?? 0
+            room -= 12 * u
         }
-        .font(faces.text(max(10, size * 0.55)))
+        if columns.place { room -= 8 + faces.textWidth(BoardFit.placeTemplate, size: 18 * u) }
+        return BoardFit.columnFit(room: room, need: need)
+    }
+
+    /// Held to `BoardFit.headerBand`, the height the row font was sized without.
+    private func header(size: CGFloat, widths: TableColumns) -> some View {
+        HStack(spacing: TableColumns.gap) {
+            cell(columns.laneHeader ? labels["lane"] : nil, width: widths.lane)
+            if columns.name { cell(columns.nameHeader ? labels["name"] : nil, width: widths.name) }
+            if columns.club { cell(columns.clubHeader ? labels["club"] : nil, width: widths.club) }
+            cell(columns.timeHeader ? labels["time"] : nil, width: widths.time, trailing: true)
+            if columns.delta {
+                cell(columns.deltaHeader ? labels["delta"] : nil, width: widths.delta, trailing: true)
+            }
+            if columns.place {
+                cell(columns.placeHeader ? labels["place"] : nil, width: widths.place, trailing: true)
+            }
+        }
+        .font(faces.text(BoardFit.headerFont(size)))
         .foregroundStyle(palette.thText)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
+        .padding(.horizontal, TableColumns.inset)
+        .frame(maxWidth: .infinity, minHeight: BoardFit.headerBand, maxHeight: BoardFit.headerBand, alignment: .leading)
         .background(palette.thBg)
     }
 
-    @ViewBuilder
-    private func cell(_ text: String?, width: CGFloat? = nil, flex: Bool = false, trailing: Bool = false) -> some View {
-        let t = Text(text ?? "").fitOneLine()
-        if flex {
-            t.frame(maxWidth: .infinity, alignment: trailing ? .trailing : .leading)
-        } else {
-            t.frame(width: width, alignment: trailing ? .trailing : .leading)
-        }
+    private func cell(_ text: String?, width: CGFloat, trailing: Bool = false) -> some View {
+        Text(text ?? "").fitOneLine().frame(width: width, alignment: trailing ? .trailing : .leading)
     }
 }
 
@@ -407,53 +564,67 @@ struct BoardTable: View {
 struct PortraitRow: View {
     let row: BoardRow
     let columns: Columns
+    /// The name's size, from the lane's share of the height
+    /// (`BoardFit.portraitBase`); every other cell keeps its old proportion to it.
+    var base: CGFloat = BoardFit.portraitReference
     /// 1 when the heat fits at the sizes below, less when the lanes have to
     /// share the screen more tightly. Everything in the row scales together so
     /// the hierarchy holds at any count — see `BoardTable.portraitTypeFloor`.
     var scale: CGFloat = 1
     /// False once the lanes are too tight to spend a line on the relay's name.
     var showsAlt = true
+    /// The time and delta's one shared factor, fitted to the widest case on the
+    /// board rather than to what the cells hold now (`BoardFit.timeTemplate`).
+    var numbersFit: CGFloat = 1
+    static let padding: CGFloat = 10
     @Environment(\.palette) private var palette
     @Environment(\.faces) private var faces
 
     var body: some View {
-        HStack(alignment: .center, spacing: 10 * scale) {
-            LaneNumber(text: row.laneLabel, pulse: row.pulse, size: 22 * scale).frame(width: 34 * scale)
-            VStack(alignment: .leading, spacing: 2) {
+        // The sizes this row was drawn at when the name was 17pt, carried along.
+        let u = base / BoardFit.portraitReference * scale
+        HStack(alignment: .center, spacing: 10 * u) {
+            LaneNumber(text: row.laneLabel, pulse: row.pulse, size: 22 * u).frame(width: 34 * u)
+            VStack(alignment: .leading, spacing: 2 * u) {
                 HStack(alignment: .firstTextBaseline) {
                     if columns.name {
                         VStack(alignment: .leading, spacing: 0) {
-                            Text(row.name).font(faces.text(17 * scale)).foregroundStyle(palette.rowText).fitOneLine()
+                            Text(row.name).font(faces.text(17 * u)).foregroundStyle(palette.rowText)
+                                .fitOneLine(size: 17 * u)
                             if !row.alt.isEmpty, showsAlt {  // L-06
-                                Text(row.alt).font(faces.text(12 * scale)).foregroundStyle(palette.thText).fitOneLine()
+                                Text(row.alt).font(faces.text(12 * u)).foregroundStyle(palette.thText)
+                                    .fitOneLine(size: 12 * u)
                             }
                         }
                     }
                     Spacer(minLength: 8)
                     if columns.club {
-                        Text(row.club).font(faces.text(17 * scale)).foregroundStyle(palette.thText).fitOneLine()
+                        Text(row.club).font(faces.text(17 * u)).foregroundStyle(palette.thText)
+                            .fitOneLine(size: 17 * u)
                     }
                 }
-                HStack(spacing: 12 * scale) {
-                    TimeCell(text: row.time, style: row.timeStyle, size: 20 * scale)
+                HStack(spacing: 12 * u) {
+                    TimeCell(text: row.time, style: row.timeStyle, size: 20 * u * numbersFit)
                     // No fixed column here — a compact row lays its second line
                     // out in flow — so the cell is sized to what it holds and
                     // L-23's centring has nothing to centre in. It still swaps
                     // tenant and colour on the same rule as the table's.
                     if columns.delta {
-                        DeltaCell(text: row.delta, better: row.deltaBetter, lap: row.lap, size: 17 * scale)
+                        DeltaCell(text: row.delta, better: row.deltaBetter, lap: row.lap, size: 17 * u * numbersFit)
                             .fixedSize()
                     }
-                    Spacer()
+                    Spacer(minLength: 8)
                     if columns.place, !row.place.isEmpty {
-                        Text("#" + row.place).font(faces.text(18 * scale, weight: .bold)).foregroundStyle(
-                            palette.headerLabel)
+                        Text("#" + row.place).font(faces.text(18 * u, weight: .bold)).foregroundStyle(
+                            palette.headerLabel
+                        )
+                        .lineLimit(1)
                     }
                 }
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6 * scale)
+        .padding(.horizontal, Self.padding)
+        .padding(.vertical, 6 * u)
     }
 }
 
@@ -478,44 +649,57 @@ struct BoardNeedsBarKey: PreferenceKey {
 /// spare — the row font only claims 42% of what a row is given — and the three
 /// numbers a spectator came to read were the smallest things on it. The place
 /// takes the full row font: it is one character, it is the answer, and it has a
-/// column to itself. Time and delta gained 10pt of column each to hold it.
+/// column to itself. The columns are shares of the row (`TableColumns`), and the
+/// time and the delta shrink as a column to fit them rather than clip.
 struct LandscapeRow: View {
     let row: BoardRow
     let columns: Columns
     let size: CGFloat
+    /// The table's, so the cells sit under their titles.
+    let widths: TableColumns
+    /// One size per column, fitted to its widest case (`BoardTable.wideSizes`).
+    let timeSize: CGFloat
+    let deltaSize: CGFloat
     @Environment(\.palette) private var palette
     @Environment(\.faces) private var faces
 
     var body: some View {
-        HStack(spacing: 8) {
-            LaneNumber(text: row.laneLabel, pulse: row.pulse, size: size).frame(width: 44, alignment: .leading)
+        HStack(spacing: TableColumns.gap) {
+            LaneNumber(text: row.laneLabel, pulse: row.pulse, size: size)
+                .frame(width: widths.lane, alignment: .leading)
             if columns.name {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(row.name).font(faces.text(size * 0.85)).foregroundStyle(palette.rowText).fitOneLine()
+                    Text(row.name).font(faces.text(size * 0.85)).foregroundStyle(palette.rowText)
+                        .fitOneLine(size: size * 0.85)
                     if !row.alt.isEmpty {
-                        Text(row.alt).font(faces.text(size * 0.55)).foregroundStyle(palette.thText).fitOneLine()
+                        Text(row.alt).font(faces.text(size * 0.55)).foregroundStyle(palette.thText)
+                            .fitOneLine(size: size * 0.55)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(width: widths.name, alignment: .leading)
             }
             if columns.club {
-                Text(row.club).font(faces.text(size * 0.85)).foregroundStyle(palette.thText).fitOneLine().frame(
-                    width: 140, alignment: .leading)
+                Text(row.club).font(faces.text(size * 0.85)).foregroundStyle(palette.thText)
+                    .fitOneLine(size: size * 0.85)
+                    .frame(width: widths.club, alignment: .leading)
             }
-            TimeCell(text: row.time, style: row.timeStyle, size: size * 0.85).frame(width: 130, alignment: .trailing)
+            TimeCell(text: row.time, style: row.timeStyle, size: timeSize)
+                .frame(width: widths.time, alignment: .trailing)
             if columns.delta {
                 // The column's width is the cell's; the cell decides where in
                 // it the number sits, because the lap centres and the delta does
                 // not (L-23).
-                DeltaCell(text: row.delta, better: row.deltaBetter, lap: row.lap, size: size * 0.85)
-                    .frame(width: 110)
+                DeltaCell(text: row.delta, better: row.deltaBetter, lap: row.lap, size: deltaSize)
+                    .frame(width: widths.delta)
             }
             if columns.place {
                 Text(row.place).font(faces.text(size, weight: .bold)).foregroundStyle(palette.headerLabel)
-                    .frame(width: 50, alignment: .trailing)
+                    .fitOneLine()
+                    .frame(width: widths.place, alignment: .trailing)
             }
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, TableColumns.inset)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -556,6 +740,8 @@ struct LaneNumber: View {
         Text(text)
             .font(faces.text(size))
             .foregroundStyle(palette.pulseColor(mix))
+            // "10" in a 6% column on a four-lane tablet board.
+            .fitOneLine()
     }
 }
 
@@ -580,7 +766,11 @@ struct TimeCell: View {
             .font(faces.timing(size))
             .monospacedDigit()
             .foregroundStyle(color)
-            .fitOneLine()
+            // Sized by the table for the widest time the column holds, never
+            // per value: a per-value fit re-measured on every tick and jumped
+            // when 59.9 became 1:00.0. Past the floor it truncates.
+            .lineLimit(1)
+            .truncationMode(.tail)
             .onChange(of: generation) { _, g in
                 guard g > 0 else { return }
                 flashing = true
@@ -642,11 +832,11 @@ struct DeltaCell: View {
             .font(faces.timing(size))
             .monospacedDigit()
             .foregroundStyle(colour)
-            // Its column is fixed and it is now set at the name's size, so a
-            // four-lane board at the row-font cap could ask for more width than
-            // the column has. Shrink rather than wrap: a delta on two lines is
-            // not a delta.
-            .fitOneLine(minimumScale: 0.7)
+            // Sized by the table for the widest delta on the board (or
+            // `+88.88`), one size for the column. A delta on two lines is not
+            // a delta, so past the floor it truncates.
+            .lineLimit(1)
+            .truncationMode(.tail)
             .frame(maxWidth: .infinity, alignment: showsLap ? .center : .trailing)
     }
 
