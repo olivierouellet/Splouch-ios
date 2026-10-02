@@ -225,7 +225,7 @@ struct BoardHeader: View {
     /// iPad's header is not a 16pt line across a 1000pt band. Every iPhone,
     /// up to the Pro Max's 440, keeps 16 exactly. The bar copy stays at 13:
     /// it is one navigation-bar row high whatever the width.
-    static func eventNameSize(width: CGFloat, compact: Bool) -> CGFloat {
+    nonisolated static func eventNameSize(width: CGFloat, compact: Bool) -> CGFloat {
         if compact { return 13 }
         return min(24, max(16, 16 * width / 440))
     }
