@@ -437,23 +437,25 @@ struct BoardTable: View {
             VStack(spacing: 0) {
                 PortraitRow(
                     row: first, columns: columns, base: base, scale: 1, showsAlt: false,
-                    numbersFit: narrowNumbersFit(base: base, scale: 1))
+                    numbersFit: narrowNumbersFit(base: base, scale: 1)
+                )
+                .fixedSize(horizontal: false, vertical: true)
+                .onGeometryChange(for: CGFloat.self) {
+                    $0.size.height
+                } action: {
+                    laneIdeal = $0
+                }
+                if let relay = rows.first(where: { !$0.alt.isEmpty }) {
+                    PortraitRow(
+                        row: relay, columns: columns, base: base, scale: 1, showsAlt: true,
+                        numbersFit: narrowNumbersFit(base: base, scale: 1)
+                    )
                     .fixedSize(horizontal: false, vertical: true)
                     .onGeometryChange(for: CGFloat.self) {
                         $0.size.height
                     } action: {
-                        laneIdeal = $0
+                        laneIdealWithAlt = $0
                     }
-                if let relay = rows.first(where: { !$0.alt.isEmpty }) {
-                    PortraitRow(
-                        row: relay, columns: columns, base: base, scale: 1, showsAlt: true,
-                        numbersFit: narrowNumbersFit(base: base, scale: 1))
-                        .fixedSize(horizontal: false, vertical: true)
-                        .onGeometryChange(for: CGFloat.self) {
-                            $0.size.height
-                        } action: {
-                            laneIdealWithAlt = $0
-                        }
                 }
                 Spacer(minLength: 0)
             }

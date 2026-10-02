@@ -161,9 +161,9 @@ public struct Faces: Equatable, Sendable {
 /// when a new delta lands.
 @MainActor enum TextRuler {
     #if canImport(UIKit)
-        private typealias PlatformFont = UIFont
+    private typealias PlatformFont = UIFont
     #else
-        private typealias PlatformFont = NSFont
+    private typealias PlatformFont = NSFont
     #endif
     private static var cache: [String: CGFloat] = [:]
 
