@@ -256,3 +256,17 @@ import Testing
         }
     }
 }
+
+/// L-02: the event name grows on an iPad and holds still on every iPhone.
+@Suite struct BoardHeaderTests {
+    @Test func theEventNameGrowsOnlyPastTheWidestIPhone() {
+        for phone: CGFloat in [0, 375, 402, 440] {
+            #expect(BoardHeader.eventNameSize(width: phone, compact: false) == 16)
+        }
+        #expect(BoardHeader.eventNameSize(width: 660, compact: false) == 24)
+        #expect(BoardHeader.eventNameSize(width: 1032, compact: false) == 24)
+        let mid = BoardHeader.eventNameSize(width: 550, compact: false)
+        #expect(mid > 16 && mid < 24)
+        #expect(BoardHeader.eventNameSize(width: 1376, compact: true) == 13)
+    }
+}

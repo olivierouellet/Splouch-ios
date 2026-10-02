@@ -220,6 +220,17 @@ struct BoardHeader: View {
     /// What this costs a portrait board, measured on an iPhone 17. `MeetShell`
     /// decides from it whether the lanes still fit underneath.
     static let portraitBand: CGFloat = 58
+
+    /// L-02: the event name grows with the row past the widest iPhone, so an
+    /// iPad's header is not a 16pt line across a 1000pt band. Every iPhone,
+    /// up to the Pro Max's 440, keeps 16 exactly. The bar copy stays at 13:
+    /// it is one navigation-bar row high whatever the width.
+    static func eventNameSize(width: CGFloat, compact: Bool) -> CGFloat {
+        if compact { return 13 }
+        return min(24, max(16, 16 * width / 440))
+    }
+
+    @State private var width: CGFloat = 0
     @Environment(\.palette) private var palette
     @Environment(\.faces) private var faces
 
@@ -237,7 +248,7 @@ struct BoardHeader: View {
             // Landscape stays on one line whatever it costs: that copy lives
             // in the navigation bar, which is one row high (see MeetShell).
             Text(eventName)
-                .font(faces.text(compact ? 13 : 16))
+                .font(faces.text(Self.eventNameSize(width: width, compact: compact)))
                 .foregroundStyle(palette.headerValue)
                 .lineLimit(compact ? 1 : 2)
                 .minimumScaleFactor(0.6)
@@ -252,6 +263,11 @@ struct BoardHeader: View {
         }
         .padding(.horizontal, compact ? 0 : 12)
         .padding(.vertical, compact ? 0 : 8)
+        .onGeometryChange(for: CGFloat.self) {
+            $0.size.width
+        } action: {
+            width = $0
+        }
         // No background and no hairline: this used to be a bar of its own, with
         // a `border-bottom` carried over from the web shell. It now sits under
         // the real navigation bar, and two stacked bars for one screen is one
