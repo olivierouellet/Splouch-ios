@@ -13,39 +13,39 @@ per listing.
 | --- | --- |
 | Primary language | English (Canada) |
 | Category | Sports |
-| Support URL | https://splouch.ca/support (page still to publish) |
-| Privacy policy URL | https://splouch.ca/privacy (page still to publish) |
+| Support URL | <https://splouch.ca/support> (page still to publish) |
+| Privacy policy URL | <https://splouch.ca/privacy> (page still to publish) |
 | Age rating | 4+ (every questionnaire answer "None" / "No") |
 | App Privacy | Device ID: collected, used for Analytics, not linked to the user, not used for tracking. Matches `App/PrivacyInfo.xcprivacy`. |
 | Export compliance | Answered by `ITSAppUsesNonExemptEncryption = NO` in Info.plist |
 
 ## en-CA
 
-**Name**
+### Name
 
 ```text
 Splouch
 ```
 
-**Subtitle**
+### Subtitle
 
 ```text
 Live swim meet scoreboard
 ```
 
-**Promotional text**
+### Promotional text
 
 ```text
 Follow the race from the stands: the live clock, splits and places as they land, every heat's results and the meet schedule.
 ```
 
-**Keywords**
+### Keywords
 
 ```text
 swimming,swim meet,scoreboard,live results,heat,splits,timing,pool,race,club,natation
 ```
 
-**Description**
+### Description
 
 ```text
 Splouch puts the pool's scoreboard in your hand.
@@ -67,31 +67,31 @@ Results shown in Splouch are live and unofficial. Validated results are publishe
 
 ## fr-CA
 
-**Nom**
+### Nom
 
 ```text
 Splouch
 ```
 
-**Sous-titre**
+### Sous-titre
 
 ```text
 Tableau de natation en direct
 ```
 
-**Texte promotionnel**
+### Texte promotionnel
 
 ```text
 Suivez la course des gradins : le chrono en direct, les temps de passage et les places à l'arrivée, les résultats de chaque série et l'horaire.
 ```
 
-**Mots-clés**
+### Mots-clés
 
 ```text
 natation,compétition,tableau,résultats en direct,série,temps de passage,chronométrage,piscine,club
 ```
 
-**Description**
+### Description
 
 ```text
 Splouch met le tableau d'affichage de la piscine dans votre main.
@@ -113,31 +113,31 @@ Les résultats affichés dans Splouch sont en direct et non officiels. Les résu
 
 ## es-MX
 
-**Nombre**
+### Nombre
 
 ```text
 Splouch
 ```
 
-**Subtítulo**
+### Subtítulo
 
 ```text
 Marcador de natación en vivo
 ```
 
-**Texto promocional**
+### Texto promocional
 
 ```text
 Sigue la carrera desde las gradas: el cronómetro en vivo, los parciales y los lugares al llegar, los resultados de cada serie y el programa.
 ```
 
-**Palabras clave**
+### Palabras clave
 
 ```text
 natación,competencia,marcador,resultados en vivo,serie,parciales,cronometraje,piscina,club,nado
 ```
 
-**Descripción**
+### Descripción
 
 ```text
 Splouch pone el marcador de la alberca en tu mano.
