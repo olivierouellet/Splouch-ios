@@ -217,7 +217,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2026.10.0;
+				MARKETING_VERSION = 2026.10.1;
 				PRODUCT_BUNDLE_IDENTIFIER = app.splouch.ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -245,7 +245,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2026.10.0;
+				MARKETING_VERSION = 2026.10.1;
 				PRODUCT_BUNDLE_IDENTIFIER = app.splouch.ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
