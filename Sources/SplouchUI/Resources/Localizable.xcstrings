@@ -305,19 +305,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plain http is only allowed for .local names."
+            "value" : "Plain http is only allowed on the local network."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El http sin cifrar solo se permite para nombres .local."
+            "value" : "El http sin cifrar solo se permite en la red local."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Le http simple n’est permis que pour les noms .local."
+            "value" : "Le http simple n’est permis que sur le réseau local."
           }
         }
       }

@@ -25,23 +25,39 @@ public struct FileBundleCache: BundleCache {
     }
 
     /// `<origin>-<lang>.json` is the server's body verbatim; the ETag sits beside
-    /// it in `<origin>-<lang>.etag`.
-    private func file(origin: String, lang: String, ext: String) -> URL {
+    /// it in `<origin>-<lang>.etag`. nil when `lang` is not a language code: it
+    /// comes from the server (`settings.locale`, `picker.lang`), and a name built
+    /// from it must never leave `directory`.
+    private func file(origin: String, lang: String, ext: String) -> URL? {
+        guard Self.isLanguageCode(lang) else { return nil }
         let safe = origin.map { $0.isLetter || $0.isNumber ? String($0) : "_" }.joined()
         return directory.appendingPathComponent("\(safe)-\(lang).\(ext)")
     }
 
+    /// `en`, `fr-CA`, `zh-Hant-TW`: ASCII letters, digits and hyphens, short.
+    static func isLanguageCode(_ s: String) -> Bool {
+        !s.isEmpty && s.count <= 35
+            && s.unicodeScalars.allSatisfy {
+                $0.isASCII && ($0.properties.isAlphabetic || ("0"..."9").contains($0) || $0 == "-")
+            }
+    }
+
     public func load(origin: String, lang: String) -> CachedBundle? {
-        guard let body = try? Data(contentsOf: file(origin: origin, lang: lang, ext: "json")) else { return nil }
-        let etag = (try? String(contentsOf: file(origin: origin, lang: lang, ext: "etag"), encoding: .utf8))?
+        guard let json = file(origin: origin, lang: lang, ext: "json"),
+            let etagFile = file(origin: origin, lang: lang, ext: "etag"),
+            let body = try? Data(contentsOf: json)
+        else { return nil }
+        let etag = (try? String(contentsOf: etagFile, encoding: .utf8))?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return try? CachedBundle(body: body, etag: etag.flatMap { $0.isEmpty ? nil : $0 })
     }
 
     public func store(_ cached: CachedBundle, origin: String, lang: String) {
+        guard let json = file(origin: origin, lang: lang, ext: "json"),
+            let etagFile = file(origin: origin, lang: lang, ext: "etag")
+        else { return }
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        try? cached.body.write(to: file(origin: origin, lang: lang, ext: "json"), options: .atomic)
-        let etagFile = file(origin: origin, lang: lang, ext: "etag")
+        try? cached.body.write(to: json, options: .atomic)
         if let etag = cached.etag {
             try? Data(etag.utf8).write(to: etagFile, options: .atomic)
         } else {

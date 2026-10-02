@@ -291,6 +291,30 @@ import Testing
         #expect(address == stub.address)
     }
 
+    /// P-12 for a typed address: cleartext to a public host is refused before it
+    /// is dialled, as a scanned one is.
+    @Test func probeRefusesCleartextOffTheLocalNetwork() async {
+        let stub = StubServer()
+        let app = make(stub)
+        await #expect(throws: APIError.cleartextNotLocal) { try await app.probe(typed: "203.0.113.5:5000") }
+        await #expect(throws: APIError.cleartextNotLocal) { try await app.probe(typed: "http://pool.example") }
+    }
+
+    /// A directory entry is held to the same floor: an `http` sibling off the local
+    /// network is not offered.
+    @Test func theDirectoryDropsCleartextToPublicHosts() async {
+        let stub = StubServer()
+        cloud(stub)
+        stub.route(
+            "/servers",
+            json:
+                #"{"servers":[{"name":"Club X","url":"https://x.example","kind":"cloud"},{"name":"Plain","url":"http://plain.example","kind":"cloud"},{"name":"Raw IP","url":"http://203.0.113.5:5000","kind":"pi"}]}"#
+        )
+        let app = make(stub)
+        await app.start()
+        #expect(app.knownServers.map(\.name) == ["Splouch", "Club X"])
+    }
+
     @Test func switchingServerPersistsAndReloads() async {
         let stub = StubServer()
         cloud(stub)

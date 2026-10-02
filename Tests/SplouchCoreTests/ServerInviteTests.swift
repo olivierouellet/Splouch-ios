@@ -191,7 +191,7 @@ import Testing
         app.acceptInvite()
         #expect(app.invite?.checking == false)  // there is nothing to accept
 
-        app.openServerLink(link(stub, server: "http://192.168.1.10:5000"))
+        app.openServerLink(link(stub, server: "http://203.0.113.10:5000"))
         #expect(app.invite?.failure == .cleartextNotLocal)
         #expect(app.invite?.address == nil)
 

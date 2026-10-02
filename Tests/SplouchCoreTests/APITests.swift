@@ -97,6 +97,26 @@ import Testing
         cache.store(try! CachedBundle(body: body, etag: nil), origin: "https://a.example:443", lang: "fr")
         #expect(cache.load(origin: "https://a.example:443", lang: "fr")?.etag == nil)
     }
+
+    /// `lang` comes from the server (`settings.locale`, `picker.lang`), so only a
+    /// language code ever names a file: nothing else is written or read.
+    @Test func fileCacheIgnoresALangThatIsNotALanguageCode() throws {
+        let base = FileManager.default.temporaryDirectory.appendingPathComponent("splouch-test-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: base) }
+        let dir = base.appendingPathComponent("i18n")
+        let cache = FileBundleCache(directory: dir)
+        let c = try CachedBundle(body: Data(#"{"lang":"fr","mobile":{"a":"b"}}"#.utf8), etag: nil)
+        for lang in ["../x", "x/../../y", "/etc", "fr.json", "", String(repeating: "a", count: 36)] {
+            cache.store(c, origin: "https://a.example:443", lang: lang)
+            #expect(cache.load(origin: "https://a.example:443", lang: lang) == nil)
+        }
+        #expect(!FileManager.default.fileExists(atPath: base.path + "/x.json"))
+        #expect((try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? [] == [])
+        for lang in ["fr", "fr-CA", "zh-Hant-TW"] {
+            cache.store(c, origin: "https://a.example:443", lang: lang)
+            #expect(cache.load(origin: "https://a.example:443", lang: lang) == c)
+        }
+    }
 }
 
 @Suite struct PreferencesTests {

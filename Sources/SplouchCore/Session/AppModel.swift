@@ -212,9 +212,11 @@ public final class AppModel {
 
     // MARK: - Servers (P-11, P-13)
 
-    /// P-13: a typed address must answer `GET /server` before it is saved.
+    /// P-13: a typed address must answer `GET /server` before it is saved, and is
+    /// held to P-12's cleartext floor before it is dialled, as a scanned one is.
     public func probe(typed: String) async throws -> (ServerAddress, ServerInfo) {
         guard let address = ServerAddress(typed: typed) else { throw APIError.invalidAddress }
+        guard !address.isCleartextToNonLocal else { throw APIError.cleartextNotLocal }
         let info = try await SplouchAPI(address: address, session: session).server()
         return (address, info)
     }
@@ -334,6 +336,7 @@ public final class AppModel {
     static func failure(for error: any Error) -> InviteFailure {
         switch error {
         case APIError.invalidAddress: return .badLink
+        case APIError.cleartextNotLocal: return .cleartextNotLocal
         case APIError.notASplouchServer, APIError.notFound, APIError.notJSON: return .notSplouch
         default: return .unreachable
         }
@@ -356,7 +359,10 @@ public final class AppModel {
         }
         add(SavedServer(name: "Splouch", address: defaultServer))
         for e in directory {
-            if let a = ServerAddress(typed: e.url) { add(SavedServer(name: e.name, address: a)) }
+            // P-12: a directory entry is held to the same floor as a typed one.
+            if let a = ServerAddress(typed: e.url), !a.isCleartextToNonLocal {
+                add(SavedServer(name: e.name, address: a))
+            }
         }
         for s in preferences.savedServers { add(s) }
         return out

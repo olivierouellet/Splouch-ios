@@ -18,6 +18,28 @@ import Testing
         #expect(ServerAddress(typed: "pool.example.org")!.isSecure)
     }
 
+    /// P-12: cleartext is for the local network — `.local`, loopback, and the
+    /// private and link-local ranges — and nowhere else. ATS does not cover IP
+    /// literals, so this check is the only one they meet.
+    @Test func localNetworkIsNamesLoopbackAndPrivateRanges() {
+        for host in [
+            "pi.local", "localhost", "127.0.0.1", "127.8.9.10", "10.0.2.2", "10.255.0.1", "172.16.0.1",
+            "172.31.255.254", "192.168.1.20", "169.254.3.4", "::1", "[::1]", "fd12:3456::1", "fc00::1",
+            "fe80::1", "fe80::1%en0", "[fe80::1%25en0]", "::ffff:192.168.1.2",
+        ] {
+            #expect(ServerAddress.isLocalName(host), "\(host)")
+        }
+        for host in [
+            "splouch.ca", "203.0.113.5", "8.8.8.8", "172.15.0.1", "172.32.0.1", "192.169.1.1", "11.0.0.1",
+            "2001:db8::1", "::ffff:8.8.8.8", "localhost.example", "10.0.0.1.example", "local", "",
+        ] {
+            #expect(!ServerAddress.isLocalName(host), "\(host)")
+        }
+        #expect(ServerAddress(typed: "203.0.113.5:5000")!.isCleartextToNonLocal)
+        #expect(!ServerAddress(typed: "192.168.1.20:5000")!.isCleartextToNonLocal)
+        #expect(!ServerAddress(typed: "https://203.0.113.5")!.isCleartextToNonLocal)
+    }
+
     @Test func explicitSchemeIsKeptAndNormalised() {
         let a = ServerAddress(typed: " HTTP://Pi.Local:5000/ ")!
         #expect(a.url.absoluteString == "http://pi.local:5000")

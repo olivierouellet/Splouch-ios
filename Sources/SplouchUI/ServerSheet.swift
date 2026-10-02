@@ -192,6 +192,8 @@ struct ServerSheet: View {
             dismiss()
         } catch APIError.invalidAddress {
             checkError = Native.invalidAddress
+        } catch APIError.cleartextNotLocal {
+            checkError = Native.cleartextNotLocal
         } catch APIError.notASplouchServer, APIError.notFound, APIError.notJSON {
             checkError = Native.notSplouch
         } catch {

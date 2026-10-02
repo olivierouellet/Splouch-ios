@@ -49,20 +49,56 @@ public struct ServerAddress: Sendable, Hashable, Codable {
     }
 
     /// P-12's cleartext floor: `http` is for the local network only — a `.local`
-    /// name, which is how a Pi is reached (`_splouch._tcp` advertises one), or a
-    /// developer loopback. This is the same set the cloud's `/add` page and the
-    /// Pi's code minter hold a link to (`shared/py/splouch_links.py`), down to
-    /// the Android emulator's `10.0.2.2`: the three parsers either agree about
-    /// which addresses exist or a printed code means one thing on one phone and
-    /// another on the next.
+    /// name, which is how a Pi is reached (`_splouch._tcp` advertises one), a
+    /// loopback, or a private or link-local address, which is how a Pi is typed
+    /// when mDNS does not get through. This is the set the cloud's `/add` page and
+    /// the Pi's code minter must hold a link to as well (`shared/py/splouch_links.py`):
+    /// the three parsers either agree about which addresses exist or a printed code
+    /// means one thing on one phone and another on the next.
     ///
-    /// ATS enforces the same floor at the socket (`NSAllowsLocalNetworking`),
-    /// but only by refusing the request. A link is refused before one is made.
-    static let localHosts: Set<String> = ["localhost", "127.0.0.1", "10.0.2.2", "::1", "[::1]"]
+    /// The floor is ours, not ATS's. `NSAllowsLocalNetworking` covers `.local`, but
+    /// ATS does not apply to IP literals at all, so without this a typed public IP
+    /// would be dialled in cleartext.
+    static let localHosts: Set<String> = ["localhost"]
 
     public static func isLocalName(_ host: String) -> Bool {
-        let h = host.lowercased()
-        return h.hasSuffix(".local") || localHosts.contains(h)
+        var h = host.lowercased()
+        if h.hasPrefix("["), h.hasSuffix("]") { h = String(h.dropFirst().dropLast()) }
+        if h.hasSuffix(".local") || localHosts.contains(h) { return true }
+        if let v4 = ipv4Octets(h) { return isPrivateV4(v4) }
+        if let v6 = ipv6Bytes(h) { return isPrivateV6(v6) }
+        return false
+    }
+
+    /// Loopback `127/8`, RFC 1918 (`10/8`, `172.16/12`, `192.168/16`) and
+    /// link-local `169.254/16`. `10.0.2.2`, the Android emulator's host, is in `10/8`.
+    private static func isPrivateV4(_ a: [UInt8]) -> Bool {
+        a[0] == 127 || a[0] == 10 || (a[0] == 172 && a[1] & 0xF0 == 16)
+            || (a[0] == 192 && a[1] == 168) || (a[0] == 169 && a[1] == 254)
+    }
+
+    /// Loopback `::1`, unique-local `fc00::/7`, link-local `fe80::/10`, and an
+    /// IPv4-mapped address by its IPv4 half.
+    private static func isPrivateV6(_ b: [UInt8]) -> Bool {
+        if b[0..<15].allSatisfy({ $0 == 0 }) && b[15] == 1 { return true }
+        if b[0] & 0xFE == 0xFC { return true }
+        if b[0] == 0xFE && b[1] & 0xC0 == 0x80 { return true }
+        if b[0..<10].allSatisfy({ $0 == 0 }) && b[10] == 0xFF && b[11] == 0xFF { return isPrivateV4(Array(b[12...])) }
+        return false
+    }
+
+    private static func ipv4Octets(_ s: String) -> [UInt8]? {
+        guard looksLikeIPv4(s) else { return nil }
+        return s.split(separator: ".").compactMap { UInt8($0) }
+    }
+
+    /// 16 bytes for an IPv6 literal, a `%zone` suffix (`fe80::1%en0`) ignored.
+    private static func ipv6Bytes(_ s: String) -> [UInt8]? {
+        guard s.contains(":") else { return nil }
+        let bare = s.split(separator: "%", maxSplits: 1).first.map(String.init) ?? s
+        var addr = in6_addr()
+        guard inet_pton(AF_INET6, bare, &addr) == 1 else { return nil }
+        return withUnsafeBytes(of: &addr) { Array($0) }
     }
 
     /// `http` to somewhere that is not the local network — the one address shape

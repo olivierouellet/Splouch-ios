@@ -9,6 +9,8 @@ public enum APIError: Error, Sendable, Equatable {
     case notASplouchServer
     /// What was typed is not an http(s) address at all.
     case invalidAddress
+    /// `http` to a host off the local network (app.md P-12).
+    case cleartextNotLocal
 }
 
 /// A `GET /i18n/{lang}` body, kept verbatim, with the validator to revalidate it

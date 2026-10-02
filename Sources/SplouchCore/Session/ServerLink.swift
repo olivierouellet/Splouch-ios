@@ -21,7 +21,7 @@ import Foundation
 ///
 /// The address inside is held to exactly what a typed one is (`P-13`):
 /// `ServerAddress(typed:)`, then `P-12`'s cleartext floor — `http` only for a `.local`
-/// name or a developer loopback. A printed code is a stranger's input in a way a typed
+/// name, a loopback or a private address. A printed code is a stranger's input in a way a typed
 /// address is not, so the floor cannot be lower here — and the link only *proposes*.
 /// Nothing is saved, selected, or even dialled until the reader says yes and
 /// `GET /server` answers (`AppModel.acceptInvite`).

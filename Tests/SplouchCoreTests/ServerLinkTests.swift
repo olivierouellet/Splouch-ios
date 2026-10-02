@@ -88,12 +88,15 @@ import Testing
     /// before a request is made rather than by ATS after one is.
     @Test func cleartextIsForTheLocalNetworkOnly() {
         #expect(
-            ServerLink.parse("https://splouch.ca/add?server=http%3A%2F%2F192.168.1.10%3A5000", host: host)
+            ServerLink.parse("https://splouch.ca/add?server=http%3A%2F%2F203.0.113.10%3A5000", host: host)
                 == .cleartextNotLocal)
         #expect(
             ServerLink.parse("https://splouch.ca/add?server=http%3A%2F%2Fpool.example", host: host)
                 == .cleartextNotLocal)
-        // The two that are allowed: a Pi by its mDNS name, and a developer's loopback.
+        // Allowed: a Pi by its mDNS name or private address, and a developer's loopback.
+        #expect(
+            address(ServerLink.parse("https://splouch.ca/add?server=http%3A%2F%2F192.168.1.10%3A5000", host: host))
+                != nil)
         #expect(
             address(ServerLink.parse("https://splouch.ca/add?server=http%3A%2F%2Fsplouch.local", host: host)) != nil)
         #expect(
