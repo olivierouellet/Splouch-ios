@@ -142,8 +142,10 @@ struct HeatCard: View {
             (word("\(labels["event"] ?? "") ") + number(heat.heat.event)
             + word("  \(labels["heat"] ?? "") ") + number(heat.heat.heat))
             .font(faces.text(17 * typeScale, weight: .semibold))
+        // The event name takes the words' colour, not the numbers'.
         let name =
-            eventName.isEmpty ? nil : Text(eventName).font(faces.text(17 * typeScale)).foregroundStyle(palette.rowText)
+            eventName.isEmpty
+            ? nil : Text(eventName).font(faces.text(17 * typeScale)).foregroundStyle(palette.scheduleEvent)
         // At its own width, not the seed column's. The heading's time is a clock
         // time and the column is sized for a seed time, so lining the two up
         // parked "9:12" at the right edge of a ruler cut for "1:04.219" and left
