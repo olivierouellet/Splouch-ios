@@ -9,11 +9,19 @@ import Testing
         heartbeat: .milliseconds(40), stale: .milliseconds(100),
         probe: .milliseconds(40), backoffMin: .milliseconds(10),
         backoffMax: .milliseconds(40))
+    /// For the tests that assert exactly what a connect sends: the same fast
+    /// backoff, but no heartbeat `ping` can land in `sent` while they look. Under
+    /// `timing` one fires 40 ms after connecting, and a slow CI runner takes that
+    /// long between the connect and the check.
+    let quiet = SocketTiming(
+        heartbeat: .seconds(60), stale: .seconds(120),
+        probe: .milliseconds(40), backoffMin: .milliseconds(10),
+        backoffMax: .milliseconds(40))
     let join = Frame.joinMeet(meetID: "m1", vid: "v1")
 
-    func make(join: Frame? = nil) -> (SplouchSocket, FakeConnector, EventRecorder) {
+    func make(join: Frame? = nil, timing: SocketTiming? = nil) -> (SplouchSocket, FakeConnector, EventRecorder) {
         let connector = FakeConnector()
-        let socket = SplouchSocket(url: url, connector: connector, join: join, timing: timing)
+        let socket = SplouchSocket(url: url, connector: connector, join: join, timing: timing ?? self.timing)
         let recorder = EventRecorder(socket.events)
         return (socket, connector, recorder)
     }
@@ -26,7 +34,7 @@ import Testing
     // C-02, C-06
 
     @Test func joinIsSentOnConnectAfterQueuedFrames() async {
-        let (socket, connector, recorder) = make(join: join)
+        let (socket, connector, recorder) = make(join: join, timing: quiet)
         await socket.send(Frame(event: "early", data: .object(["a": .number(1)])))
         await socket.start()
         #expect(await eventually { await recorder.events.contains(.connected) })
@@ -37,7 +45,7 @@ import Testing
     }
 
     @Test func noJoinOnAPi() async {
-        let (socket, connector, recorder) = make(join: nil)
+        let (socket, connector, recorder) = make(join: nil, timing: quiet)
         await socket.start()
         #expect(await eventually { await recorder.events.contains(.connected) })
         #expect(connector.latest!.sentEvents.isEmpty)
@@ -65,7 +73,7 @@ import Testing
     // C-03 and C-02 on reconnect
 
     @Test func serverDropReconnectsAndRejoins() async {
-        let (socket, connector, recorder) = make(join: join)
+        let (socket, connector, recorder) = make(join: join, timing: quiet)
         await socket.start()
         #expect(await eventually { await recorder.events.contains(.connected) })
         let first = connector.latest!
@@ -203,7 +211,7 @@ import Testing
     /// meet-switch case — the same socket, a different meet — where a stale join
     /// would silently subscribe the reader back to the meet they just left.
     @Test func replacingTheJoinChangesWhatTheNextConnectSends() async {
-        let (socket, connector, recorder) = make(join: join)
+        let (socket, connector, recorder) = make(join: join, timing: quiet)
         await socket.start()
         #expect(await eventually { await recorder.events.contains(.connected) })
         #expect(connector.latest!.sentEvents == ["join_meet"])
@@ -220,7 +228,7 @@ import Testing
     /// And clearing it stops the socket announcing anything at all, which is the
     /// Pi's shape: one meet, nothing to join.
     @Test func clearingTheJoinSendsNothingOnReconnect() async {
-        let (socket, connector, recorder) = make(join: join)
+        let (socket, connector, recorder) = make(join: join, timing: quiet)
         await socket.start()
         #expect(await eventually { await recorder.events.contains(.connected) })
         await socket.setJoin(nil)
