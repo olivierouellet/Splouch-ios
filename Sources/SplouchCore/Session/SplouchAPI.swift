@@ -38,6 +38,12 @@ public struct SplouchAPI: Sendable {
         self.session = session
     }
 
+    /// The same client pointed at a meet's `base` (C-11): its config, schedule
+    /// and icon. nil keeps this address — an older server sends no `base`.
+    public func at(_ base: ServerAddress?) -> SplouchAPI {
+        SplouchAPI(address: base ?? address, session: session)
+    }
+
     // MARK: Both servers
 
     /// The handshake made before anything else (api.md §5.10, app.md P-13).
@@ -92,7 +98,11 @@ public struct SplouchAPI: Sendable {
         try decode(ServerDirectory.self, from: try await get(address.endpoint("/servers")))
     }
 
+    /// Stays on the server the list came from, never a meet's `base` (C-11).
     public func pickerImageURL(meetID: String) -> URL { address.endpoint("/picker_image/\(meetID)") }
+    /// The meet's icon. Asked of the meet's `base` (C-11), like its config and
+    /// schedule: call it on `MeetContext.meetAPI`.
+    public func iconURL(meetID: String) -> URL { address.endpoint("/icon/\(meetID)") }
     public func pickerLogoURL() -> URL { address.endpoint("/picker_logo") }
 
     // MARK: Pi

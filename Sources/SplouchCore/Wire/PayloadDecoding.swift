@@ -37,7 +37,9 @@ extension MeetSummary {
             id: id, name: json.str("name"), location: json.str("location"),
             sport: json.str("sport"), organizer: json.str("organizer"),
             meetDate: json.str("meet_date"), offline: json.flag("offline", default: false),
-            hasPickerImage: json.flag("has_picker_image", default: false))
+            hasPickerImage: json.flag("has_picker_image", default: false),
+            country: json.str("country"), province: json.str("province"),
+            base: ServerAddress(base: json.str("base")))
     }
 }
 
@@ -111,6 +113,7 @@ extension MeetConfig {
         appWindowTitle = json.str("app_window_title")
         meetDate = json.str("meet_date")
         live = json.flag("live", default: false)
+        base = ServerAddress(base: json.str("base"))
         settings = MeetSettings(json: json["settings"] ?? .object([:]))
     }
     public init(data: Data) throws { self.init(json: try JSONValue.parse(data)) }

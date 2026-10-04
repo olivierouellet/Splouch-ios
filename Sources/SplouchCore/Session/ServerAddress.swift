@@ -26,6 +26,16 @@ public struct ServerAddress: Sendable, Hashable, Codable {
         self.url = normalized
     }
 
+    /// A meet's `base` as a server sends it (C-11, C-12): an absolute http(s)
+    /// URL, held to P-12's cleartext floor like every other address. nil for
+    /// empty, unparsable or cleartext to a public host — the caller then keeps
+    /// the address it already has.
+    public init?(base: String) {
+        guard !base.isEmpty, let url = URL(string: base) else { return nil }
+        self.init(url: url)
+        if isCleartextToNonLocal { return nil }
+    }
+
     /// From what a user typed. A bare host gets `https://`; a `.local` host or a
     /// raw IP gets `http://`, which is the Pi's case (cleartext on the local
     /// network only, app.md P-12).

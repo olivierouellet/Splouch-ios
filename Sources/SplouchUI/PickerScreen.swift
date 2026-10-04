@@ -134,9 +134,13 @@ struct PickerScreen: View {
                     Button {
                         Task { await open(meet) }
                     } label: {
+                        // P-18: past ten meets every row is compact and no
+                        // picker image is asked for — `pickerImageURL` is nil
+                        // for all of them.
                         MeetCard(
                             meet: meet,
-                            imageURL: meet.hasPickerImage ? app.api.pickerImageURL(meetID: meet.id) : nil,
+                            imageURL: app.pickerImageURL(for: meet),
+                            compact: app.listIsCompact,
                             unnamed: served("unnamed_meet"),
                             offline: strings.mobile("offline"))
                     }
@@ -421,10 +425,12 @@ extension View {
 }
 
 /// P-01, P-02, P-03. One meet as a list row: no card, no border, no padding of
-/// its own — the list draws all three.
+/// its own — the list draws all three. `compact` is P-18's row: name, date,
+/// location, province/country and the live dot — no image slot, no sport.
 struct MeetCard: View {
     let meet: MeetSummary
     let imageURL: URL?
+    var compact = false
     let unnamed: String
     /// The server's word for a retained meet with no relay (`mobile.offline`).
     var offline: String = ""
@@ -441,20 +447,22 @@ struct MeetCard: View {
             liveDot
             // The slot is reserved whether or not the meet carries an image, so
             // titles line up down the list; a meet without one shows the same
-            // empty tile the image shows while it loads.
-            Group {
-                if let imageURL {
-                    AsyncImage(url: imageURL) {
-                        $0.resizable().scaledToFill()
-                    } placeholder: {
+            // empty tile the image shows while it loads. P-18's rows have none.
+            if !compact {
+                Group {
+                    if let imageURL {
+                        AsyncImage(url: imageURL) {
+                            $0.resizable().scaledToFill()
+                        } placeholder: {
+                            placeholder
+                        }
+                    } else {
                         placeholder
                     }
-                } else {
-                    placeholder
                 }
+                .frame(width: 64, height: 64)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
             }
-            .frame(width: 64, height: 64)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
             VStack(alignment: .leading, spacing: 4) {
                 // The name wraps rather than shrinking. On one line with a 0.5
                 // floor a long name hit that floor in portrait — half of
@@ -468,8 +476,11 @@ struct MeetCard: View {
                 if !details.isEmpty {
                     Text(details.joined(separator: " · ")).font(.subheadline).foregroundStyle(.secondary)
                 }
-                if !meet.sport.isEmpty {
-                    Text(meet.sport).font(.caption).foregroundStyle(.secondary)
+                // P-01: the organizer's province and country, the country
+                // named in the device's language.
+                let footer = [meet.region() ?? "", compact ? "" : meet.sport].filter { !$0.isEmpty }
+                if !footer.isEmpty {
+                    Text(footer.joined(separator: " · ")).font(.caption).foregroundStyle(.secondary)
                 }
             }
             Spacer(minLength: 8)
@@ -481,7 +492,7 @@ struct MeetCard: View {
                 // Decoration: the row is already a button.
                 .accessibilityHidden(true)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, compact ? 0 : 4)
         .opacity(meet.offline ? 0.75 : 1)
     }
 

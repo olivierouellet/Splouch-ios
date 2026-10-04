@@ -133,9 +133,9 @@ import Testing
 
 @Suite struct ContractTests {
     @Test func mismatchesAreNamed() {
-        let ok = ServerInfo(kind: .cloud, name: "S", contract: .init(api: "v2", app: "v2"))
+        let ok = ServerInfo(kind: .cloud, name: "S", contract: .init(api: "v2", app: "v3"))
         #expect(ok.contractMismatches.isEmpty)
-        let old = ServerInfo(kind: .pi, name: "P", contract: .init(api: "v1", app: "v2"))
+        let old = ServerInfo(kind: .pi, name: "P", contract: .init(api: "v1", app: "v3"))
         #expect(old.contractMismatches == ["api v1"])
     }
 }

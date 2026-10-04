@@ -10,7 +10,12 @@ import Observation
 @MainActor
 @Observable
 public final class MeetSession {
+    /// The server the meet list came from. Keys the `vid` (C-10), wherever the
+    /// meet itself is reached.
     public let address: ServerAddress
+    /// Where the three sockets connect: the meet's `base` (C-11), the server's
+    /// own address when there is none, and wherever a `moved` sends it (C-12).
+    public private(set) var base: ServerAddress
     public let kind: ServerKind
     /// nil on a Pi.
     public let meetID: String?
@@ -40,6 +45,9 @@ public final class MeetSession {
     public var onScheduleUpdate: (@MainActor () -> Void)?
     /// Called when the scoreboard socket comes back after a drop (A-09 re-check).
     public var onReconnected: (@MainActor () -> Void)?
+    /// Called after a `moved` has re-pointed the sockets (C-12): config is to be
+    /// fetched again, from the new `base`.
+    public var onMoved: (@MainActor (ServerAddress) -> Void)?
     private var scoreboardEverConnected = false
 
     private let scoreboardSocket: SplouchSocket
@@ -49,25 +57,29 @@ public final class MeetSession {
     private var started = false
 
     public init(
-        address: ServerAddress, kind: ServerKind, meetID: String?, settings: MeetSettings,
-        vidStore: any VidStore, connector: any WebSocketConnector = URLSessionWebSocketConnector(),
-        timing: SocketTiming = .standard
+        address: ServerAddress, base: ServerAddress? = nil, kind: ServerKind, meetID: String?,
+        settings: MeetSettings, vidStore: any VidStore,
+        connector: any WebSocketConnector = URLSessionWebSocketConnector(), timing: SocketTiming = .standard
     ) {
         self.address = address
+        let base = kind == .cloud ? (base ?? address) : address
+        self.base = base
         self.kind = kind
         self.meetID = kind == .cloud ? meetID : nil
         self.settings = settings
         self.scoreboard = ScoreboardState(numLanes: settings.numLanes)
-        // C-10: one random id per server, generated on first use and stored.
+        // C-10: one random id per server, generated on first use and stored —
+        // the list's server, never the worker a `base` names, so a phone is one
+        // visitor however many workers its meets sit on.
         let join: Frame? =
             (kind == .cloud && meetID != nil)
             ? .joinMeet(meetID: meetID!, vid: vidStore.vid(for: address.origin)) : nil
         scoreboardSocket = SplouchSocket(
-            url: address.webSocket("/ws/scoreboard"), connector: connector, join: join, timing: timing)
+            url: base.webSocket("/ws/scoreboard"), connector: connector, join: join, timing: timing)
         resultsSocket = SplouchSocket(
-            url: address.webSocket("/ws/results"), connector: connector, join: join, timing: timing)
+            url: base.webSocket("/ws/results"), connector: connector, join: join, timing: timing)
         scheduleSocket = SplouchSocket(
-            url: address.webSocket("/ws/schedule"), connector: connector, join: join, timing: timing)
+            url: base.webSocket("/ws/schedule"), connector: connector, join: join, timing: timing)
     }
 
     public var meetLive: Bool { scoreboard.meetLive }
@@ -142,6 +154,22 @@ public final class MeetSession {
         rejoin()
     }
 
+    /// C-12, and A-09's config naming a new `base`: the meet now lives at `base`.
+    /// All three sockets go there, whichever one heard it. Idempotent — a move
+    /// arrives on each socket — and a Pi has no `base` to change.
+    @discardableResult
+    public func move(to new: ServerAddress) -> Bool {
+        guard kind == .cloud, new != base else { return false }
+        base = new
+        let sockets = [
+            (scoreboardSocket, new.webSocket("/ws/scoreboard")),
+            (resultsSocket, new.webSocket("/ws/results")),
+            (scheduleSocket, new.webSocket("/ws/schedule")),
+        ]
+        Task { for (socket, url) in sockets { await socket.move(to: url) } }
+        return true
+    }
+
     /// Drops and reopens every socket so the join replay lands (A-05).
     public func rejoin() {
         Task {
@@ -193,6 +221,8 @@ public final class MeetSession {
             case "reload":
                 reloadVersion += 1
                 onReload?()
+            case "moved":
+                moved(f)
             default:
                 break  // C-07
             }
@@ -220,6 +250,8 @@ public final class MeetSession {
             case "reload":
                 reloadVersion += 1
                 onReload?()
+            case "moved":
+                moved(f)
             default:
                 break
             }
@@ -234,8 +266,18 @@ public final class MeetSession {
             if f.event == "schedule_update" {
                 scheduleVersion += 1
                 onScheduleUpdate?()
+            } else if f.event == "moved" {
+                moved(f)
             }
         }
+    }
+
+    /// C-12: `moved {url, base}`. Never "meet gone" — the meet is elsewhere.
+    /// `url` is the web page's to follow; an app reads `base` alone. A `base`
+    /// that does not parse, or fails P-12's floor, is ignored.
+    private func moved(_ f: Frame) {
+        guard let new = ServerAddress(base: f.data.str("base")), move(to: new) else { return }
+        onMoved?(new)
     }
 
     private func wipeResults() {

@@ -50,7 +50,8 @@ public actor SplouchSocket {
     public nonisolated let events: AsyncStream<SocketEvent>
     private let continuation: AsyncStream<SocketEvent>.Continuation
 
-    public let url: URL
+    /// Where it connects. Changes only by `move(to:)` (C-12).
+    public private(set) var url: URL
     private let connector: any WebSocketConnector
     private let timing: SocketTiming
     /// Re-sent on every connect. Settable so a session can change meets.
@@ -104,6 +105,21 @@ public actor SplouchSocket {
         continuation.finish()
     }
 
+    /// C-12: the meet now lives elsewhere. Drops whatever is open and connects to
+    /// `url` straight away, backoff reset; the join goes out there as on any
+    /// connect (C-02). An open to the old address still in flight is discarded
+    /// when it lands, in `run()`.
+    public func move(to url: URL) async {
+        guard !closed, url != self.url else { return }
+        self.url = url
+        delay = timing.backoffMin
+        if let c = connection {
+            await c.close()  // the loop ends, and its reconnect is at the backoff floor
+        } else if runTask == nil {
+            connect()
+        }
+    }
+
     /// Sends now, or queues until the next connect (C-06).
     public func send(_ frame: Frame) async {
         guard let text = try? frame.encoded() else { return }
@@ -154,16 +170,24 @@ public actor SplouchSocket {
 
     private func run() async {
         let conn: any WebSocketConnection
+        let target = url
         do {
-            conn = try await connector.open(url)
+            conn = try await connector.open(target)
         } catch {
             runTask = nil
-            scheduleReconnect()
+            if target != url { connect() } else { scheduleReconnect() }
             return
         }
         if closed {
             await conn.close()
             runTask = nil
+            return
+        }
+        if target != url {
+            // Moved while this was opening (C-12): the old worker is not the meet's.
+            await conn.close()
+            runTask = nil
+            connect()
             return
         }
         generation += 1

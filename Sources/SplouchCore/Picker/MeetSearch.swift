@@ -15,11 +15,16 @@ public enum MeetSearch {
 
     /// What a meet is searched on: what its card shows, plus the organizer,
     /// which the card does not show — a spectator may know a meet by the club
-    /// running it. Empty fields are skipped rather than joined as double spaces.
-    public static func text(of meet: MeetSummary) -> String {
-        [meet.name, meet.meetDate, meet.location, meet.sport, meet.organizer]
-            .filter { !$0.isEmpty }
-            .joined(separator: " ")
+    /// running it — and the organizer's province as sent and country by code
+    /// and by its name in `locale` (P-17). Empty fields are skipped rather than
+    /// joined as double spaces.
+    public static func text(of meet: MeetSummary, locale: Locale = .current) -> String {
+        [
+            meet.name, meet.meetDate, meet.location, meet.sport, meet.organizer, meet.province, meet.country,
+            meet.countryName(locale: locale) ?? "",
+        ]
+        .filter { !$0.isEmpty }
+        .joined(separator: " ")
     }
 
     /// Every word of the folded query is a substring of the folded text, in
@@ -32,11 +37,11 @@ public enum MeetSearch {
 
     /// The meets the query leaves, in the server's order — live meets first
     /// (api.md §5.6) — which is never re-sorted here.
-    public static func filter(_ meets: [MeetSummary], query: String) -> [MeetSummary] {
+    public static func filter(_ meets: [MeetSummary], query: String, locale: Locale = .current) -> [MeetSummary] {
         let words = words(query)
         guard !words.isEmpty else { return meets }
         return meets.filter { meet in
-            let key = SuggestionIndex.fold(text(of: meet))
+            let key = SuggestionIndex.fold(text(of: meet, locale: locale))
             return words.allSatisfy { key.contains($0) }
         }
     }
@@ -46,5 +51,22 @@ public enum MeetSearch {
     /// whitespace is all there is to split on.
     static func words(_ query: String) -> [String] {
         SuggestionIndex.fold(query).split(whereSeparator: \.isWhitespace).map(String.init)
+    }
+}
+
+extension MeetSummary {
+    /// P-01: the organizer's country named in the reader's language — `CA` is
+    /// *Canada* in English and French, *Canadá* in Spanish. nil when there is no
+    /// code or the system does not know it.
+    public func countryName(locale: Locale = .current) -> String? {
+        guard !country.isEmpty else { return nil }
+        return locale.localizedString(forRegionCode: country.uppercased())
+    }
+
+    /// P-01, P-18: `QC, Canada` — province as sent, then the country's name,
+    /// falling back to its code. nil when neither was recorded.
+    public func region(locale: Locale = .current) -> String? {
+        let parts = [province, countryName(locale: locale) ?? country].filter { !$0.isEmpty }
+        return parts.isEmpty ? nil : parts.joined(separator: ", ")
     }
 }

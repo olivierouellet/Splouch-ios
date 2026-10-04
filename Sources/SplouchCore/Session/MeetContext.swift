@@ -8,6 +8,8 @@ import Observation
 @MainActor
 @Observable
 public final class MeetContext {
+    /// The server the meet list came from: strings (`/i18n`) and nothing
+    /// meet-specific.
     public let api: SplouchAPI
     public let session: MeetSession
     public let kind: ServerKind
@@ -42,7 +44,8 @@ public final class MeetContext {
     public private(set) var labelStyle: LabelStyle
 
     public init(
-        api: SplouchAPI, kind: ServerKind, meetID: String?, title: String, settings: MeetSettings,
+        api: SplouchAPI, base: ServerAddress? = nil, kind: ServerKind, meetID: String?, title: String,
+        settings: MeetSettings,
         stringsLoader: StringsLoader, preferences: Preferences, vidStore: any VidStore,
         connector: any WebSocketConnector = URLSessionWebSocketConnector(),
         timing: SocketTiming = .standard
@@ -56,7 +59,7 @@ public final class MeetContext {
         self.language = preferences.language
         self.labelStyle = preferences.effectiveLabelStyle
         self.session = MeetSession(
-            address: api.address, kind: kind, meetID: meetID, settings: settings,
+            address: api.address, base: base, kind: kind, meetID: meetID, settings: settings,
             vidStore: vidStore, connector: connector, timing: timing)
         let lang = preferences.language ?? settings.locale
         self.strings = stringsLoader.table(for: lang)
@@ -72,7 +75,12 @@ public final class MeetContext {
         session.onReload = { [weak self] in Task { await self?.refresh() } }
         session.onScheduleUpdate = { [weak self] in Task { await self?.loadSchedule() } }
         session.onReconnected = { [weak self] in Task { await self?.checkMeet() } }
+        session.onMoved = { [weak self] _ in Task { await self?.checkMeet() } }  // C-12
     }
+
+    /// The meet's own address (C-11): its config, schedule and icon. Follows
+    /// the session's `base`, so a `moved` (C-12) re-points these too.
+    public var meetAPI: SplouchAPI { api.at(session.base) }
 
     /// The language the tabs render in.
     public var effectiveLanguage: String { language ?? settings.locale }
@@ -105,18 +113,33 @@ public final class MeetContext {
         Task { await checkMeet() }
     }
 
-    /// A-09: on a cloud, `GET /meet/{id}/config` is the check; 404 means gone.
-    /// Any other failure is a network fault the sockets already handle. A Pi has
-    /// one meet that cannot go away.
+    /// A-09: on a cloud, `GET /meet/{id}/config` at the meet's `base` is the
+    /// check; 404 means gone. Any other failure is a network fault the sockets
+    /// already handle. A Pi has one meet that cannot go away.
+    ///
+    /// A config naming another `base` is a move (C-12), never a gone: the
+    /// sockets follow it and the config is asked again there, once — two
+    /// workers each naming the other must not bounce the meet forever.
     public func checkMeet() async {
+        await checkMeet(following: true)
+    }
+
+    private func checkMeet(following: Bool) async {
         guard kind == .cloud, let meetID else { return }
         do {
-            let config = try await api.meetConfig(meetID)
+            let config = try await meetAPI.meetConfig(meetID)
+            if following, follow(config.base) { return await checkMeet(following: false) }
             title = config.appWindowTitle.isEmpty ? config.name : config.appWindowTitle
             apply(settings: config.settings, rejoin: false)
         } catch APIError.notFound {
             gone = true
         } catch {}
+    }
+
+    /// Whether `base` moved the meet. nil — an older server — never does.
+    private func follow(_ base: ServerAddress?) -> Bool {
+        guard let base else { return false }
+        return session.move(to: base)
     }
 
     /// A-05 and C-08: re-fetch config, redraw, re-join. A 404 means the meet is
@@ -128,7 +151,8 @@ public final class MeetContext {
             switch kind {
             case .cloud:
                 guard let meetID else { return }
-                let config = try await api.meetConfig(meetID)
+                var config = try await meetAPI.meetConfig(meetID)
+                if follow(config.base) { config = try await meetAPI.meetConfig(meetID) }  // C-12, once
                 title = config.appWindowTitle.isEmpty ? config.name : config.appWindowTitle
                 apply(settings: config.settings, rejoin: true)
             case .pi:
@@ -155,7 +179,7 @@ public final class MeetContext {
             switch kind {
             case .cloud:
                 guard let meetID else { return }
-                s = try await api.schedule(meetID: meetID)
+                s = try await meetAPI.schedule(meetID: meetID)
             case .pi:
                 s = try await api.piSchedule()
             }

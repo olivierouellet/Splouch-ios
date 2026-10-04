@@ -64,6 +64,9 @@ struct MeetShell: View {
     /// it is the only view that can measure both a lane and the header band —
     /// and it arrives here as a preference.
     @State private var boardNeedsBar = false
+    /// A-12: back was pressed while the meet list did not answer. Shown briefly.
+    @State private var listUnavailableShown = false
+    @State private var leaving = false
 
     /// A-11: the Results tab exists only for a meet whose console times.
     /// Nothing else is conditional — the Scoreboard is exactly as useful (it is
@@ -100,8 +103,15 @@ struct MeetShell: View {
             .navigationTitle(ctx.title)
             #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        // A-12: while the meet list does not answer, back is ours rather
+        // than the system's, so it can ask first and stay put. The system
+        // button and its edge swipe come back the moment the list answers.
+        .navigationBarBackButtonHidden(!app.meetListReachable)
             #endif
             .toolbar { toolbar }
+            .overlay(alignment: .top) { listUnavailableNotice }
+            .animation(.default, value: listUnavailableShown)
+            .task(id: app.meetListReachable) { await retryMeetList() }
             .sensoryFeedback(.selection, trigger: tabKey)
             .onGeometryChange(for: CGSize.self) {
                 $0.size
@@ -126,7 +136,9 @@ struct MeetShell: View {
             // C-05: foreground → probe; background → the ticker stops (L-12).
             .onChange(of: scenePhase) { _, phase in
                 switch phase {
-                case .active: ctx.foregrounded()  // C-05 probe, A-09 check
+                case .active:
+                    ctx.foregrounded()  // C-05 probe, A-09 check
+                    Task { await app.checkMeetList() }  // A-12
                 default: ctx.session.suspend()
                 }
             }
@@ -244,6 +256,18 @@ struct MeetShell: View {
     }
 
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {
+        if !app.meetListReachable {
+            // A-12. The words are A-02's own for a back the client draws.
+            ToolbarItem(placement: .navigation) {
+                Button {
+                    Task { await leave() }
+                } label: {
+                    Label(ctx.strings.mobile("back_to_meets"), systemImage: "chevron.backward")
+                        .labelStyle(.titleAndIcon)
+                }
+                .disabled(leaving)
+            }
+        }
         if showsBoardInBar {
             // The principal slot, given an explicit width. It is the one
             // placement iOS 26 draws without wrapping in a glass capsule, but
@@ -278,6 +302,49 @@ struct MeetShell: View {
         }
         if tab.wrappedValue == .schedule {
             ToolbarItem(placement: .primaryAction) { filterButton }
+        }
+    }
+
+    /// A-12: back asks the meet list first (~4 s). An answer pops; anything
+    /// else keeps the spectator on the meet and says why.
+    private func leave() async {
+        leaving = true
+        defer { leaving = false }
+        if await app.checkMeetList() {
+            dismiss()
+        } else {
+            let text = ctx.strings.mobile("picker_unavailable")
+            listUnavailableShown = true
+            AccessibilityNotification.Announcement(text).post()
+            try? await Task.sleep(for: .seconds(4))
+            listUnavailableShown = false
+        }
+    }
+
+    /// A-12: while the list is down, ask again now and then, so the system's
+    /// back returns on its own once it answers.
+    private func retryMeetList() async {
+        while !app.meetListReachable, !Task.isCancelled {
+            try? await Task.sleep(for: .seconds(10))
+            if Task.isCancelled { return }
+            await app.checkMeetList()
+        }
+    }
+
+    /// A-12's short notice, `mobile.picker_unavailable`, over the top of the
+    /// board for a few seconds.
+    @ViewBuilder private var listUnavailableNotice: some View {
+        if listUnavailableShown {
+            Text(ctx.strings.mobile("picker_unavailable"))
+                .font(.subheadline)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(.regularMaterial, in: Capsule())
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .accessibilityHidden(true)  // announced once, in `leave()`
         }
     }
 

@@ -233,7 +233,7 @@ import Testing
 
 @Suite(.serialized) @MainActor struct AppModelTests {
     func cloud(_ stub: StubServer) {
-        stub.route("/server", json: #"{"kind":"cloud","name":"Splouch","contract":{"api":"v2","app":"v2"}}"#)
+        stub.route("/server", json: #"{"kind":"cloud","name":"Splouch","contract":{"api":"v2","app":"v3"}}"#)
         stub.route(
             "/picker/config",
             json: #"{"title":"Splouch","lang":"fr","analytics_enabled":true,"strings":{"no_meets":"Aucune"}}"#)
@@ -326,7 +326,7 @@ import Testing
             connector: FakeConnector())
         await app.start()
         #expect(app.unreachable)
-        let info = ServerInfo(kind: .cloud, name: "Stub", contract: .init(api: "v2", app: "v2"))
+        let info = ServerInfo(kind: .cloud, name: "Stub", contract: .init(api: "v2", app: "v3"))
         await app.addServer(stub.address, info: info)
         #expect(!app.isDefaultServer)
         #expect(app.serverInfo?.name == "Splouch")
@@ -456,20 +456,20 @@ import Testing
     @Test func contractMismatchIsANoticeNotAGate() async {
         let stub = StubServer()
         cloud(stub)
-        stub.route("/server", json: #"{"kind":"cloud","name":"Old","contract":{"api":"v1","app":"v2"}}"#)
+        stub.route("/server", json: #"{"kind":"cloud","name":"Old","contract":{"api":"v1","app":"v3"}}"#)
         let app = make(stub)
         await app.start()
         #expect(!app.unreachable)
         #expect(app.meets.count == 1)  // connected regardless
         #expect(app.contractNotice == "api v1 ≠ v2")
-        stub.route("/server", json: #"{"kind":"cloud","name":"New","contract":{"api":"v2","app":"v2"}}"#)
+        stub.route("/server", json: #"{"kind":"cloud","name":"New","contract":{"api":"v2","app":"v3"}}"#)
         await app.load()
         #expect(app.contractNotice == nil)
     }
 
     @Test func piStartSkipsThePicker() async throws {
         let stub = StubServer()
-        stub.route("/server", json: #"{"kind":"pi","name":"Piscine","contract":{"api":"v2","app":"v2"}}"#)
+        stub.route("/server", json: #"{"kind":"pi","name":"Piscine","contract":{"api":"v2","app":"v3"}}"#)
         stub.route("/config", json: #"{"num_lanes":10,"meet_title":"Regional","locale":"fr"}"#)
         let app = make(stub)
         await app.start()
@@ -520,9 +520,9 @@ import Testing
             bundleCache: InMemoryBundleCache(), session: stub.session,
             connector: FakeConnector())
         await app.addServer(
-            stub.address, info: ServerInfo(kind: .cloud, name: "Pool", contract: .init(api: "v2", app: "v2")))
+            stub.address, info: ServerInfo(kind: .cloud, name: "Pool", contract: .init(api: "v2", app: "v3")))
         await app.addServer(
-            stub.address, info: ServerInfo(kind: .cloud, name: "Pool renamed", contract: .init(api: "v2", app: "v2")))
+            stub.address, info: ServerInfo(kind: .cloud, name: "Pool renamed", contract: .init(api: "v2", app: "v3")))
         #expect(store.load().savedServers.map(\.name) == ["Pool renamed"])
         // And the menu does not show the same origin twice either.
         #expect(app.knownServers.filter { $0.address == stub.address }.count == 1)
@@ -537,9 +537,9 @@ import Testing
         let a = SavedServer(name: "Club A", address: ServerAddress(typed: "https://a.example")!)
         let b = SavedServer(name: "Club B", address: ServerAddress(typed: "https://b.example")!)
         await app.addServer(
-            a.address, info: ServerInfo(kind: .cloud, name: a.name, contract: .init(api: "v2", app: "v2")))
+            a.address, info: ServerInfo(kind: .cloud, name: a.name, contract: .init(api: "v2", app: "v3")))
         await app.addServer(
-            b.address, info: ServerInfo(kind: .cloud, name: b.name, contract: .init(api: "v2", app: "v2")))
+            b.address, info: ServerInfo(kind: .cloud, name: b.name, contract: .init(api: "v2", app: "v3")))
         #expect(app.preferences.savedServers.map(\.name) == ["Club A", "Club B"])
         // A different SavedServer value with the same address is the same row.
         app.removeSavedServer(SavedServer(name: "whatever", address: a.address))
@@ -560,7 +560,7 @@ import Testing
         ] {
             await app.addServer(
                 ServerAddress(typed: url)!,
-                info: ServerInfo(kind: .cloud, name: name, contract: .init(api: "v2", app: "v2")))
+                info: ServerInfo(kind: .cloud, name: name, contract: .init(api: "v2", app: "v3")))
         }
         let b = app.preferences.savedServers[1]
         let removed = app.removeSavedServer(b)
@@ -617,10 +617,10 @@ import Testing
         stub.route("/server", json: #"{"kind":"cloud","name":"Old","contract":{"api":"v2","app":"v9"}}"#)
         let app = make(stub)
         await app.start()
-        #expect(app.contractNotice == "app v9 ≠ v2")
+        #expect(app.contractNotice == "app v9 ≠ v3")
         stub.route("/server", json: #"{"kind":"cloud","name":"Old","contract":{"api":"v1","app":"v9"}}"#)
         await app.load()
-        #expect(app.contractNotice == "api v1 ≠ v2 · app v9 ≠ v2")
+        #expect(app.contractNotice == "api v1 ≠ v2 · app v9 ≠ v3")
     }
 
     /// T-08: choosing "follow the device" clears the stored language, and the
@@ -686,7 +686,7 @@ import Testing
     /// resort is English rather than an empty language code.
     @Test func clearingTheLanguageOnAPiFallsBackToEnglish() async {
         let stub = StubServer()
-        stub.route("/server", json: #"{"kind":"pi","name":"Piscine","contract":{"api":"v2","app":"v2"}}"#)
+        stub.route("/server", json: #"{"kind":"pi","name":"Piscine","contract":{"api":"v2","app":"v3"}}"#)
         stub.route("/config", json: #"{"num_lanes":8,"meet_title":"Local"}"#)
         let app = make(stub, prefs: Preferences(language: "fr"))
         await app.start()

@@ -27,7 +27,7 @@ public struct ServerInfo: Sendable, Equatable, Decodable {
     }
 
     /// The contract versions this client was written against.
-    public static let expectedContract = Contract(api: "v2", app: "v2")
+    public static let expectedContract = Contract(api: "v2", app: "v3")
 }
 
 /// Decides the shape of the session, not just the base URL: a Pi has one meet
@@ -48,6 +48,32 @@ public struct MeetSummary: Sendable, Equatable, Identifiable {
     /// Retained meet with no relay connected — still listed on purpose (P-03).
     public var offline: Bool
     public var hasPickerImage: Bool
+    /// The organizer's ISO 3166-1 alpha-2 code and state/province, `""` when
+    /// unrecorded (P-01, P-17).
+    public var country: String
+    public var province: String
+    /// C-11: where this meet's sockets, config, schedule and icon are. nil from
+    /// a server older than the field, or one that fails P-12's floor: the
+    /// server's own address then.
+    public var base: ServerAddress?
+
+    public init(
+        id: String, name: String, location: String, sport: String, organizer: String, meetDate: String,
+        offline: Bool, hasPickerImage: Bool, country: String = "", province: String = "",
+        base: ServerAddress? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.location = location
+        self.sport = sport
+        self.organizer = organizer
+        self.meetDate = meetDate
+        self.offline = offline
+        self.hasPickerImage = hasPickerImage
+        self.country = country
+        self.province = province
+        self.base = base
+    }
 }
 
 public struct MeetList: Sendable, Equatable {
@@ -73,6 +99,9 @@ public struct MeetConfig: Sendable, Equatable {
     public var appWindowTitle: String
     public var meetDate: String
     public var live: Bool
+    /// Where the meet is reached now (api.md §4): asked of a worker after a
+    /// move, it names the new one, which A-09 follows as C-12 does.
+    public var base: ServerAddress?
     public var settings: MeetSettings
 }
 

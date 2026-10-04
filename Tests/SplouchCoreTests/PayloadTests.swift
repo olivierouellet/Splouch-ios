@@ -9,7 +9,7 @@ import Testing
     @Test func serverInfoDecodes() throws {
         let info = try JSONDecoder().decode(
             ServerInfo.self,
-            from: #"{"kind":"pi","name":"Piscine","contract":{"api":"v2","app":"v2"}}"#.data(using: .utf8)!)
+            from: #"{"kind":"pi","name":"Piscine","contract":{"api":"v2","app":"v3"}}"#.data(using: .utf8)!)
         #expect(info.kind == .pi)
         #expect(info.name == "Piscine")
         #expect(info.contract == ServerInfo.expectedContract)
@@ -19,7 +19,7 @@ import Testing
         #expect(throws: (any Error).self) {
             try JSONDecoder().decode(
                 ServerInfo.self,
-                from: #"{"kind":"tv","name":"x","contract":{"api":"v2","app":"v2"}}"#.data(using: .utf8)!)
+                from: #"{"kind":"tv","name":"x","contract":{"api":"v2","app":"v3"}}"#.data(using: .utf8)!)
         }
     }
 

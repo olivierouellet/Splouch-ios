@@ -238,4 +238,33 @@ import Testing
         #expect(connector.latest!.sentEvents.isEmpty)
         await socket.close()
     }
+
+    // C-12
+
+    @Test func moveReconnectsAtTheNewURLAndJoinsThere() async {
+        let (socket, connector, recorder) = make(join: join, timing: quiet)
+        await socket.start()
+        #expect(await eventually { await recorder.events.contains(.connected) })
+        let first = connector.latest!
+        let there = URL(string: "wss://other.test/w3/ws/scoreboard")!
+        await socket.move(to: there)
+        #expect(await eventually { connector.latest?.url == there && connector.latest?.sentEvents == ["join_meet"] })
+        #expect(first.isClosed)
+        #expect(await socket.url == there)
+        await socket.move(to: there)  // the same move again is nothing
+        try? await Task.sleep(for: .milliseconds(50))
+        #expect(connector.openCount == 2)
+        await socket.close()
+    }
+
+    @Test func moveWhileBackingOffConnectsAtOnceToTheNewURL() async {
+        let (socket, connector, _) = make(join: join, timing: quiet)
+        connector.failNextOpens(1)
+        await socket.start()
+        #expect(await eventually { connector.attempts == 1 })
+        let there = URL(string: "wss://other.test/w3/ws/scoreboard")!
+        await socket.move(to: there)
+        #expect(await eventually { connector.latest?.url == there })
+        await socket.close()
+    }
 }

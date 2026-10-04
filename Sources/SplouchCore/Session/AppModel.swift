@@ -154,6 +154,7 @@ public final class AppModel {
                 async let meets = api.meets()
                 self.picker = try await picker
                 self.meets = try await meets
+                meetListReachable = true
                 reconcileFolds()
                 directory = (try? await api.servers().servers) ?? []
             } else {
@@ -260,6 +261,7 @@ public final class AppModel {
         server = address
         serverInfo = nil
         contractNotice = nil
+        meetListReachable = true
         meets = []
         picker = nil
         folds = [:]
@@ -397,12 +399,21 @@ public final class AppModel {
 
     // MARK: - Opening a meet (P-08)
 
+    /// The meet is opened at its own `base` (C-11) — config here, then its
+    /// sockets and schedule in `MeetContext` — and the server's address when the
+    /// list sent none. A config naming yet another `base` is followed (C-12).
+    /// Strings, the picker image and the `vid` stay with the list's server.
     public func open(_ meet: MeetSummary) async throws -> MeetContext {
-        let config = try await api.meetConfig(meet.id)
+        var base = meet.base ?? server
+        var config = try await api.at(base).meetConfig(meet.id)
+        if let moved = config.base, moved != base {
+            base = moved
+            config = try await api.at(base).meetConfig(meet.id)
+        }
         let title =
             config.appWindowTitle.isEmpty ? (config.name.isEmpty ? meet.name : config.name) : config.appWindowTitle
         return MeetContext(
-            api: api, kind: .cloud, meetID: meet.id, title: title, settings: config.settings,
+            api: api, base: base, kind: .cloud, meetID: meet.id, title: title, settings: config.settings,
             stringsLoader: stringsLoader, preferences: preferences, vidStore: vidStore,
             connector: connector)
     }
@@ -414,6 +425,61 @@ public final class AppModel {
             api: api, kind: .pi, meetID: nil, title: config.meetTitle, settings: config.settings,
             stringsLoader: stringsLoader, preferences: preferences, vidStore: vidStore,
             connector: connector)
+    }
+
+    // MARK: - Leaving a meet (A-12)
+
+    /// A-12: whether the meet list answered the last time it was asked. False
+    /// keeps a spectator in their meet — the worker serving it may be fine
+    /// while the list is not — and `MeetShell` shows `mobile.picker_unavailable`
+    /// on back instead of popping to an empty, failing picker.
+    public private(set) var meetListReachable = true
+    /// How long the list gets to answer (app.md A-12: ~4 s).
+    public var meetListTimeout: Duration = .seconds(4)
+
+    /// A-12: `GET /meets`, given `meetListTimeout`. On an answer the picker's
+    /// list is replaced, so the way back lands on fresh meets; on a failure or
+    /// a timeout the list on hand is left exactly as it was. A Pi has no list
+    /// and is always reachable for this purpose.
+    @discardableResult
+    public func checkMeetList() async -> Bool {
+        guard serverInfo?.kind != .pi else { return true }
+        let api = self.api
+        let fresh: [MeetSummary]? = await withTaskGroup(of: [MeetSummary]?.self) { group in
+            group.addTask { try? await api.meets() }
+            let limit = meetListTimeout
+            group.addTask {
+                try? await Task.sleep(for: limit)
+                return nil
+            }
+            let first = await group.next() ?? nil
+            group.cancelAll()
+            return first
+        }
+        guard api.address == server else { return meetListReachable }  // switched meanwhile
+        if let fresh {
+            meets = fresh
+            unreachable = false
+            meetListReachable = true
+        } else {
+            meetListReachable = false
+        }
+        return meetListReachable
+    }
+
+    // MARK: - Picker layout (P-18)
+
+    /// P-18: above this many meets the picker lists compact rows with no image.
+    public static let compactListThreshold = 10
+
+    /// P-18: the whole list's count decides, not what a search leaves.
+    public var listIsCompact: Bool { meets.count > Self.compactListThreshold }
+
+    /// P-02 under P-18: the picker image to load for `meet`, nil when it has
+    /// none or the list is long — and then none is fetched at all.
+    public func pickerImageURL(for meet: MeetSummary) -> URL? {
+        guard meet.hasPickerImage, !listIsCompact else { return nil }
+        return api.pickerImageURL(meetID: meet.id)
     }
 
     static func notice(for info: ServerInfo) -> String? {
