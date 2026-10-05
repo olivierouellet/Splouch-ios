@@ -48,24 +48,28 @@ public struct Preferences: Sendable, Codable, Equatable {
     ///
     /// The stored value is read through this rather than overwritten, so a user
     /// who had chosen `short` keeps that choice and gets it back if the control
-    /// returns. To revert: offer the picker again (PickerScreen.toolbar) and
-    /// return `labelStyle` here.
+    /// returns. To revert: offer a picker again (SettingsSheet's Display
+    /// section, P-19) and return `labelStyle` here.
     public var effectiveLabelStyle: LabelStyle { .long }
     /// P-15: the app's own light/dark, `dark` until the user says otherwise.
     public var appearance: Appearance
     /// P-11: nil is the default cloud.
     public var server: ServerAddress?
     public var savedServers: [SavedServer]
+    /// P-20: the introduction was finished or skipped on this install. Once,
+    /// whichever server it was seen against.
+    public var introSeen: Bool
 
     public init(
         language: String? = nil, labelStyle: LabelStyle = .long, appearance: Appearance = .dark,
-        server: ServerAddress? = nil, savedServers: [SavedServer] = []
+        server: ServerAddress? = nil, savedServers: [SavedServer] = [], introSeen: Bool = false
     ) {
         self.language = language
         self.labelStyle = labelStyle
         self.appearance = appearance
         self.server = server
         self.savedServers = savedServers
+        self.introSeen = introSeen
     }
 
     /// Preferences stored before the style became a two-way choice carry either
@@ -81,6 +85,7 @@ public struct Preferences: Sendable, Codable, Equatable {
         appearance = try c.decodeIfPresent(Appearance.self, forKey: .appearance) ?? .dark
         server = try c.decodeIfPresent(ServerAddress.self, forKey: .server)
         savedServers = try c.decodeIfPresent([SavedServer].self, forKey: .savedServers) ?? []
+        introSeen = try c.decodeIfPresent(Bool.self, forKey: .introSeen) ?? false
     }
 }
 

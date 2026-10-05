@@ -20,6 +20,12 @@ struct SplouchApp: App {
 
     @State private var model = AppModel(defaultServer: startingServer)
 
+    init() {
+        // P-06, P-07: the folds the picker used to store mean nothing since
+        // v3, amended. Deleted once per install.
+        LegacyNoticeFolds.purge()
+    }
+
     var body: some Scene {
         WindowGroup {
             SplouchRootView(app: model)

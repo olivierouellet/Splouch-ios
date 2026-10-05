@@ -70,7 +70,8 @@ public final class MeetSession {
         self.scoreboard = ScoreboardState(numLanes: settings.numLanes)
         // C-10: one random id per server, generated on first use and stored —
         // the list's server, never the worker a `base` names, so a phone is one
-        // visitor however many workers its meets sit on.
+        // visitor however many workers its meets sit on. None at all while the
+        // spectator refuses counting there: `join_meet` goes without one.
         let join: Frame? =
             (kind == .cloud && meetID != nil)
             ? .joinMeet(meetID: meetID!, vid: vidStore.vid(for: address.origin)) : nil

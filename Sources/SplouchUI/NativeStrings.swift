@@ -46,4 +46,27 @@ enum Native {
     static var appearanceAuto: String { String(localized: "appearance_auto", bundle: .module) }
     static var language: String { String(localized: "language", bundle: .module) }
     static var languageAuto: String { String(localized: "language_auto", bundle: .module) }
+    static var done: String { String(localized: "done", bundle: .module) }
+    // P-19, P-07. Settings and its sections are the app's words (T-05); the
+    // web reads its own copies from the server.
+    static var settings: String { String(localized: "settings", bundle: .module) }
+    static var settingsDisplay: String { String(localized: "settings_display", bundle: .module) }
+    static var settingsPrivacy: String { String(localized: "settings_privacy", bundle: .module) }
+    static var settingsAbout: String { String(localized: "settings_about", bundle: .module) }
+    static var privacyCount: String { String(localized: "privacy_count", bundle: .module) }
+    static var privacyPolicy: String { String(localized: "privacy_policy", bundle: .module) }
+    static var appVersion: String { String(localized: "app_version", bundle: .module) }
+    // P-20. Pages 1 and 4 carry the server's text; titles, pages 2 and 3, and
+    // the controls are the app's.
+    static var showIntroduction: String { String(localized: "show_introduction", bundle: .module) }
+    static var introSkip: String { String(localized: "intro_skip", bundle: .module) }
+    static var introNext: String { String(localized: "intro_next", bundle: .module) }
+    static var introStart: String { String(localized: "intro_start", bundle: .module) }
+    static var introResultsTitle: String { String(localized: "intro_results_title", bundle: .module) }
+    static var introTabsTitle: String { String(localized: "intro_tabs_title", bundle: .module) }
+    static var introTabsBody: String { String(localized: "intro_tabs_body", bundle: .module) }
+    static var introFollowTitle: String { String(localized: "intro_follow_title", bundle: .module) }
+    static var introFollowBody: String { String(localized: "intro_follow_body", bundle: .module) }
+    static var introCountingTitle: String { String(localized: "intro_counting_title", bundle: .module) }
+    static var privacyWhere: String { String(localized: "privacy_where", bundle: .module) }
 }

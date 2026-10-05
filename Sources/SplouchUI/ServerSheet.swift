@@ -5,6 +5,9 @@ import SwiftUI
 /// asked for;
 /// P-13: one added by hand, checked with `GET /server` before it is saved.
 /// Every word here is about the app or the device, so it is native (T-05).
+///
+/// Pushed from settings' Server section (P-19) rather than presented on its
+/// own, so `dismiss` pops back to settings once a server is picked or added.
 struct ServerSheet: View {
     let app: AppModel
     @Environment(\.dismiss) private var dismiss
@@ -18,87 +21,82 @@ struct ServerSheet: View {
     @State private var removed: RemovedServer?
 
     var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    ForEach(app.knownServers) { s in
-                        row(s.name, s.address)
-                            .swipeActions(edge: .trailing) {
-                                if let saved = app.preferences.savedServers.first(where: { $0.id == s.id }) {
-                                    // Only hand-added servers can be removed; the rest are data.
-                                    Button(role: .destructive) {
-                                        removed = app.removeSavedServer(saved)
-                                    } label: {
-                                        Label(Native.remove, systemImage: "trash")
-                                    }
+        List {
+            Section {
+                ForEach(app.knownServers) { s in
+                    row(s.name, s.address)
+                        .swipeActions(edge: .trailing) {
+                            if let saved = app.preferences.savedServers.first(where: { $0.id == s.id }) {
+                                // Only hand-added servers can be removed; the rest are data.
+                                Button(role: .destructive) {
+                                    removed = app.removeSavedServer(saved)
+                                } label: {
+                                    Label(Native.remove, systemImage: "trash")
                                 }
                             }
-                    }
+                        }
                 }
-                // P-12: nothing is browsed until this is tapped. A browse in an
-                // idle sheet costs battery, and iOS's local-network prompt should
-                // answer something the reader did rather than the sheet opening.
-                // One scan per tap; what it found stays listed after it ends.
-                Section(Native.localServer) {
-                    ForEach(bonjour.found) { f in row(f.name, f.address) }
-                    if bonjour.browsing {
-                        ProgressView().frame(maxWidth: .infinity)
-                    } else {
-                        if search > 0 && bonjour.found.isEmpty {
-                            Text(Native.localNoneFound).foregroundStyle(.secondary)
-                        }
-                        Button(search > 0 ? Native.localSearchAgain : Native.localSearch) {
-                            search += 1
-                            bonjour.start()
-                        }
+            }
+            // P-12: nothing is browsed until this is tapped. A browse in an
+            // idle sheet costs battery, and iOS's local-network prompt should
+            // answer something the reader did rather than the sheet opening.
+            // One scan per tap; what it found stays listed after it ends.
+            Section(Native.localServer) {
+                ForEach(bonjour.found) { f in row(f.name, f.address) }
+                if bonjour.browsing {
+                    ProgressView().frame(maxWidth: .infinity)
+                } else {
+                    if search > 0 && bonjour.found.isEmpty {
+                        Text(Native.localNoneFound).foregroundStyle(.secondary)
                     }
-                }
-                // One row, not three. The section header already says "Add
-                // server", so a button repeating it underneath was the same
-                // words twice and a row that did nothing until the field was
-                // filled. The field submits itself — return key, or the arrow
-                // that appears once there is something to send — and the
-                // footer carries the progress and the error.
-                Section {
-                    HStack(spacing: 8) {
-                        TextField(Native.serverPlaceholder, text: $typed)
-                            .textContentType(.URL)
-                            .autocorrectionDisabled()
-                            #if os(iOS)
-                        .keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
-                        .submitLabel(.go)
-                            #endif
-                            .onSubmit { Task { await add() } }
-                        if checking {
-                            ProgressView()
-                        } else if !typed.trimmingCharacters(in: .whitespaces).isEmpty {
-                            Button {
-                                Task { await add() }
-                            } label: {
-                                Image(systemName: "arrow.up.circle.fill")
-                                    .font(.title2)
-                                    .symbolRenderingMode(.hierarchical)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel(Native.addServer)
-                        }
-                    }
-                } header: {
-                    Text(Native.addServer)
-                } footer: {
-                    if checking {
-                        Text(Native.checking)
-                    } else if let checkError {
-                        Text(checkError).foregroundStyle(.red)
+                    Button(search > 0 ? Native.localSearchAgain : Native.localSearch) {
+                        search += 1
+                        bonjour.start()
                     }
                 }
             }
-            .navigationTitle(Native.server)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { cancelButton }
+            // One row, not three. The section header already says "Add
+            // server", so a button repeating it underneath was the same
+            // words twice and a row that did nothing until the field was
+            // filled. The field submits itself — return key, or the arrow
+            // that appears once there is something to send — and the
+            // footer carries the progress and the error.
+            Section {
+                HStack(spacing: 8) {
+                    TextField(Native.serverPlaceholder, text: $typed)
+                        .textContentType(.URL)
+                        .autocorrectionDisabled()
+                        #if os(iOS)
+                    .keyboardType(.URL)
+                    .textInputAutocapitalization(.never)
+                    .submitLabel(.go)
+                        #endif
+                        .onSubmit { Task { await add() } }
+                    if checking {
+                        ProgressView()
+                    } else if !typed.trimmingCharacters(in: .whitespaces).isEmpty {
+                        Button {
+                            Task { await add() }
+                        } label: {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .font(.title2)
+                                .symbolRenderingMode(.hierarchical)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(Native.addServer)
+                    }
+                }
+            } header: {
+                Text(Native.addServer)
+            } footer: {
+                if checking {
+                    Text(Native.checking)
+                } else if let checkError {
+                    Text(checkError).foregroundStyle(.red)
+                }
             }
         }
+        .navigationTitle(Native.server)
         .overlay(alignment: .bottom) { undoBar }
         .animation(.default, value: removed)
         // One Undo at a time, for a few seconds: long enough to read and reach,
@@ -139,15 +137,6 @@ struct ServerSheet: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
             .transition(.move(edge: .bottom).combined(with: .opacity))
-        }
-    }
-
-    /// The platform's own Cancel where it offers one, ours below that.
-    @ViewBuilder private var cancelButton: some View {
-        if #available(iOS 26.0, macOS 26.0, *) {
-            Button(role: .cancel) { dismiss() }
-        } else {
-            Button(Native.cancel, role: .cancel) { dismiss() }
         }
     }
 

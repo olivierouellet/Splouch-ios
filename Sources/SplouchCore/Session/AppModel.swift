@@ -69,7 +69,6 @@ public final class AppModel {
     public let defaultServer: ServerAddress
     private let preferencesStore: any PreferencesStore
     private let vidStore: any VidStore
-    private let noticeFoldStore: any NoticeFoldStore
     private let bundleCache: any BundleCache
     private let session: URLSession
     private let connector: any WebSocketConnector
@@ -94,28 +93,26 @@ public final class AppModel {
     /// P-14: the contract versions that differ from the ones this app was built
     /// against, as `api v1 ≠ v2`; nil when they match. A notice, never a gate.
     public private(set) var contractNotice: String?
-    /// P-06, P-07: the words this server's notices were folded at, read from
-    /// `noticeFoldStore` whenever the picker loads. Observed here because the
-    /// store is not.
-    private var folds: [PickerNotice: String] = [:]
+    /// C-10: whether the spectator lets the server in use count this device,
+    /// read from `vidStore` per server. Observed here because the store is not.
+    public private(set) var counting = true
 
     public init(
         defaultServer: ServerAddress, preferencesStore: any PreferencesStore = UserDefaultsPreferencesStore(),
         vidStore: any VidStore = UserDefaultsVidStore(),
-        noticeFoldStore: any NoticeFoldStore = UserDefaultsNoticeFoldStore(),
         bundleCache: any BundleCache = FileBundleCache.standard(),
         session: URLSession = .shared, connector: any WebSocketConnector = URLSessionWebSocketConnector()
     ) {
         self.defaultServer = defaultServer
         self.preferencesStore = preferencesStore
         self.vidStore = vidStore
-        self.noticeFoldStore = noticeFoldStore
         self.bundleCache = bundleCache
         self.session = session
         self.connector = connector
         let prefs = preferencesStore.load()
         self.preferences = prefs
         self.server = prefs.server ?? defaultServer
+        self.counting = vidStore.counting(for: (prefs.server ?? defaultServer).origin)
         self.strings = BuiltInStrings.table(
             for: prefs.language ?? Locale.current.language.languageCode?.identifier ?? "en")
     }
@@ -155,11 +152,9 @@ public final class AppModel {
                 self.picker = try await picker
                 self.meets = try await meets
                 meetListReachable = true
-                reconcileFolds()
                 directory = (try? await api.servers().servers) ?? []
             } else {
                 picker = nil
-                folds = [:]
                 meets = []
                 directory = []
             }
@@ -171,44 +166,59 @@ public final class AppModel {
         }
     }
 
-    // MARK: - Picker notices (P-06, P-07)
+    // MARK: - Disclaimer and privacy (P-06, P-07)
 
-    /// A notice's full text, nil when it is not shown: absent or empty, or P-07
-    /// while this server is not counting.
-    public func noticeText(_ notice: PickerNotice) -> String? {
-        guard let picker, notice != .attendance || picker.analyticsEnabled,
-            let text = picker.strings[notice.textKey], !text.isEmpty
-        else { return nil }
+    /// P-06's full text, nil until this server's `GET /picker/config` has
+    /// answered: it is that server's words about its results, never a
+    /// snapshot's copy of another's.
+    public var disclaimer: String? { served("results_disclaimer") }
+
+    /// P-06's one line. Shown only beside `disclaimer`; an older server that
+    /// predates the short key falls back through `mobile` (T-10).
+    public var disclaimerShort: String? {
+        guard disclaimer != nil else { return nil }
+        if let short = served("results_disclaimer_short") { return short }
+        let fallback = strings.mobile("results_disclaimer_short")
+        return fallback.isEmpty ? nil : fallback
+    }
+
+    /// P-07: counting is on for this server. While it is off there is nothing
+    /// to refuse, so settings show no Privacy section — the stored choice stays.
+    public var analyticsEnabled: Bool { picker?.analyticsEnabled ?? false }
+
+    /// P-07's note, nil while this server is not counting.
+    public var privacyNote: String? { analyticsEnabled ? served("privacy_note") : nil }
+
+    /// P-07, P-19: the server's own policy page.
+    public var privacyPolicyURL: URL { server.endpoint("privacy") }
+
+    private func served(_ key: String) -> String? {
+        guard let text = picker?.strings[key], !text.isEmpty else { return nil }
         return text
     }
 
-    /// Folded only while the words stored for this server are the words it
-    /// just sent.
-    public func isFolded(_ notice: PickerNotice) -> Bool {
-        guard let text = noticeText(notice) else { return false }
-        return folds[notice] == text
+    /// C-10: the spectator's say, for the server in use only. Off deletes that
+    /// server's `vid` at once; on makes a new one at the next `join_meet`.
+    public func setCounting(_ on: Bool) {
+        vidStore.setCounting(on, for: server.origin)
+        counting = vidStore.counting(for: server.origin)
     }
 
-    public func fold(_ notice: PickerNotice) {
-        guard let text = noticeText(notice) else { return }
-        noticeFoldStore.setFolded(text, notice, origin: server.origin)
-        folds[notice] = text
-    }
+    // MARK: - Introduction (P-20)
 
-    public func unfold(_ notice: PickerNotice) {
-        noticeFoldStore.setFolded(nil, notice, origin: server.origin)
-        folds[notice] = nil
-    }
+    /// P-20: first launch, once the server has answered `GET /picker/config` —
+    /// pages 1 and 4 are its words, so an offline first launch postpones it to
+    /// a launch that gets them.
+    public var introDue: Bool { !preferences.introSeen && picker != nil }
 
-    /// A server that reports counting off forgets P-07's fold, so turning it
-    /// back on says so in full.
-    private func reconcileFolds() {
-        let origin = server.origin
-        if picker?.analyticsEnabled == false { noticeFoldStore.setFolded(nil, .attendance, origin: origin) }
-        folds = Dictionary(
-            uniqueKeysWithValues: PickerNotice.allCases.compactMap { n in
-                noticeFoldStore.folded(n, origin: origin).map { (n, $0) }
-            })
+    /// P-20: finished or skipped, which are the same thing here. Counting is
+    /// left as it was either way (`C-10`'s default is not a consent).
+    public func finishIntro() {
+        guard !preferences.introSeen else { return }
+        var p = preferences
+        p.introSeen = true
+        preferences = p
+        preferencesStore.save(p)
     }
 
     // MARK: - Servers (P-11, P-13)
@@ -264,7 +274,7 @@ public final class AppModel {
         meetListReachable = true
         meets = []
         picker = nil
-        folds = [:]
+        counting = vidStore.counting(for: address.origin)
         var p = preferences
         p.server = address == defaultServer ? nil : address
         preferences = p

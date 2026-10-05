@@ -18,7 +18,7 @@ import Testing
     func make(_ stub: StubServer, prefs: Preferences = Preferences()) -> AppModel {
         AppModel(
             defaultServer: stub.address, preferencesStore: InMemoryPreferencesStore(prefs),
-            vidStore: InMemoryVidStore(), noticeFoldStore: InMemoryNoticeFoldStore(),
+            vidStore: InMemoryVidStore(),
             bundleCache: InMemoryBundleCache(), session: stub.session, connector: FakeConnector())
     }
 

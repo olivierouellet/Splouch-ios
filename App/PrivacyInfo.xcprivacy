@@ -24,8 +24,8 @@
 			</array>
 		</dict>
 	</array>
-	<!-- UserDefaults holds the app's own preferences, vids and notice folds
-	     (Preferences.swift, VidStore.swift, PickerNotice.swift): CA92.1. -->
+	<!-- UserDefaults holds the app's own preferences, and the vids with their
+	     dates and per-server counting choice (Preferences.swift, VidStore.swift): CA92.1. -->
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>
 		<dict>

@@ -41,6 +41,25 @@ import Testing
         await s.stop()
     }
 
+    /// C-10: a spectator who refused counting on this server still joins, with
+    /// no `vid` — and none is created by joining.
+    @Test func joinsCarryNoVidWhileCountingIsOff() async {
+        let vids = InMemoryVidStore()
+        vids.setCounting(false, for: address.origin)
+        let connector = FakeConnector()
+        let s = MeetSession(
+            address: address, kind: .cloud, meetID: "m1", settings: MeetSettings(numLanes: 4),
+            vidStore: vids, connector: connector, timing: timing)
+        s.start()
+        #expect(await eventually { @MainActor in s.scoreboardConnected && s.resultsConnected && s.scheduleConnected })
+        let joins = connector.connections.map { c in c.sent.first.flatMap { try? Frame.decode($0) } }
+        #expect(joins.count == 3)
+        #expect(joins.allSatisfy { $0?.event == "join_meet" && $0?.data["meet_id"]?.string == "m1" })
+        #expect(joins.allSatisfy { $0?.data["vid"] == nil })
+        #expect(vids.vid(for: address.origin) == nil)
+        await s.stop()
+    }
+
     @Test func aPiSessionSendsNoJoin() async {
         let (s, connector) = make(kind: .pi)
         #expect(s.meetID == nil)

@@ -2,23 +2,25 @@ import SplouchCore
 import SwiftUI
 
 /// The meet picker (app.md §1). Language is the device's, not a meet's. Its
-/// chrome and preference controls are the server's words (`mobile`, T-05);
-/// the server menu and the connection error are the app's.
+/// chrome is the server's words (`mobile`, T-05); settings (P-19) and the
+/// connection error are the app's.
 struct PickerScreen: View {
     let app: AppModel
     let opening: Bool
     let open: (MeetSummary) async -> Void
     let openPi: () async -> Void
 
-    @State private var showServers = false
-    @State private var showLanguages = false
+    /// P-19.
+    @State private var showSettings = false
+    /// P-06's tap.
+    @State private var showDisclaimer = false
     /// P-17. State of the picker, which is the root of the navigation stack, so
     /// it outlives a pushed meet (A-02) and a pull-to-refresh (P-09) and is
     /// gone on a cold launch — what the web keeps in `sessionStorage`.
     @State private var query = ""
-    /// P-06, P-07: where VoiceOver goes after a fold or an unfold, since the
-    /// control it was on has just been replaced.
-    @AccessibilityFocusState private var noticeFocus: NoticeFocus?
+    /// X-10: where VoiceOver goes when a sheet closes — the control that
+    /// opened it.
+    @AccessibilityFocusState private var focus: Opener?
 
     /// Landscape on a phone is a compact height, which is the one axis the
     /// branding has to give ground on.
@@ -46,10 +48,9 @@ struct PickerScreen: View {
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
             // The branding has no cell to separate from what follows, so the
-            // grouped list's full section gap only pushes the notices away.
+            // grouped list's full section gap only pushes the disclaimer away.
             .compactSectionSpacing()
 
-            notices
             meets
         }
         .groupedList()
@@ -60,8 +61,16 @@ struct PickerScreen: View {
         .meetSearch(shown: searchShown, text: $query, prompt: served("meet_search"))
         .overlay { if app.loading && app.meets.isEmpty { ProgressView() } }
         .toolbar { toolbar }
-        .sheet(isPresented: $showServers) { ServerSheet(app: app) }
-        .sheet(isPresented: $showLanguages) { LanguageSheet(app: app) }
+        .sheet(isPresented: $showSettings) { SettingsSheet(app: app) }
+        .onChange(of: showSettings) { _, shown in if !shown { refocus(.settings) } }
+        .onChange(of: showDisclaimer) { _, shown in if !shown { refocus(.disclaimer) } }
+        // P-20, first launch: only once the server has answered, and not over
+        // settings opened while it was still offline.
+        .introCover(
+            isPresented: Binding(
+                get: { app.introDue && !showSettings },
+                set: { if !$0 { app.finishIntro() } }),
+            app: app)
         // The greys are the system's grouped-background ones rather than the
         // stylesheet's hex, so they track Increase Contrast, match every other
         // app on the device, and follow whichever scheme P-15 resolves to —
@@ -92,6 +101,8 @@ struct PickerScreen: View {
                     text: Native.serverUnreachable, symbol: "wifi.exclamationmark",
                     actionLabel: Native.retry, fillsContainer: false
                 ) { Task { await app.load() } }
+            } header: {
+                disclaimerLine
             }
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
@@ -107,6 +118,8 @@ struct PickerScreen: View {
                 .buttonBorderShape(.capsule)
                 .controlSize(.large)
                 .disabled(opening)
+            } header: {
+                disclaimerLine
             }
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
@@ -117,6 +130,8 @@ struct PickerScreen: View {
                 Unavailable(
                     text: served("no_meets"),
                     symbol: "calendar.badge.exclamationmark", fillsContainer: false)
+            } header: {
+                disclaimerLine
             }
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
@@ -125,6 +140,8 @@ struct PickerScreen: View {
                 // P-17's own empty state: the search hid every meet. Not P-04,
                 // which says the server has none at all.
                 Unavailable(text: served("no_meets_match"), symbol: "magnifyingglass", fillsContainer: false)
+            } header: {
+                disclaimerLine
             }
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
@@ -147,6 +164,40 @@ struct PickerScreen: View {
                     .buttonStyle(CardButtonStyle())
                     .disabled(opening)
                 }
+            } header: {
+                disclaimerLine
+            }
+        }
+    }
+
+    /// P-06: one quiet line over the meets, always there once the server has
+    /// sent its words, and never closable — so no X, no pill, no stored fold.
+    /// The section header rather than a row: above the meets whatever the
+    /// list holds, and above P-17's results too. Tap for the full text — a
+    /// half-height sheet on a phone, a popover on iPad (the system adapts a
+    /// popover to a sheet in a compact width).
+    @ViewBuilder private var disclaimerLine: some View {
+        if let short = app.disclaimerShort, let full = app.disclaimer {
+            Button {
+                showDisclaimer = true
+            } label: {
+                // Not a `Label`'s list style: in a header that takes the row's
+                // icon column. The hourglass is the same on every client.
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Image(systemName: "hourglass").accessibilityHidden(true)
+                    Text(short)
+                }
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .textCase(nil)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+                .frame(minHeight: 44)  // X-05
+            }
+            .buttonStyle(.plain)
+            .accessibilityFocused($focus, equals: .disclaimer)
+            .popover(isPresented: $showDisclaimer) {
+                DisclaimerSheet(title: short, text: full)
             }
         }
     }
@@ -207,173 +258,32 @@ struct PickerScreen: View {
         .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 0, trailing: 16))
     }
 
-    // P-06, P-07: served, never compiled in, and above the list — under the
-    // branding, before the meets — because under it a season of meets pushed
-    // them out of sight. Each folds to a pill and never goes away.
-    //
-    // The two are not the same kind of text. P-06 is the only thing standing
-    // between a live feed and a spectator taking it for a result, so it is at
-    // full contrast; P-07 really is fine print, and stays secondary.
-    @ViewBuilder private var notices: some View {
-        let shown = PickerNotice.allCases.filter { app.noticeText($0) != nil }
-        let open = shown.filter { !app.isFolded($0) }
-        let folded = shown.filter { app.isFolded($0) }
-        // Expanded, a notice has the row to itself.
-        if !open.isEmpty {
-            Section {
-                ForEach(open, id: \.self) { expanded($0) }
-            }
-        }
-        // Folded, the pills share one, centred, and stack when Dynamic Type
-        // leaves no room for both side by side. A section of its own, so a
-        // grouped block above it keeps its corners.
-        if !folded.isEmpty {
-            Section {
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 8) { pills(folded, oneLine: true) }
-                    VStack(spacing: 8) { pills(folded, oneLine: false) }
-                }
-                .frame(maxWidth: .infinity)
-                // No cell here, so no cell margins: the pills get the width.
-                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 4, trailing: 0))
-            }
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
-        }
-    }
-
-    private func expanded(_ notice: PickerNotice) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            Text(app.noticeText(notice) ?? "")
-                .font(.subheadline)
-                .foregroundStyle(notice == .results ? .primary : .secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .fixedSize(horizontal: false, vertical: true)
-            Button {
-                app.fold(notice)
-                focus(.pill(notice))
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.footnote.weight(.semibold))
-                    // The HIG's 44pt target, with the glyph kept in the corner.
-                    .frame(minWidth: 44, minHeight: 44, alignment: .topTrailing)
-                    .contentShape(Rectangle())
-            }
-            // Borderless, so a tap on the text is not a tap on the X; grey
-            // rather than the accent, as the system's own close glyphs are.
-            .buttonStyle(.borderless)
-            .tint(.secondary)
-            .accessibilityLabel(served(PickerNotice.collapseKey))
-            .accessibilityFocused($noticeFocus, equals: .close(notice))
-        }
-        .padding(.vertical, 4)
-    }
-
-    /// `oneLine` holds each label at its natural width, or a label would wrap
-    /// inside its capsule rather than let the stack take over.
-    @ViewBuilder private func pills(_ folded: [PickerNotice], oneLine: Bool) -> some View {
-        ForEach(folded, id: \.self) { notice in
-            let label = served(notice.shortKey)
-            Button {
-                app.unfold(notice)
-                focus(.close(notice))
-            } label: {
-                // Not a `Label`: inside a List that takes the row's style, whose
-                // fixed icon column pushes the words off to the right.
-                HStack(spacing: 6) {
-                    Image(systemName: notice.symbol)
-                    Text(label).fixedSize(horizontal: oneLine, vertical: false)
-                }
-                .font(.footnote)
-                .foregroundStyle(.primary)
-            }
-            .accessibilityLabel(label)
-            // A neutral capsule: the pill is a way back to the words, not an
-            // action, so it does not take the accent.
-            .buttonStyle(.bordered)
-            .buttonBorderShape(.capsule)
-            .controlSize(.small)
-            .tint(.gray)
-            .accessibilityFocused($noticeFocus, equals: .pill(notice))
-        }
-    }
-
-    /// The control that should take the focus exists only on the next pass.
-    private func focus(_ target: NoticeFocus) {
+    /// X-10: the control comes back on the next pass, after the sheet is gone.
+    private func refocus(_ target: Opener) {
         Task { @MainActor in
             await Task.yield()
-            noticeFocus = target
+            focus = target
         }
     }
 
-    /// A notice string from `GET /picker/config`, never through `mobile`: this
-    /// is compliance text, and an older server that predates the key gets the
-    /// English the contract names.
-    // P-11 (native words), T-08 and T-09 (the server's words).
+    /// P-19: a gear, not ☰ or ⋯ — settings now hold a toggle, its note and
+    /// links, which a menu renders badly.
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .automatic) {
-            Menu {
-                Button {
-                    showServers = true
-                } label: {
-                    Label(Native.server, systemImage: "server.rack")
-                }
-                Button {
-                    showLanguages = true
-                } label: {
-                    Label(Native.language, systemImage: "globe")
-                }
-                // P-15. A menu Picker rather than a sheet of its own: three
-                // fixed choices the app owns, unlike the server list and the
-                // language list, which are both served and both open-ended.
-                Picker(
-                    selection: Binding(
-                        get: { app.preferences.appearance },
-                        set: { app.setAppearance($0) })
-                ) {
-                    Text(Native.appearanceDark).tag(SplouchCore.Appearance.dark)
-                    Text(Native.appearanceLight).tag(SplouchCore.Appearance.light)
-                    Text(Native.appearanceAuto).tag(SplouchCore.Appearance.auto)
-                } label: {
-                    Label(Native.appearance, systemImage: "circle.lefthalf.filled")
-                }
-                .pickerStyle(.menu)
-                // T-09's short/long control, withdrawn: every meet renders the
-                // long labels (Preferences.effectiveLabelStyle). Kept rather
-                // than deleted so putting it back is uncommenting this and
-                // returning `labelStyle` from that property. The strings
-                // `prefs_labels`, `prefs_short` and `prefs_long` are still
-                // served, so nothing on the server side has to change either.
-                //
-                // Picker(selection: Binding(get: { app.preferences.labelStyle },
-                //                           set: { app.setLabelStyle($0) })) {
-                //     Text(strings.mobile("prefs_short")).tag(SplouchCore.LabelStyle.short)
-                //     Text(strings.mobile("prefs_long")).tag(SplouchCore.LabelStyle.long)
-                // } label: {
-                //     Label(strings.mobile("prefs_labels"), systemImage: "textformat.abc")
-                // }
-                // .pickerStyle(.menu)
+            Button {
+                showSettings = true
             } label: {
-                Image(systemName: "ellipsis.circle")
+                Label(Native.settings, systemImage: "gearshape")
             }
+            .accessibilityFocused($focus, equals: .settings)
         }
     }
 }
 
-private enum NoticeFocus: Hashable {
-    case pill(PickerNotice)
-    case close(PickerNotice)
-}
-
-extension PickerNotice {
-    /// The pill's icon, the same thing on every client. Not a shield or a
-    /// raised hand: those read as a privacy control, and there is none.
-    fileprivate var symbol: String {
-        switch self {
-        case .results: "hourglass"  // pending validation, not an error
-        case .attendance: "person.2"  // the visitors being counted
-        }
-    }
+/// X-10: the two controls on the picker that open a sheet.
+private enum Opener: Hashable {
+    case settings
+    case disclaimer
 }
 
 extension View {

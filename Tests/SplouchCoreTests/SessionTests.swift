@@ -110,24 +110,101 @@ import Testing
 }
 
 @Suite struct VidStoreTests {
-    @Test func oneIdPerServerStable() {
+    static let a = "https://a.example:443"
+    static let b = "https://b.example:443"
+
+    /// A clock the test moves by hand.
+    final class Clock: @unchecked Sendable {
+        var now = Date(timeIntervalSince1970: 1_800_000_000)
+    }
+
+    @Test func oneIdPerServerStable() throws {
         let store = InMemoryVidStore()
-        let a = store.vid(for: "https://a.example:443")
-        let b = store.vid(for: "https://b.example:443")
+        let a = try #require(store.vid(for: Self.a))
+        let b = try #require(store.vid(for: Self.b))
         #expect(a != b)
-        #expect(store.vid(for: "https://a.example:443") == a)
+        #expect(store.vid(for: Self.a) == a)
         #expect(UUID(uuidString: a) != nil)
     }
 
-    @Test func userDefaultsStoreIsPerOriginAndPersistent() {
+    @Test func userDefaultsStoreIsPerOriginAndPersistent() throws {
         let suite = "SplouchCoreTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
         let store = UserDefaultsVidStore(defaults: defaults)
-        let a = store.vid(for: "https://a.example:443")
-        #expect(UserDefaultsVidStore(defaults: defaults).vid(for: "https://a.example:443") == a)
+        let a = try #require(store.vid(for: Self.a))
+        #expect(UserDefaultsVidStore(defaults: defaults).vid(for: Self.a) == a)
         #expect(store.vid(for: "http://pi.local:5000") != a)
         #expect(UUID(uuidString: a) != nil)
+    }
+
+    /// C-10: counting is on until the spectator says otherwise.
+    @Test func countingIsOnByDefault() {
+        #expect(InMemoryVidStore().counting(for: Self.a))
+    }
+
+    /// Off forgets: the id is deleted at once and none is made while off.
+    @Test func offDeletesTheVidAndMakesNone() throws {
+        let suite = "SplouchCoreTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = UserDefaultsVidStore(defaults: defaults)
+        _ = try #require(store.vid(for: Self.a))
+        store.setCounting(false, for: Self.a)
+        #expect(defaults.string(forKey: "splouch.vid." + Self.a) == nil)
+        #expect(defaults.object(forKey: "splouch.vid_at." + Self.a) == nil)
+        #expect(store.vid(for: Self.a) == nil)
+        #expect(defaults.string(forKey: "splouch.vid." + Self.a) == nil)
+        // The refusal outlives the process.
+        #expect(!UserDefaultsVidStore(defaults: defaults).counting(for: Self.a))
+    }
+
+    /// Back on makes a new one, never the old.
+    @Test func backOnMakesANewVid() throws {
+        let store = InMemoryVidStore()
+        let old = try #require(store.vid(for: Self.a))
+        store.setCounting(false, for: Self.a)
+        store.setCounting(true, for: Self.a)
+        let new = try #require(store.vid(for: Self.a))
+        #expect(new != old)
+    }
+
+    /// Each server keeps its own setting, like its own id.
+    @Test func refusingOneServerLeavesAnotherCounting() throws {
+        let store = InMemoryVidStore()
+        let b = try #require(store.vid(for: Self.b))
+        store.setCounting(false, for: Self.a)
+        #expect(store.counting(for: Self.b))
+        #expect(store.vid(for: Self.b) == b)
+    }
+
+    /// Replaced past 13 months, kept up to them.
+    @Test func aVidOlderThanThirteenMonthsIsReplaced() throws {
+        let clock = Clock()
+        let store = InMemoryVidStore(now: { clock.now })
+        let first = try #require(store.vid(for: Self.a))
+        clock.now += VidAge.max - 60
+        #expect(store.vid(for: Self.a) == first)
+        clock.now += 120
+        let second = try #require(store.vid(for: Self.a))
+        #expect(second != first)
+        clock.now += 24 * 3600
+        #expect(store.vid(for: Self.a) == second)  // the new one is dated now
+    }
+
+    /// An id from before dates were kept is dated now, not replaced — nobody is
+    /// counted twice the day this ships.
+    @Test func anUndatedVidIsKeptAndDatedNow() throws {
+        let clock = Clock()
+        let suite = "SplouchCoreTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set("0f1e-legacy", forKey: "splouch.vid." + Self.a)  // what an older build left
+        let store = UserDefaultsVidStore(defaults: defaults, now: { clock.now })
+        #expect(store.vid(for: Self.a) == "0f1e-legacy")
+        #expect(defaults.double(forKey: "splouch.vid_at." + Self.a) == clock.now.timeIntervalSince1970)
+        clock.now += VidAge.max + 1
+        #expect(store.vid(for: Self.a) != "0f1e-legacy")
     }
 }
 
