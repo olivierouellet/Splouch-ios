@@ -190,7 +190,8 @@ struct PickerScreen: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .textCase(nil)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
                 .contentShape(Rectangle())
                 .frame(minHeight: 44)  // X-05
             }
