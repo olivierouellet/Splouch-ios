@@ -36,6 +36,18 @@ public struct ServerAddress: Sendable, Hashable, Codable {
         if isCleartextToNonLocal { return nil }
     }
 
+    /// Stored addresses are normalised as they are read, as a parsed one is: a
+    /// selection saved before a normalisation rule existed (or by hand, as
+    /// `https://SPLOUCH.org/`) must still compare equal to the server it names.
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let raw = try c.decode(URL.self, forKey: .url)
+        guard let normalized = ServerAddress(url: raw) else {
+            throw DecodingError.dataCorruptedError(forKey: .url, in: c, debugDescription: "not an http(s) address")
+        }
+        self = normalized
+    }
+
     /// From what a user typed. A bare host gets `https://`; a `.local` host or a
     /// raw IP gets `http://`, which is the Pi's case (cleartext on the local
     /// network only, app.md P-12).

@@ -68,7 +68,7 @@ public struct SplouchRootView: View {
         // No actions: the platform supplies its own OK.
         .alert(openError ?? "", isPresented: Binding(get: { openError != nil }, set: { if !$0 { openError = nil } })) {}
         // P-16. A universal link arrives as a browsing activity, not as a URL:
-        // `applinks:splouch.ca` is what the OS matched, and `.onOpenURL` would
+        // `applinks:splouch.org` (or the former `splouch.ca`) is what the OS matched, and `.onOpenURL` would
         // only ever fire for a custom scheme this app deliberately does not have.
         // It is on the root so a code scanned while a meet is open reaches the
         // model too — the prompt goes over the board, and the meet is left alone

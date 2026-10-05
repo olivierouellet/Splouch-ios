@@ -3,8 +3,9 @@ import SwiftUI
 
 /// P-19: settings in place of the picker's old `…` menu, which held three
 /// choices and could not hold a toggle, its explanation and a link. One `Form`
-/// in a sheet, sections in the contract's order: Server, Display, Privacy,
-/// About. Section names and the toggle are the app's words (T-05); the privacy
+/// in a sheet, sections in the contract's order (`AppModel.settingsSections`):
+/// Display, Privacy, Server, About — what most spectators open settings for
+/// first, the server for the few who follow a pool's own. Section names and the toggle are the app's words (T-05); the privacy
 /// note and the disclaimer are the server's.
 struct SettingsSheet: View {
     let app: AppModel
@@ -17,12 +18,17 @@ struct SettingsSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                server
-                display
-                // P-07: no section while the server is not counting — there is
-                // nothing to refuse. The stored choice is kept for its return.
-                if app.analyticsEnabled { privacy }
-                about
+                // P-07: no Privacy section while the server is not counting —
+                // there is nothing to refuse. The stored choice is kept for its
+                // return.
+                ForEach(app.settingsSections, id: \.self) { section in
+                    switch section {
+                    case .display: display
+                    case .privacy: privacy
+                    case .server: server
+                    case .about: about
+                    }
+                }
             }
             .navigationTitle(Native.settings)
             #if os(iOS)
@@ -35,9 +41,9 @@ struct SettingsSheet: View {
         .introCover(isPresented: $replayingIntro, app: app) { refocus() }
     }
 
-    /// P-11–P-14: the server in use, pushing to the list (`ServerSheet`). The
-    /// name over the address, as the list's own rows read; P-14's notice, when
-    /// there is one, under it.
+    /// P-11–P-14: one row, the server in use, pushing to the list
+    /// (`ServerSheet`). The name over the address, as the list's own rows read;
+    /// P-14's notice, when there is one, under it.
     private var server: some View {
         Section {
             NavigationLink {
@@ -55,8 +61,10 @@ struct SettingsSheet: View {
         }
     }
 
-    /// T-08 and P-15 as `Picker` rows. The language pushes a list, since it is
-    /// served and open-ended; Appearance is three fixed choices the app owns.
+    /// T-08 and P-15 as `Picker` rows. The language is one row naming the
+    /// current choice and pushing the list, since it is served and open-ended —
+    /// inline, a server's many languages would push everything else down;
+    /// Appearance is three fixed choices the app owns.
     /// Both announce the current choice as selected (X-06) on their own.
     private var display: some View {
         Section(Native.settingsDisplay) {

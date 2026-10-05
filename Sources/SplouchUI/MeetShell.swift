@@ -204,7 +204,7 @@ struct MeetShell: View {
     /// Both have to stay visible — a user who switched and forgot cannot answer
     /// "where did my meet go?" from a screen that looks identical either way.
     private var subtitle: String? {
-        let parts = [app.isDefaultServer ? nil : app.serverName, app.contractNotice].compactMap { $0 }
+        let parts = [app.namesServer ? app.serverName : nil, app.contractNotice].compactMap { $0 }
         return parts.isEmpty ? nil : parts.joined(separator: " \u{00B7} ")
     }
 

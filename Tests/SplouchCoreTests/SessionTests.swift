@@ -350,3 +350,86 @@ import Network
     }
 }
 #endif
+
+/// P-11, 2026-10-05: the default cloud moved from splouch.ca to splouch.org. A
+/// stored selection of the old one is rewritten once; nothing else is.
+@Suite @MainActor struct DefaultServerMigrationTests {
+    static let org = ServerAddress(typed: "https://splouch.org")!
+    static let ca = ServerAddress(typed: "https://splouch.ca")!
+
+    func make(_ store: InMemoryPreferencesStore, vids: InMemoryVidStore = InMemoryVidStore()) -> AppModel {
+        AppModel(
+            defaultServer: Self.org, formerDefaults: [Self.ca], preferencesStore: store, vidStore: vids,
+            bundleCache: InMemoryBundleCache(), connector: FakeConnector())
+    }
+
+    /// Stored the way an earlier build stored it, spelled every way it might be.
+    func stored(_ spelling: String) throws -> Preferences {
+        let json = #"{"server":{"url":"\#(spelling)"},"savedServers":[]}"#
+        return try JSONDecoder().decode(Preferences.self, from: Data(json.utf8))
+    }
+
+    @Test(arguments: [
+        "https://splouch.ca", "https://SPLOUCH.CA", "https://splouch.ca:443", "https://splouch.ca/",
+        "HTTPS://Splouch.ca:443/",
+    ])
+    func aSelectionOfTheFormerDefaultMovesToTheNewOne(spelling: String) throws {
+        let store = InMemoryPreferencesStore(try stored(spelling))
+        let app = make(store)
+        #expect(app.server == Self.org)
+        #expect(app.isDefaultServer)
+        #expect(store.load().server == nil)
+        #expect(store.load().formerDefaultMigrated)
+    }
+
+    /// C-10: the new origin gets a fresh vid; the old one is not carried over.
+    @Test func theVidIsNotCarriedOver() throws {
+        let vids = InMemoryVidStore()
+        let old = try #require(vids.vid(for: Self.ca.origin))
+        let app = make(InMemoryPreferencesStore(try stored("https://splouch.ca")), vids: vids)
+        let new = try #require(vids.vid(for: app.server.origin))
+        #expect(new != old)
+        #expect(vids.vid(for: Self.ca.origin) == old)  // left with its own origin
+    }
+
+    @Test func handAddedServersAreKept() throws {
+        var p = try stored("https://splouch.ca")
+        p.savedServers = [
+            SavedServer(name: "Old cloud", address: Self.ca),
+            SavedServer(name: "Pool", address: ServerAddress(typed: "pool.local")!),
+        ]
+        let store = InMemoryPreferencesStore(p)
+        _ = make(store)
+        #expect(store.load().savedServers == p.savedServers)
+    }
+
+    @Test func anotherSelectionIsLeftAlone() throws {
+        let store = InMemoryPreferencesStore(try stored("https://pool.example"))
+        let app = make(store)
+        #expect(app.server.host == "pool.example")
+        #expect(!app.isDefaultServer)
+    }
+
+    /// Once: a reader who picks the former default again afterwards keeps it.
+    @Test func theMigrationRunsOnce() async throws {
+        let store = InMemoryPreferencesStore(try stored("https://splouch.ca"))
+        _ = make(store)
+        var p = store.load()
+        p.server = Self.ca
+        store.save(p)
+        #expect(make(store).server == Self.ca)
+    }
+
+    /// P-16: the former default's codes still open the app.
+    @Test func linksFromEitherHostRaiseThePrompt() {
+        let app = make(InMemoryPreferencesStore())
+        for own in ["https://splouch.org", "https://splouch.ca"] {
+            app.openServerLink("\(own)/add?server=https%3A%2F%2Fpool.example")
+            #expect(app.invite?.address?.host == "pool.example", "\(own)")
+            app.dismissInvite()
+        }
+        app.openServerLink("https://splouch.ca@evil.example/add?server=https%3A%2F%2Fpool.example")
+        #expect(app.invite?.address == nil)
+        #expect(app.invite?.failure == .badLink)
+    }
+}

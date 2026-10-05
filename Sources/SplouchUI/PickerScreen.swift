@@ -202,23 +202,28 @@ struct PickerScreen: View {
         }
     }
 
-    /// P-11: the meet list always names its server — every card on it came
-    /// from there, whichever one it is. Inside a meet only a non-default one is
-    /// named (MeetShell.subtitle). By its address rather than its name: the
-    /// address is what a spectator can check against a poster or a URL bar.
-    /// P-14: the contract notice sits beside it, never a gate.
-    private var serverLine: some View {
-        let parts = [app.server.display, app.contractNotice].compactMap { $0 }
-        // An HStack rather than a Label: in a list row a Label's icon takes the
-        // row's leading column, which left a wide gap before the address.
-        return HStack(spacing: 4) {
-            Image(systemName: "server.rack")
-            Text(parts.joined(separator: " \u{00B7} "))
+    /// P-11: the meet list names its server only when it is not the default
+    /// (`AppModel.namesServer`) — a spectator who switched and forgot sees why
+    /// the meets changed; on the default there is nothing to explain. A meet
+    /// does the same (MeetShell.subtitle). By its address rather than its name:
+    /// the address is what a spectator can check against a poster or a URL bar.
+    /// P-14: the contract notice sits beside it, or alone on the default, never
+    /// a gate.
+    @ViewBuilder private var serverLine: some View {
+        let name = app.namesServer ? app.server.display : nil
+        let parts = [name, app.contractNotice].compactMap { $0 }
+        if !parts.isEmpty {
+            // An HStack rather than a Label: in a list row a Label's icon takes
+            // the row's leading column, which left a wide gap before the address.
+            HStack(spacing: 4) {
+                if name != nil { Image(systemName: "server.rack") }
+                Text(parts.joined(separator: " \u{00B7} "))
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity)
+            .accessibilityElement(children: .combine)
         }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .combine)
     }
 
     // P-05

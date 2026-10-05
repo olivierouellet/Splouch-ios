@@ -312,4 +312,46 @@ import Testing
         #expect(app.contractNotice == "app v2 ≠ v3")
         #expect(app.meets.count == 1)  // a notice, never a gate
     }
+
+    // MARK: P-11, P-19 (later the same day, 2026-10-05)
+
+    func app(default address: ServerAddress, selected: ServerAddress?, stub: StubServer) -> AppModel {
+        AppModel(
+            defaultServer: address, preferencesStore: InMemoryPreferencesStore(Preferences(server: selected)),
+            vidStore: InMemoryVidStore(), bundleCache: InMemoryBundleCache(), session: stub.session,
+            connector: FakeConnector())
+    }
+
+    /// The picker names the server only when it is not the default, by origin:
+    /// `https://SPLOUCH.org/` is the default.
+    @Test func thePickerNamesOnlyANonDefaultServer() async {
+        let stub = StubServer()
+        let org = ServerAddress(typed: "https://splouch.org")!
+        #expect(!app(default: org, selected: nil, stub: stub).namesServer)
+        #expect(!app(default: org, selected: ServerAddress(typed: "https://SPLOUCH.org/")!, stub: stub).namesServer)
+        #expect(!app(default: org, selected: ServerAddress(typed: "splouch.org:443")!, stub: stub).namesServer)
+        #expect(app(default: org, selected: stub.address, stub: stub).namesServer)
+        #expect(app(default: org, selected: ServerAddress(typed: "http://splouch.org")!, stub: stub).namesServer)
+
+        // Switching to the default by another spelling stores no selection.
+        let a = app(default: stub.address, selected: org, stub: stub)
+        #expect(a.namesServer)
+        await a.switchServer(ServerAddress(typed: "https://\(stub.host.uppercased())/")!)
+        #expect(!a.namesServer)
+        #expect(a.preferences.server == nil)
+    }
+
+    @Test func settingsSectionsAreDisplayPrivacyServerAbout() async {
+        let stub = StubServer()
+        stub.route("/server", json: #"{"kind":"cloud","name":"Splouch","contract":{"api":"v2","app":"v3"}}"#)
+        stub.route("/picker/config", json: #"{"lang":"en","analytics_enabled":true,"strings":{}}"#)
+        stub.route("/meets", json: #"{"meets":[]}"#)
+        let a = app(default: stub.address, selected: nil, stub: stub)
+        await a.load()
+        #expect(a.settingsSections == [.display, .privacy, .server, .about])
+
+        stub.route("/picker/config", json: #"{"lang":"en","analytics_enabled":false,"strings":{}}"#)
+        await a.load()
+        #expect(a.settingsSections == [.display, .server, .about])  // P-07: no Privacy while not counting
+    }
 }
