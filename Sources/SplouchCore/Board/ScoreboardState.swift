@@ -98,12 +98,13 @@ public struct ScoreboardState: Sendable, Equatable {
         // for any event whose meet file carries no distance, and the count falls
         // back to up rather than running to a number nobody reaches.
         let countingDown = settings.direction == .down && expectedSplits > 0
-        guard lane.splits > 0 || (countingDown && !lane.name.trimmingCharacters(in: .whitespaces).isEmpty) else {
+        let hasSwimmer = !lane.name.trimmingCharacters(in: .whitespaces).isEmpty
+        guard lane.splits > 0 || (countingDown && lane.running && hasSwimmer) else {
             // Counting up waits for the first wall — a column of noughts under a
             // start list is noise. Counting down has the whole race to report and
-            // shows from the moment the heat loads, but it needs a swimmer to say
-            // it about: an empty lane in a short heat must not advertise lengths
-            // nobody is swimming.
+            // shows from the start, not from the heat loading: a start list is
+            // not a race yet. It also needs a swimmer to say it about: an empty
+            // lane in a short heat must not advertise lengths nobody is swimming.
             return nil
         }
 

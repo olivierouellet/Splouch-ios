@@ -1,16 +1,8 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "" : {},
-    "%@ %@ — %@ %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ %2$@ — %3$@ %4$@"
-          }
-        }
-      }
+    "" : {
+
     },
     "%@, %@" : {
       "localizations" : {
@@ -22,7 +14,9 @@
         }
       }
     },
-    "%lld" : {},
+    "%lld" : {
+
+    },
     "add" : {
       "extractionState" : "manual",
       "localizations" : {

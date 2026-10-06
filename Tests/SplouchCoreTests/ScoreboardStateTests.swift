@@ -330,11 +330,18 @@ import Testing
         #expect(s.lap(lane: 1, up)?.text == "1")
     }
 
-    @Test func countingDownShowsTheWholeDistanceBeforeAnyoneHasSwum() {
+    @Test func countingDownShowsTheWholeDistanceFromTheStart() {
         var s = liveBoard()
         heatOf(&s, expected: 8)
-        // The whole race to report, from the moment the heat loads.
+        // A loaded heat is a start list, not a race: nothing yet.
+        #expect(s.lap(lane: 1, down) == nil)
+        s.apply(frame(#"{"lane_running1":false}"#), at: t0)
+        #expect(s.lap(lane: 1, down) == nil)
+        // A frame carrying only the running flag puts the countdown up.
+        s.apply(frame(#"{"lane_running1":true}"#), at: t0)
         #expect(s.lap(lane: 1, down)?.text == "8")
+        // Counting up still waits for the first wall, running or not.
+        #expect(s.lap(lane: 1, up) == nil)
         s.apply(frame(#"{"lane_splits1":3}"#), at: t0)
         #expect(s.lap(lane: 1, down)?.text == "5")
         // An over-count reads as the last length, not a negative one.
@@ -346,6 +353,7 @@ import Testing
         var s = liveBoard()
         heatOf(&s, expected: 8)
         s.apply(frame(#"{"lane_name3":"","lane_name4":"  "}"#), at: t0)
+        s.apply(frame(#"{"lane_running1":true,"lane_running3":true,"lane_running4":true}"#), at: t0)
         // Counting down must not advertise eight lengths nobody is swimming.
         #expect(s.lap(lane: 3, down) == nil)
         #expect(s.lap(lane: 4, down) == nil)
@@ -457,7 +465,10 @@ import Testing
         s.apply(frame(#"{"current_heat":"2"}"#), at: t0)
         #expect(s[lane: 1].splits == 0)
         #expect(s.lap(lane: 1, up) == nil)
-        // And the countdown is back to the whole distance for the new heat.
+        // And the countdown waits for the new heat's start, then reads the
+        // whole distance.
+        #expect(s.lap(lane: 1, down) == nil)
+        s.apply(frame(#"{"lane_running1":true}"#), at: t0)
         #expect(s.lap(lane: 1, down)?.text == "8")
     }
 
