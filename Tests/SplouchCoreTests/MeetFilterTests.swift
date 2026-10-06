@@ -91,8 +91,20 @@ import Testing
         #expect(o.clubs.contains("Gone"))
     }
 
-    @Test func aProvinceIsNamedWithItsCountry() {
-        #expect(MeetFilter.Province(country: "CA", name: "QC").label(locale: en) == "QC, Canada")
+    @Test func aProvinceIsNamedInFullWithItsCountry() {
+        #expect(MeetFilter.Province(country: "CA", name: "QC").label(locale: en) == "Québec, Canada")
+        #expect(MeetFilter.Province(country: "DE", name: "BY").label(locale: en) == "BY, Germany")
+    }
+
+    /// `QC`, `Québec` and `quebec` are one province, so one choice.
+    @Test func spellingsOfOneKnownProvinceAreOneChoice() {
+        let spelled = [
+            meet("a", country: "CA", province: "QC"), meet("b", country: "CA", province: "Québec"),
+            meet("c", country: "CA", province: "quebec"),
+        ]
+        let o = MeetFilter().options(for: spelled, locale: en)
+        #expect(o.provinces.count == 1)
+        #expect(MeetFilter(provinces: [o.provinces[0]]).apply(spelled).count == 3)
     }
 
     // MARK: - Remembered

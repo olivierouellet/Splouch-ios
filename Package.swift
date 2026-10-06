@@ -14,7 +14,7 @@ let package = Package(
         .library(name: "SplouchUI", targets: ["SplouchUI"]),
     ],
     targets: [
-        .target(name: "SplouchCore", resources: [.copy("Resources/i18n")]),
+        .target(name: "SplouchCore", resources: [.copy("Resources/i18n"), .copy("Resources/subdivisions.json")]),
         .target(name: "SplouchUI", dependencies: ["SplouchCore"], resources: [.process("Resources")]),
         .testTarget(name: "SplouchCoreTests", dependencies: ["SplouchCore"]),
         // SplouchUI is mostly SwiftUI `body`, which needs a host to run. This

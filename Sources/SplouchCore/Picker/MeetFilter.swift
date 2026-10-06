@@ -25,8 +25,12 @@ public struct MeetFilter: Sendable, Codable, Equatable {
             self.name = name
         }
 
-        /// What two spellings of one province share.
-        var key: String { country + "/" + SuggestionIndex.fold(name) }
+        /// What two spellings of one province share: its code when the app
+        /// knows it, so `QC` and `Québec` are one choice; else the folded text.
+        var key: String {
+            if let known = Subdivisions.lookup(country: country, province: name) { return country + "#" + known.code }
+            return country + "/" + SuggestionIndex.fold(name)
+        }
     }
 
     public init(countries: Set<String> = [], provinces: Set<Province> = [], clubs: Set<String> = []) {
@@ -130,15 +134,16 @@ public struct MeetFilter: Sendable, Codable, Equatable {
 
         return Options(
             countries: sorted(Array(codes), by: name),
-            provinces: sorted(shownProvinces) { "\($0.name) \(name($0.country))" },
+            provinces: sorted(shownProvinces) { $0.label(locale: locale) },
             clubs: sorted(Array(clubByKey.values)) { $0 })
     }
 }
 
 extension MeetFilter.Province {
-    /// `QC, Canada`, as P-01 names a meet's region.
+    /// `Québec, Canada`, as P-01 names a meet's region.
     public func label(locale: Locale = .current) -> String {
+        let province = Subdivisions.name(country: country, province: name)
         let country = locale.localizedString(forRegionCode: country) ?? country
-        return country.isEmpty ? name : "\(name), \(country)"
+        return country.isEmpty ? province : "\(province), \(country)"
     }
 }

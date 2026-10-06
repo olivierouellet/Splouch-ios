@@ -15,13 +15,14 @@ public enum MeetSearch {
 
     /// What a meet is searched on: what its card shows, plus the organizer,
     /// which the card does not show — a spectator may know a meet by the club
-    /// running it — and the organizer's province as sent and country by code
-    /// and by its name in `locale` (P-17). Empty fields are skipped rather than
-    /// joined as double spaces.
+    /// running it — and the organizer's province as sent and by its full name
+    /// (`Subdivisions`), and country by code and by its name in `locale` (P-17).
+    /// Empty fields are skipped rather than joined as double spaces.
     public static func text(of meet: MeetSummary, locale: Locale = .current) -> String {
         [
-            meet.name, meet.meetDate, meet.location, meet.sport, meet.organizer, meet.province, meet.country,
-            meet.countryName(locale: locale) ?? "",
+            meet.name, meet.meetDate, meet.location, meet.sport, meet.organizer, meet.province,
+            Subdivisions.lookup(country: meet.country, province: meet.province)?.name ?? "",
+            meet.country, meet.countryName(locale: locale) ?? "",
         ]
         .filter { !$0.isEmpty }
         .joined(separator: " ")
@@ -58,15 +59,19 @@ extension MeetSummary {
     /// P-01: the organizer's country named in the reader's language — `CA` is
     /// *Canada* in English and French, *Canadá* in Spanish. nil when there is no
     /// code or the system does not know it.
+    /// P-01: `Québec` for `QC`; a province the app does not know, as sent.
+    public var provinceName: String { Subdivisions.name(country: country, province: province) }
+
     public func countryName(locale: Locale = .current) -> String? {
         guard !country.isEmpty else { return nil }
         return locale.localizedString(forRegionCode: country.uppercased())
     }
 
-    /// P-01, P-18: `QC, Canada` — province as sent, then the country's name,
-    /// falling back to its code. nil when neither was recorded.
+    /// P-01, P-18: `Québec, Canada` — the province in full when the app knows
+    /// it (`Subdivisions`), else as sent, then the country's name, falling back
+    /// to its code. nil when neither was recorded.
     public func region(locale: Locale = .current) -> String? {
-        let parts = [province, countryName(locale: locale) ?? country].filter { !$0.isEmpty }
+        let parts = [provinceName, countryName(locale: locale) ?? country].filter { !$0.isEmpty }
         return parts.isEmpty ? nil : parts.joined(separator: ", ")
     }
 }
