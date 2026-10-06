@@ -153,34 +153,53 @@ public final class AppModel {
     /// `/servers`, `/locales`.
     private static let log = Logger(subsystem: "app.splouch", category: "AppModel")
 
+    /// Bumped by every `load()`. Only the latest may write: a switch made while an
+    /// earlier load is still waiting — the cloud timing out on pool wifi while the
+    /// reader picks the Pi — must not have the old server's answer, or its failure,
+    /// land over the new one's.
+    private var loadGeneration = 0
+
     public func load() async {
+        loadGeneration += 1
+        let generation = loadGeneration
+        func current() -> Bool { generation == loadGeneration }
         loading = true
         defer {
-            loading = false
-            Self.log.info("load finished unreachable=\(self.unreachable) meets=\(self.meets.count)")
+            if current() {
+                loading = false
+                Self.log.info("load finished unreachable=\(self.unreachable) meets=\(self.meets.count)")
+            }
         }
         let api = self.api
         Self.log.info("load start \(api.address.url.absoluteString)")
         do {
             let info = try await api.server()
+            guard current() else { return }
             serverInfo = info
             unreachable = false
             contractNotice = Self.notice(for: info)
             if info.kind == .cloud {
                 async let picker = api.pickerConfig(lang: preferences.language)
                 async let meets = api.meets()
-                self.picker = try await picker
-                self.meets = try await meets
+                let (freshPicker, freshMeets) = try await (picker, meets)
+                guard current() else { return }
+                self.picker = freshPicker
+                self.meets = freshMeets
                 meetListReachable = true
-                directory = (try? await api.servers().servers) ?? []
+                let servers = (try? await api.servers().servers) ?? []
+                guard current() else { return }
+                directory = servers
             } else {
                 picker = nil
                 meets = []
                 directory = []
             }
-            if let fresh = try? await api.locales(), !fresh.isEmpty { locales = fresh }
+            let fresh = try? await api.locales()
+            guard current() else { return }
+            if let fresh, !fresh.isEmpty { locales = fresh }
             await refreshStrings()
         } catch {
+            guard current() else { return }
             Self.log.error("load failed: \(String(describing: error))")
             unreachable = true
         }
@@ -287,6 +306,19 @@ public final class AppModel {
         preferencesStore.save(p)
     }
 
+    /// A row in the server list was tapped: a directory entry (P-11), a Bonjour hit
+    /// (P-12), a hand-added server or the default. Each is checked with `GET /server`
+    /// and held to P-12's floor before it is selected — as a typed one is (P-13) — so
+    /// a dead or foreign row fails in the list rather than becoming the stored server.
+    /// The server already in use is selected as is; there is nothing to check it for.
+    public func select(_ address: ServerAddress) async throws {
+        if address != server {
+            guard !address.isCleartextToNonLocal else { throw APIError.cleartextNotLocal }
+            _ = try await SplouchAPI(address: address, session: session).server()
+        }
+        await switchServer(address)
+    }
+
     public func switchServer(_ address: ServerAddress) async {
         server = address
         serverInfo = nil
@@ -377,7 +409,9 @@ public final class AppModel {
     /// In use only while the server is *answering* — a selected server whose handshake
     /// failed is `listed`, and scanning its code re-dials it.
     private func standing(for address: ServerAddress) -> ServerInvite.Standing {
-        if address == server && serverInfo != nil { return .inUse }
+        // `serverInfo` outlives a failed reload, so `unreachable` is what says the
+        // server stopped answering since.
+        if address == server && serverInfo != nil && !unreachable { return .inUse }
         return knownServers.contains { $0.address == address } ? .listed : .new
     }
 
@@ -522,7 +556,9 @@ public final class AppModel {
 
     private func refreshStrings() async {
         let lang = preferences.language ?? picker?.lang ?? strings.language
-        strings = stringsLoader.table(for: lang)
-        if let fresh = await stringsLoader.refresh(lang) { strings = fresh }
+        let loader = stringsLoader
+        strings = loader.table(for: lang)
+        // A switch while this was out: the table is the old server's wording.
+        if let fresh = await loader.refresh(lang), loader.api.address == server { strings = fresh }
     }
 }

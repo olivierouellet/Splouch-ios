@@ -62,6 +62,15 @@ public struct SplouchRootView: View {
             if let link = ProcessInfo.processInfo.environment["SPLOUCH_LINK"] { app.openServerLink(link) }
             #endif
         }
+        // P-16: a yes given over the board lands on the meet list, so the meet the
+        // old server was serving closes — the same goes for any other switch. A Pi
+        // then opens its one meet through `isPi` below, as it does at launch.
+        .onChange(of: app.server) { _, server in
+            if let meet, meet.api.address != server { close() }
+        }
+        // C-10: off forgets the id at once, so the open meet's sockets stop
+        // sending it on their next connect.
+        .onChange(of: app.counting) { _, _ in meet?.session.refreshJoin() }
         .onChange(of: app.isPi) { _, isPi in
             if isPi, meet == nil { Task { await open { try await app.openPi() } } }
         }
@@ -148,12 +157,16 @@ public struct SplouchRootView: View {
         self.meet = nil
     }
 
+    /// One meet at a time. On a Pi both the launch task and `onChange(of: isPi)`
+    /// ask, and the second must not replace the first: a context dropped without
+    /// `stop()` keeps its three sockets open for the life of the process.
     private func open(_ make: () async throws -> MeetContext) async {
-        guard !opening else { return }
+        guard !opening, meet == nil else { return }
         opening = true
         defer { opening = false }
         do {
             let ctx = try await make()
+            guard meet == nil, ctx.api.address == app.server else { return }  // switched meanwhile
             ctx.start()
             meet = ctx
             openCount += 1

@@ -171,9 +171,15 @@ public final class MeetContext {
         await refreshStrings()
     }
 
+    /// Bumped by every `loadSchedule()`: start, `schedule_update` and refresh can
+    /// overlap, and an older answer landing last would put back the previous list.
+    private var scheduleGeneration = 0
+
     /// The start list: `GET /meet/{id}/schedule` on a cloud, `GET /schedule.json`
     /// on a Pi — the same body (api.md §5.8).
     public func loadSchedule() async {
+        scheduleGeneration += 1
+        let generation = scheduleGeneration
         do {
             let s: Schedule
             switch kind {
@@ -183,6 +189,7 @@ public final class MeetContext {
             case .pi:
                 s = try await api.piSchedule()
             }
+            guard generation == scheduleGeneration else { return }
             schedule = s
             scheduleFailed = false
             suggestions = SuggestionIndex(heats: s.heats)
@@ -191,6 +198,7 @@ public final class MeetContext {
         } catch APIError.notFound where kind == .cloud {
             gone = true
         } catch {
+            guard generation == scheduleGeneration else { return }
             scheduleFailed = schedule == nil
         }
     }

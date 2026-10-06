@@ -51,12 +51,14 @@ final class StubServer: @unchecked Sendable {
     var requests: [URLRequest] { lock.withLock { log } }
     func requestCount(_ path: String) -> Int { requests.filter { $0.url?.path == path }.count }
 
+    /// The handler runs outside the lock, so a slow route does not hold up the next
+    /// request: two can overlap and answer out of order, as they do on a network.
     fileprivate func respond(_ request: URLRequest) -> Response {
-        lock.withLock {
+        let handler: Handler? = lock.withLock {
             log.append(request)
-            guard let path = request.url?.path, let h = routes[path] else { return Response(status: 404) }
-            return h(request)
+            return request.url.flatMap { routes[$0.path] }
         }
+        return handler?(request) ?? Response(status: 404)
     }
 }
 

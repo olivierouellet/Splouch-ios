@@ -83,10 +83,21 @@ public struct Preferences: Sendable, Codable, Equatable {
         // Stored before the control existed: the app was pinned dark, so that is
         // what those devices were seeing and what they keep.
         appearance = try c.decodeIfPresent(Appearance.self, forKey: .appearance) ?? .dark
-        server = try c.decodeIfPresent(ServerAddress.self, forKey: .server)
-        savedServers = try c.decodeIfPresent([SavedServer].self, forKey: .savedServers) ?? []
+        // One address that no longer decodes costs that address, not the whole
+        // record: a failure here would hand back `Preferences()`, and the next save
+        // would write the language, the list and `introSeen` away with it.
+        server = (try? c.decodeIfPresent(ServerAddress.self, forKey: .server)) ?? nil
+        savedServers =
+            (try? c.decodeIfPresent([Lenient<SavedServer>].self, forKey: .savedServers))?
+            .compactMap(\.value) ?? []
         introSeen = try c.decodeIfPresent(Bool.self, forKey: .introSeen) ?? false
     }
+}
+
+/// One element of a list, nil when it does not decode, so the rest still do.
+private struct Lenient<T: Decodable>: Decodable {
+    let value: T?
+    init(from decoder: any Decoder) throws { value = try? T(from: decoder) }
 }
 
 public protocol PreferencesStore: Sendable {

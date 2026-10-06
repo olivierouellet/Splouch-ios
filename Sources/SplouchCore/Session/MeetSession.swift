@@ -50,6 +50,7 @@ public final class MeetSession {
     public var onMoved: (@MainActor (ServerAddress) -> Void)?
     private var scoreboardEverConnected = false
 
+    private let vidStore: any VidStore
     private let scoreboardSocket: SplouchSocket
     private let resultsSocket: SplouchSocket
     private let scheduleSocket: SplouchSocket
@@ -72,9 +73,8 @@ public final class MeetSession {
         // the list's server, never the worker a `base` names, so a phone is one
         // visitor however many workers its meets sit on. None at all while the
         // spectator refuses counting there: `join_meet` goes without one.
-        let join: Frame? =
-            (kind == .cloud && meetID != nil)
-            ? .joinMeet(meetID: meetID!, vid: vidStore.vid(for: address.origin)) : nil
+        self.vidStore = vidStore
+        let join = Self.join(kind: kind, meetID: meetID, vid: vidStore, origin: address.origin)
         scoreboardSocket = SplouchSocket(
             url: base.webSocket("/ws/scoreboard"), connector: connector, join: join, timing: timing)
         resultsSocket = SplouchSocket(
@@ -169,6 +169,21 @@ public final class MeetSession {
         ]
         Task { for (socket, url) in sockets { await socket.move(to: url) } }
         return true
+    }
+
+    /// C-10: the spectator changed their say over counting. The join every socket
+    /// re-sends on connect is rebuilt, so an id switched off is not carried into
+    /// the next reconnect, and one switched on goes out from then on.
+    public func refreshJoin() {
+        let join = Self.join(kind: kind, meetID: meetID, vid: vidStore, origin: address.origin)
+        Task {
+            for s in [scoreboardSocket, resultsSocket, scheduleSocket] { await s.setJoin(join) }
+        }
+    }
+
+    private static func join(kind: ServerKind, meetID: String?, vid: any VidStore, origin: String) -> Frame? {
+        guard kind == .cloud, let meetID else { return nil }
+        return .joinMeet(meetID: meetID, vid: vid.vid(for: origin))
     }
 
     /// Drops and reopens every socket so the join replay lands (A-05).

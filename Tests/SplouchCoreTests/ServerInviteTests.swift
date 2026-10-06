@@ -150,6 +150,21 @@ import Testing
         #expect(await eventually { @MainActor in app.serverInfo?.name == "Rebooted" })
     }
 
+    /// The same after a reload fails: `serverInfo` outlives it, so the answer from
+    /// before must not keep claiming the server is in use while it does not answer.
+    @Test func aServerThatStopsAnsweringOnAReloadAsksToSwitchBackToIt() async {
+        let stub = StubServer()
+        cloud(stub)
+        let app = make(stub)
+        await app.start()
+        stub.route("/server", json: "{}", status: 503)
+        await app.load()
+        #expect(app.unreachable)
+        #expect(app.serverInfo != nil)
+        app.openServerLink(link(stub, server: stub.address.origin))
+        #expect(app.invite?.standing == .listed)
+    }
+
     /// A no is allowed right up to the end. On iOS the prompt's Cancel cannot be
     /// disabled out from under a finger the way the Android dialog's is, so a reader who
     /// changes their mind mid-handshake is taken at their word: the answer that arrives

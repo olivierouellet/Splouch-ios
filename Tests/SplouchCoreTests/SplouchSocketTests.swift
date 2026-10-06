@@ -33,14 +33,26 @@ import Testing
 
     // C-02, C-06
 
-    @Test func joinIsSentOnConnectAfterQueuedFrames() async {
+    /// app.md §6: join, then flush — the room first, so what was queued lands in it.
+    @Test func joinIsSentOnConnectBeforeQueuedFrames() async {
         let (socket, connector, recorder) = make(join: join, timing: quiet)
         await socket.send(Frame(event: "early", data: .object(["a": .number(1)])))
         await socket.start()
         #expect(await eventually { await recorder.events.contains(.connected) })
         let conn = connector.latest!
-        #expect(conn.sentEvents == ["early", "join_meet"])
+        #expect(conn.sentEvents == ["join_meet", "early"])
         #expect(await socket.isConnected)
+        await socket.close()
+    }
+
+    /// A re-join that missed its socket is queued; the connect's own join already
+    /// did its work, so the room is not replayed twice.
+    @Test func aQueuedJoinIsNotSentTwice() async {
+        let (socket, connector, recorder) = make(join: join, timing: quiet)
+        await socket.send(join)
+        await socket.start()
+        #expect(await eventually { await recorder.events.contains(.connected) })
+        #expect(connector.latest!.sentEvents == ["join_meet"])
         await socket.close()
     }
 

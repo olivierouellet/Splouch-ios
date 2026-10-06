@@ -17,6 +17,9 @@ struct ServerSheet: View {
     @State private var typed = ""
     @State private var checking = false
     @State private var checkError: String?
+    /// P-11, P-12: the row whose `GET /server` is out, and why the last one failed.
+    @State private var selecting: ServerAddress?
+    @State private var selectError: String?
     /// P-13: the row a swipe just took away, while its Undo is on offer.
     @State private var removed: RemovedServer?
 
@@ -36,6 +39,8 @@ struct ServerSheet: View {
                             }
                         }
                 }
+            } footer: {
+                if let selectError { Text(selectError).foregroundStyle(.red) }
             }
             // P-12: nothing is browsed until this is tapped. A browse in an
             // idle sheet costs battery, and iOS's local-network prompt should
@@ -146,10 +151,7 @@ struct ServerSheet: View {
     /// come out tinted. Only the checkmark should take the accent.
     private func row(_ name: String, _ address: ServerAddress) -> some View {
         Button {
-            Task {
-                await app.switchServer(address)
-                dismiss()
-            }
+            Task { await select(address) }
         } label: {
             HStack {
                 VStack(alignment: .leading) {
@@ -157,7 +159,9 @@ struct ServerSheet: View {
                     Text(address.url.absoluteString).font(.footnote).foregroundStyle(.secondary)
                 }
                 Spacer()
-                if address == app.server {
+                if selecting == address {
+                    ProgressView()
+                } else if address == app.server {
                     Image(systemName: "checkmark").foregroundStyle(.tint)
                         .accessibilityHidden(true)
                 }
@@ -165,9 +169,24 @@ struct ServerSheet: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .disabled(selecting != nil)
         // The checkmark is the only thing saying which server is in use, and a
         // glyph says nothing out loud. The trait does.
         .accessibilityAddTraits(address == app.server ? [.isSelected] : [])
+    }
+
+    /// P-11, P-12: a listed or found server answers `GET /server` before it is
+    /// selected; one that does not stays a row, with the reason under the list.
+    private func select(_ address: ServerAddress) async {
+        selecting = address
+        selectError = nil
+        defer { selecting = nil }
+        do {
+            try await app.select(address)
+            dismiss()
+        } catch {
+            selectError = Self.message(for: error)
+        }
     }
 
     /// P-13: a typo fails here, not at the first blank board.
@@ -179,14 +198,17 @@ struct ServerSheet: View {
             let (address, info) = try await app.probe(typed: typed)
             await app.addServer(address, info: info)
             dismiss()
-        } catch APIError.invalidAddress {
-            checkError = Native.invalidAddress
-        } catch APIError.cleartextNotLocal {
-            checkError = Native.cleartextNotLocal
-        } catch APIError.notASplouchServer, APIError.notFound, APIError.notJSON {
-            checkError = Native.notSplouch
         } catch {
-            checkError = Native.serverUnreachable
+            checkError = Self.message(for: error)
+        }
+    }
+
+    private static func message(for error: any Error) -> String {
+        switch error {
+        case APIError.invalidAddress: Native.invalidAddress
+        case APIError.cleartextNotLocal: Native.cleartextNotLocal
+        case APIError.notASplouchServer, APIError.notFound, APIError.notJSON: Native.notSplouch
+        default: Native.serverUnreachable
         }
     }
 }

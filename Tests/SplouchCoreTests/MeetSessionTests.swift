@@ -41,6 +41,31 @@ import Testing
         await s.stop()
     }
 
+    /// C-10: off forgets the id at once, so a meet already open stops sending it —
+    /// the next reconnect's join goes without one.
+    @Test func turningCountingOffDropsTheVidFromTheNextJoin() async {
+        let vids = InMemoryVidStore()
+        let connector = FakeConnector()
+        let s = MeetSession(
+            address: address, kind: .cloud, meetID: "m1", settings: MeetSettings(numLanes: 4),
+            vidStore: vids, connector: connector, timing: timing)
+        s.start()
+        #expect(await eventually { @MainActor in s.scoreboardConnected })
+        let first = connector.connection(to: "/ws/scoreboard")!
+        #expect(first.sent.first.flatMap { try? Frame.decode($0) }?.data["vid"] != nil)
+
+        vids.setCounting(false, for: address.origin)
+        s.refreshJoin()
+        try? await Task.sleep(for: .milliseconds(50))  // the sockets take the new join
+        await first.dropFromServer()
+        #expect(await eventually { @MainActor in connector.connection(to: "/ws/scoreboard") !== first })
+        #expect(await eventually { @MainActor in connector.connection(to: "/ws/scoreboard")!.sent.first != nil })
+        let rejoin = connector.connection(to: "/ws/scoreboard")!.sent.first.flatMap { try? Frame.decode($0) }
+        #expect(rejoin?.event == "join_meet")
+        #expect(rejoin?.data["vid"] == nil)
+        await s.stop()
+    }
+
     /// C-10: a spectator who refused counting on this server still joins, with
     /// no `vid` — and none is created by joining.
     @Test func joinsCarryNoVidWhileCountingIsOff() async {

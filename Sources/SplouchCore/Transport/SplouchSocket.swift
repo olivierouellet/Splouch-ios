@@ -194,10 +194,14 @@ public actor SplouchSocket {
         connection = conn
         delay = timing.backoffMin
         lastReceived = .now
+        // app.md §6: join, then flush (C-02, C-06) — the room first, so what was
+        // queued lands in it. A queued join is a re-join that missed its socket
+        // (`rejoin`, R-10); the one just sent already did its work.
+        let joinText = join.flatMap { try? $0.encoded() }
         let pending = queue
         queue = []
-        for text in pending { try? await conn.send(text) }
-        if let join, let text = try? join.encoded() { try? await conn.send(text) }
+        if let joinText { try? await conn.send(joinText) }
+        for text in pending where text != joinText { try? await conn.send(text) }
         startHeartbeat()
         continuation.yield(.connected)
 

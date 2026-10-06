@@ -18,6 +18,14 @@ import Testing
         }
     }
 
+    /// `running_time` is wire input: a garbled minutes field must read as "not a
+    /// clock", not overflow `minutes * 6000` and take the app down.
+    @Test func anAbsurdMinutesFieldIsNotAClock() {
+        #expect(RaceClock.parseHundredths("9999:59.99") == 9999 * 6000 + 5999)
+        #expect(RaceClock.parseHundredths("99999:00.00") == nil)
+        #expect(RaceClock.parseHundredths("99999999999999999:00.00") == nil)
+    }
+
     @Test func formatsTenthsNotHundredths() {
         #expect(RaceClock.formatTenths(6523) == "1:05.2")
         #expect(RaceClock.formatTenths(523) == "5.2")

@@ -78,7 +78,9 @@ public struct RaceClock: Sendable, Equatable {
         var rest = Substring(s)
         if let colon = rest.firstIndex(of: ":") {
             let m = rest[..<colon]
-            guard !m.isEmpty, m.allSatisfy(\.isASCIIDigit), let v = Int(m) else { return nil }
+            // Capped at four digits — 166 hours, past any race — so a garbled
+            // frame cannot overflow `minutes * 6000` and trap.
+            guard (1...4).contains(m.count), m.allSatisfy(\.isASCIIDigit), let v = Int(m) else { return nil }
             minutes = v
             rest = rest[rest.index(after: colon)...]
         }

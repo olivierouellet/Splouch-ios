@@ -42,6 +42,26 @@ import Testing
         await ctx.stop()
     }
 
+    /// Start, `schedule_update` and refresh can each be out at once. An older answer
+    /// that lands last must not put back the list the newer one replaced.
+    @Test func anOlderScheduleAnswerLandingLastIsDropped() async {
+        let stub = StubServer()
+        stub.route("/meet/m1/schedule") { [unowned stub] _ in
+            if stub.requestCount("/meet/m1/schedule") == 1 {
+                Thread.sleep(forTimeInterval: 0.3)
+                return .json(#"{"heats":[{"event":1,"heat":1,"lanes":[]}]}"#)
+            }
+            return .json(#"{"heats":[{"event":1,"heat":1,"lanes":[]},{"event":1,"heat":2,"lanes":[]}]}"#)
+        }
+        let ctx = make(stub: stub, connector: FakeConnector())
+        let older = Task { await ctx.loadSchedule() }
+        #expect(await eventually { stub.requestCount("/meet/m1/schedule") == 1 })
+        await ctx.loadSchedule()
+        #expect(ctx.schedule?.heats.count == 2)
+        await older.value
+        #expect(ctx.schedule?.heats.count == 2)
+    }
+
     /// The heat the board is on, which the schedule highlights and the tabs share.
     /// It follows the scoreboard socket, and the explicit wipe clears it — a lane
     /// list that outlived its heat is the bug `reset` exists to prevent.
@@ -405,6 +425,63 @@ import Testing
 
     /// P-15: preferences written before the control existed carry no key, and
     /// those devices were seeing a pinned-dark app, so that is what they keep.
+    /// One stored address that no longer decodes costs that address only. Failing
+    /// the whole record would hand back defaults, and the next save would write the
+    /// language, the other servers and `introSeen` away.
+    @Test func anUndecodableStoredAddressCostsOnlyItself() throws {
+        let stored = Data(
+            #"{"language":"fr","server":{"url":"ftp://gone.example"},"savedServers":[{"name":"A","address":{"url":"ftp://bad.example"}},{"name":"B","address":{"url":"https://b.example"}}],"introSeen":true}"#
+                .utf8)
+        let p = try JSONDecoder().decode(Preferences.self, from: stored)
+        #expect(p.language == "fr")
+        #expect(p.server == nil)
+        #expect(p.savedServers.map(\.name) == ["B"])
+        #expect(p.introSeen)
+    }
+
+    /// A switch made while an earlier load is still out: the old server's answer —
+    /// here a failure, the cloud timing out on pool wifi — must not land over the
+    /// server the reader moved to.
+    @Test func aLoadOvertakenByASwitchLandsNothing() async {
+        let slow = StubServer()
+        slow.route("/server") { _ in
+            Thread.sleep(forTimeInterval: 0.3)
+            return .json("{}", status: 503)
+        }
+        let pi = StubServer()
+        pi.route("/server", json: #"{"kind":"pi","name":"Pool","contract":{"api":"v2","app":"v3"}}"#)
+        let app = make(slow)
+        let first = Task { await app.start() }
+        #expect(await eventually { slow.requestCount("/server") == 1 })
+        await app.switchServer(pi.address)
+        #expect(app.serverInfo?.name == "Pool")
+        await first.value
+        #expect(app.serverInfo?.name == "Pool")
+        #expect(!app.unreachable)
+        #expect(!app.loading)
+    }
+
+    /// P-11, P-12: a row in the list is checked before it is selected, as a typed
+    /// address is (P-13) — a dead one or a cleartext public one stays a row.
+    @Test func aListedServerIsCheckedBeforeItIsSelected() async throws {
+        let stub = StubServer()
+        cloud(stub)
+        let app = make(stub)
+        await app.start()
+        let dead = StubServer()  // routes nothing: `/server` is a 404
+        await #expect(throws: APIError.notFound) { try await app.select(dead.address) }
+        #expect(app.server == stub.address)
+        let cleartext = ServerAddress(typed: "http://8.8.8.8")!
+        await #expect(throws: APIError.cleartextNotLocal) { try await app.select(cleartext) }
+        #expect(app.server == stub.address)
+
+        let pi = StubServer()
+        pi.route("/server", json: #"{"kind":"pi","name":"Pool","contract":{"api":"v2","app":"v3"}}"#)
+        try await app.select(pi.address)
+        #expect(app.server == pi.address)
+        #expect(app.preferences.savedServers.isEmpty)  // selected, not added
+    }
+
     @Test func storedPreferencesWithoutAnAppearanceStayDark() throws {
         let older = Data(#"{"labelStyle":"long","savedServers":[]}"#.utf8)
         #expect(try JSONDecoder().decode(Preferences.self, from: older).appearance == .dark)
