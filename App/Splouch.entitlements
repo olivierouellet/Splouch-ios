@@ -2,17 +2,15 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- app.md P-16: the QR code carries https://splouch.org/add?server=<origin> (or
-	     splouch.ca on a code printed before splouch.org became the default), and this
+	<!-- app.md P-16: the QR code carries https://splouch.org/add?server=<origin>, and this
 	     is what makes iOS hand that link to the app instead of Safari. The app's own
-	     default server (P-11) and its former default — a universal link is verified
+	     default server (P-11) — a universal link is verified
 	     per domain against that host's /.well-known/apple-app-site-association, and
 	     a pool's Pi has no https and no certificate, so the Pi travels in the query
 	     and never in the authority. -->
 	<key>com.apple.developer.associated-domains</key>
 	<array>
 		<string>applinks:splouch.org</string>
-		<string>applinks:splouch.ca</string>
 	</array>
 </dict>
 </plist>

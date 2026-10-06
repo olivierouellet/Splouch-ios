@@ -59,15 +59,10 @@ public struct Preferences: Sendable, Codable, Equatable {
     /// P-20: the introduction was finished or skipped on this install. Once,
     /// whichever server it was seen against.
     public var introSeen: Bool
-    /// P-11: a selection of a former default cloud has been rewritten to the
-    /// current default. Once per install, so a former default the reader later
-    /// picks again on purpose stays picked.
-    public var formerDefaultMigrated: Bool
 
     public init(
         language: String? = nil, labelStyle: LabelStyle = .long, appearance: Appearance = .dark,
-        server: ServerAddress? = nil, savedServers: [SavedServer] = [], introSeen: Bool = false,
-        formerDefaultMigrated: Bool = false
+        server: ServerAddress? = nil, savedServers: [SavedServer] = [], introSeen: Bool = false
     ) {
         self.language = language
         self.labelStyle = labelStyle
@@ -75,7 +70,6 @@ public struct Preferences: Sendable, Codable, Equatable {
         self.server = server
         self.savedServers = savedServers
         self.introSeen = introSeen
-        self.formerDefaultMigrated = formerDefaultMigrated
     }
 
     /// Preferences stored before the style became a two-way choice carry either
@@ -92,7 +86,6 @@ public struct Preferences: Sendable, Codable, Equatable {
         server = try c.decodeIfPresent(ServerAddress.self, forKey: .server)
         savedServers = try c.decodeIfPresent([SavedServer].self, forKey: .savedServers) ?? []
         introSeen = try c.decodeIfPresent(Bool.self, forKey: .introSeen) ?? false
-        formerDefaultMigrated = try c.decodeIfPresent(Bool.self, forKey: .formerDefaultMigrated) ?? false
     }
 }
 

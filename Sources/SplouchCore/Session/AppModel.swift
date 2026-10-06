@@ -75,11 +75,6 @@ public enum SettingsSection: String, Sendable, CaseIterable {
 @Observable
 public final class AppModel {
     public let defaultServer: ServerAddress
-    /// Clouds that were the default in an earlier release (`https://splouch.ca`
-    /// before `https://splouch.org`). A stored selection of one is moved to the
-    /// default once (P-11), and their `/add` links still count as the app's own
-    /// (P-16) — codes already printed keep working.
-    public let formerDefaults: [ServerAddress]
     private let preferencesStore: any PreferencesStore
     private let vidStore: any VidStore
     private let bundleCache: any BundleCache
@@ -111,22 +106,19 @@ public final class AppModel {
     public private(set) var counting = true
 
     public init(
-        defaultServer: ServerAddress, formerDefaults: [ServerAddress] = [],
+        defaultServer: ServerAddress,
         preferencesStore: any PreferencesStore = UserDefaultsPreferencesStore(),
         vidStore: any VidStore = UserDefaultsVidStore(),
         bundleCache: any BundleCache = FileBundleCache.standard(),
         session: URLSession = .shared, connector: any WebSocketConnector = URLSessionWebSocketConnector()
     ) {
         self.defaultServer = defaultServer
-        self.formerDefaults = formerDefaults
         self.preferencesStore = preferencesStore
         self.vidStore = vidStore
         self.bundleCache = bundleCache
         self.session = session
         self.connector = connector
-        let stored = preferencesStore.load()
-        let prefs = Self.migratingFormerDefault(stored, formerDefaults: formerDefaults)
-        if prefs != stored { preferencesStore.save(prefs) }
+        let prefs = preferencesStore.load()
         self.preferences = prefs
         self.server = prefs.server ?? defaultServer
         self.counting = vidStore.counting(for: (prefs.server ?? defaultServer).origin)
@@ -144,23 +136,6 @@ public final class AppModel {
     /// The name to show in the header when the server is not the default.
     public var serverName: String { serverInfo?.name ?? server.host }
     public var stringsLoader: StringsLoader { StringsLoader(api: api, cache: bundleCache) }
-
-    /// P-11: a stored selection of a former default becomes the current default
-    /// (nil), once per install. Hand-added servers are left as they are — a
-    /// reader who typed the old address keeps it in the list. The `vid` is not
-    /// carried over: it is keyed on the origin (C-10), so the new default gets a
-    /// fresh one on its first `join_meet`, and the old one stays with the old origin.
-    static func migratingFormerDefault(_ prefs: Preferences, formerDefaults: [ServerAddress]) -> Preferences {
-        guard !prefs.formerDefaultMigrated else { return prefs }
-        var p = prefs
-        if let stored = p.server, formerDefaults.contains(where: { $0.origin == stored.origin }) { p.server = nil }
-        p.formerDefaultMigrated = true
-        return p
-    }
-
-    /// P-16: the hosts whose `/add` links are the app's own — the default's and
-    /// every former default's, matching the `applinks:` entitlements.
-    public var linkHosts: [String] { [defaultServer.host] + formerDefaults.map(\.host) }
 
     /// P-19's order: Display, Privacy, Server, About — the reader's own choices
     /// first, the server for the few who follow a pool's own. Privacy only while
@@ -338,7 +313,7 @@ public final class AppModel {
     /// `cleartextNotLocal`: the reader scanned something, and the one outcome worse than
     /// a code that fails is a code that opens the app and appears to do nothing.
     public func openServerLink(_ url: String) {
-        switch ServerLink.parse(url, hosts: linkHosts) {
+        switch ServerLink.parse(url, host: defaultServer.host) {
         case .ok(let address):
             invite = ServerInvite(address: address, standing: standing(for: address))
         case .cleartextNotLocal:

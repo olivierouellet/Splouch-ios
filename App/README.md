@@ -14,11 +14,9 @@ xcodebuild -project App/Splouch.xcodeproj -scheme Splouch \
 
 - The fonts come from `../Splouch/shared/static/fonts/`, licences alongside;
   refresh them from there, never edit them here.
-- The default cloud URL (`https://splouch.org`) and the former one are set in
-  `SplouchApp.swift`.
-- **Universal links (`P-16`).** `Splouch.entitlements` claims `applinks:splouch.org`
-  (the default) and `applinks:splouch.ca` (the former default, for codes already
-  printed); `SplouchDebug.entitlements` claims both with `?mode=developer`, which
+- The default cloud URL (`https://splouch.org`) is set in `SplouchApp.swift`.
+- **Universal links (`P-16`).** `Splouch.entitlements` claims `applinks:splouch.org`;
+  `SplouchDebug.entitlements` claims it with `?mode=developer`, which
   skips Apple's CDN cache when the association file on a host changes.
   The app half is inert without the host's
   `/.well-known/apple-app-site-association`, which is the `Splouch` repo's to

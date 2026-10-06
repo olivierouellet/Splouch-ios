@@ -121,37 +121,4 @@ import Testing
         let trailing = "https://splouch.org/add?server=https%3A%2F%2FPool.Example%3A443%2F"
         #expect(address(ServerLink.parse(trailing, host: host)) == ServerAddress(typed: "https://pool.example"))
     }
-
-    // MARK: Two own hosts (2026-10-05: splouch.org default, splouch.ca former)
-
-    static let hosts = ["splouch.org", "splouch.ca"]
-
-    /// A code printed while splouch.ca was the default still adds its server.
-    @Test func bothTheDefaultAndTheFormerDefaultAreOwnHosts() {
-        for own in ["https://splouch.org", "https://splouch.ca", "https://SPLOUCH.CA"] {
-            let a = address(ServerLink.parse("\(own)/add?server=https%3A%2F%2Fpool.example", hosts: Self.hosts))
-            #expect(a?.host == "pool.example", "\(own)")
-        }
-        #expect(
-            ServerLink.parse("https://splouch.com/add?server=https%3A%2F%2Fa.example", hosts: Self.hosts) == .invalid)
-        #expect(
-            ServerLink.parse("https://splouch.org.evil.example/add?server=https%3A%2F%2Fa.example", hosts: Self.hosts)
-                == .invalid)
-        #expect(
-            ServerLink.parse("https://ca.evil.example/add?server=https%3A%2F%2Fa.example", hosts: Self.hosts)
-                == .invalid)
-    }
-
-    /// Userinfo spoofing, on either own host: a link carrying credentials is not
-    /// one this app mints, whichever side of the `@` an own host sits.
-    @Test func credentialsAreRefusedOnEitherHost() {
-        for link in [
-            "https://splouch.org@evil.example/add?server=https%3A%2F%2Fa.example",
-            "https://splouch.ca@evil.example/add?server=https%3A%2F%2Fa.example",
-            "https://evil.example@splouch.org/add?server=https%3A%2F%2Fa.example",
-            "https://user:pw@splouch.ca/add?server=https%3A%2F%2Fa.example",
-        ] {
-            #expect(ServerLink.parse(link, hosts: Self.hosts) == .invalid, "\(link)")
-        }
-    }
 }

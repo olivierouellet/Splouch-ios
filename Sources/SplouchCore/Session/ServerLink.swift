@@ -1,8 +1,6 @@
 import Foundation
 
-/// P-16: the address behind a QR code, `https://<default host>/add?server=<origin>` —
-/// `https://splouch.org/add?…`, or `https://splouch.ca/add?…` on a code printed while
-/// that was the default.
+/// P-16: the address behind a QR code, `https://<default host>/add?server=<origin>`.
 ///
 /// **Why an `https` link on the app's own host and not a `splouch://` scheme.** The
 /// reader uses the camera they already have — Camera.app, a third-party scanner — and
@@ -15,8 +13,7 @@ import Foundation
 /// `apple-app-site-association` without which iOS never routes the link here at all.
 ///
 /// **The host is the app's own default server** (`AppModel.defaultServer`), the one URL
-/// the app ships knowing (`P-11`), or a former default (`AppModel.formerDefaults`), and
-/// the `applinks:` entitlements name the same hosts —
+/// the app ships knowing (`P-11`), and the `applinks:` entitlement names the same host —
 /// a Universal Link is verified per domain and the app cannot verify a pool's Pi, which
 /// has no `https` and no certificate. So the Pi travels in the query and never in the
 /// authority, and a link naming any other host does not parse: **a server cannot mint a
@@ -46,10 +43,9 @@ public enum ServerLink {
         case cleartextNotLocal
     }
 
-    /// `link` is what the user activity carried; `hosts` are the app's own — the
-    /// default server's and the former defaults' — the only authorities a link may name.
-    public static func parse(_ link: String, hosts: [String]) -> Result {
-        let own = Set(hosts.map { $0.lowercased() })
+    /// `link` is what the user activity carried; `host` is the app's default server's
+    /// host, the only authority a link may name.
+    public static func parse(_ link: String, host: String) -> Result {
         // URLComponents, not URL: iOS 17's URL rejects some of what a hand-made poster
         // carries before this can answer for it, and the checks below are the same ones
         // either way. Nothing is trusted out of it — scheme, host and path are each
@@ -60,16 +56,13 @@ public enum ServerLink {
             // and would fail the host check anyway; a link carrying credentials at all
             // is not one this app mints, so it stops here rather than later.
             comps.user == nil, comps.password == nil,
-            let linkHost = comps.host?.lowercased(), own.contains(linkHost),
+            let linkHost = comps.host?.lowercased(), linkHost == host.lowercased(),
             trimmedPath(comps.path) == path,
             let origin = lastValue(of: param, in: comps)
         else { return .invalid }
         guard let address = ServerAddress(typed: origin) else { return .invalid }
         return address.isCleartextToNonLocal ? .cleartextNotLocal : .ok(address)
     }
-
-    /// One host: the shape a single-domain caller and the tests use.
-    public static func parse(_ link: String, host: String) -> Result { parse(link, hosts: [host]) }
 
     /// `/add`, `/add/`, `/add//` — a trailing slash is the same page everywhere else on
     /// the web, and a code printed with one is not a different link.
