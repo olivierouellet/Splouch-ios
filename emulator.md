@@ -71,14 +71,14 @@ xcrun simctl launch booted app.splouch.ios
 ```
 
 The link's **host must be the default server's** — `SPLOUCH_SERVER`'s host in a
-debug run, `splouch.ca` otherwise — because that is the only authority the app
+debug run, `splouch.org` otherwise — because that is the only authority the app
 accepts (`P-16`). A link on any other host raises the prompt as a bad one, which
 is itself worth seeing.
 
 > **`SPLOUCH_SERVER` only sets the default server, and a server saved in
 > preferences beats it.** Once the app has stored one, it silently ignores the
 > variable and keeps talking to whatever it saved — a session can spend a long
-> while rendering live splouch.ca while you believe it is on your local cloud.
+> while rendering live splouch.org while you believe it is on your local cloud.
 > Tell them apart by the meet list in the picker, never by the variable you
 > passed. To clear the stored preference, wipe the container:
 >

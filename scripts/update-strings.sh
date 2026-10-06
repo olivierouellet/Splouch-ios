@@ -1,8 +1,8 @@
 #!/bin/zsh
 # Regenerates the built-in string snapshot (app.md T-10) from a running server.
 #
-#   scripts/update-strings.sh https://splouch.ca
-#   scripts/update-strings.sh --check https://splouch.ca     # what CI runs
+#   scripts/update-strings.sh https://splouch.org
+#   scripts/update-strings.sh --check https://splouch.org     # what CI runs
 #
 # Fetches GET /locales (kept verbatim as Resources/i18n/locales.json, the
 # offline floor of the language menu — app.md T-08), then GET /i18n/{lang} for

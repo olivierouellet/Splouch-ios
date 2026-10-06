@@ -15,7 +15,7 @@
 #     { sed -n 1,1889p $R.serial; sed -n 1889p $R.serial | sed 's/^\[1700000178/[1700003778/'; } > $H.serial
 #     cp $R.lxf $H.lxf      # then POST /test_play {"name": "hold.serial"}
 #   and run this once heat 1 has finished (about 3 min in).
-# The picker comes from the cloud (default https://splouch.ca), which lists meets
+# The picker comes from the cloud (default https://splouch.org), which lists meets
 # with their images; a Pi opens straight into its own meet.
 #
 # Needs a Debug build (it reads SPLOUCH_SERVER / SPLOUCH_TAB):
@@ -28,7 +28,7 @@
 set -eu
 
 PI=${1:-http://127.0.0.1:5056}
-CLOUD=${2:-https://splouch.ca}
+CLOUD=${2:-https://splouch.org}
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 APP="$ROOT/.build/xcode/Build/Products/Debug-iphonesimulator/Splouch.app"
 OUT="$ROOT/Screenshots"

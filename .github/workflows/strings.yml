@@ -40,5 +40,5 @@ jobs:
         # The script is zsh (glob qualifiers), like everything else in scripts/.
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends zsh
 
-      - name: Compare with https://splouch.ca
-        run: zsh scripts/update-strings.sh --check https://splouch.ca
+      - name: Compare with https://splouch.org
+        run: zsh scripts/update-strings.sh --check https://splouch.org

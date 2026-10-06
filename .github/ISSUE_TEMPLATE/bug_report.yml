@@ -63,7 +63,7 @@ body:
       label: Which server
       description: What the app was connected to.
       options:
-        - The default cloud (splouch.ca)
+        - The default cloud (splouch.org)
         - A self-hosted cloud relay
         - A Pi on the pool's own network
         - A dev server on my machine
