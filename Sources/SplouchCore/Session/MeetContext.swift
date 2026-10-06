@@ -37,6 +37,16 @@ public final class MeetContext {
     public var filter = ScheduleFilter()
     /// A-09: the meet is gone from this server.
     public private(set) var gone = false
+    /// N-02: who this device follows here. Saved per meet; deleted with the
+    /// meet (N-09).
+    public private(set) var follows: MeetFollows
+    /// N-01: the platforms the meet's node can notify (`GET /meet/{id}/config`
+    /// → `push`), refreshed with every config fetch.
+    public private(set) var pushPlatforms: [String]
+    /// N-08: a heat a tapped notification asked the Schedule tab to show.
+    public var focus: HeatFocus?
+    public let push: PushCenter?
+    private let followStore: any FollowStore
     public private(set) var refreshing = false
 
     /// The device's choices, applied over the meet's locale (T-06).
@@ -48,9 +58,17 @@ public final class MeetContext {
         settings: MeetSettings,
         stringsLoader: StringsLoader, preferences: Preferences, vidStore: any VidStore,
         connector: any WebSocketConnector = URLSessionWebSocketConnector(),
-        timing: SocketTiming = .standard
+        timing: SocketTiming = .standard,
+        pushPlatforms: [String] = [], push: PushCenter? = nil,
+        followStore: any FollowStore = InMemoryFollowStore()
     ) {
         self.api = api
+        self.pushPlatforms = pushPlatforms
+        self.push = push
+        self.followStore = followStore
+        self.follows =
+            kind == .cloud && meetID != nil
+            ? followStore.follows(server: api.address.origin, meetID: meetID ?? "") : MeetFollows()
         self.kind = kind
         self.meetID = kind == .cloud ? meetID : nil
         self.title = title
@@ -101,6 +119,8 @@ public final class MeetContext {
         session.start()
         Task { await loadSchedule() }
         Task { await refreshStrings() }
+        // N-07: every open re-sends, which heals a node that lost the row.
+        if !follows.isEmpty { Task { await registerFollows() } }
     }
 
     public func stop() async {
@@ -131,9 +151,10 @@ public final class MeetContext {
             let config = try await meetAPI.meetConfig(meetID)
             if following, follow(config.base) { return await checkMeet(following: false) }
             title = config.appWindowTitle.isEmpty ? config.name : config.appWindowTitle
+            pushPlatforms = config.push
             apply(settings: config.settings, rejoin: false)
         } catch APIError.notFound {
-            gone = true
+            markGone()
         } catch {}
     }
 
@@ -155,6 +176,7 @@ public final class MeetContext {
                 var config = try await meetAPI.meetConfig(meetID)
                 if follow(config.base) { config = try await meetAPI.meetConfig(meetID) }  // C-12, once
                 title = config.appWindowTitle.isEmpty ? config.name : config.appWindowTitle
+                pushPlatforms = config.push
                 apply(settings: config.settings, rejoin: true)
             case .pi:
                 let config = try await api.piConfig()
@@ -162,7 +184,7 @@ public final class MeetContext {
                 apply(settings: config.settings, rejoin: true)
             }
         } catch APIError.notFound where kind == .cloud {
-            gone = true
+            markGone()
             return
         } catch {
             // Unreachable, or a Pi answering oddly: keep drawing what we have;
@@ -197,7 +219,7 @@ public final class MeetContext {
             // Keep the chips the new list can still match (S-20 lives on).
             filter.prune(to: s.heats)
         } catch APIError.notFound where kind == .cloud {
-            gone = true
+            markGone()
         } catch {
             guard generation == scheduleGeneration else { return }
             scheduleFailed = schedule == nil
@@ -209,6 +231,61 @@ public final class MeetContext {
         strings = stringsLoader.table(for: effectiveLanguage)
         rebuildLabels()
         Task { await refreshStrings() }
+        // N-07: the notifications are composed in this language.
+        if !follows.isEmpty { Task { await registerFollows() } }
+    }
+
+    // MARK: - Heat notifications (app.md §10)
+
+    /// N-01: the bell is offered. A Pi never; a cloud node only once it says it
+    /// can reach Apple, and only where the app can hold a token at all.
+    public var canNotify: Bool {
+        kind == .cloud && meetID != nil && push != nil && pushPlatforms.contains("apns")
+    }
+
+    /// N-02: store the new list and send it. The first swimmer added is the
+    /// moment to ask for permission (N-04) — never at launch.
+    public func setFollows(_ new: MeetFollows) async {
+        guard let meetID else { return }
+        let first = follows.isEmpty && !new.isEmpty
+        follows = new
+        followStore.set(new, server: api.address.origin, meetID: meetID)
+        if first, let push { _ = await push.askIfNeeded() }
+        await registerFollows()
+    }
+
+    /// N-07: one `PUT` with every swimmer, at the meet's `base`. Nothing is sent
+    /// while there is no token or no permission (N-04); the list waits on the
+    /// device. A `409` names another worker: follow it (C-12) and send again.
+    public func registerFollows() async {
+        guard canNotify, let meetID, let push, let token = push.token else { return }
+        // An empty list stops the server notifying whatever the permission;
+        // a non-empty one is only worth sending once notifications can show.
+        guard follows.isEmpty || push.permission == .allowed else { return }
+        let registration = FollowRegistration(token: token, lang: effectiveLanguage, follows: follows)
+        do {
+            try await meetAPI.follow(meetID: meetID, registration)
+        } catch APIError.http(409) {
+            await checkMeet()
+            do { try await meetAPI.follow(meetID: meetID, registration) } catch { return }
+        } catch {
+            return  // offline or refused: the next open sends again
+        }
+        // Where it was registered, after any move: a new token goes there.
+        let base = session.base.url.absoluteString
+        if !follows.isEmpty, follows.base != base {
+            follows.base = base
+            followStore.set(follows, server: api.address.origin, meetID: meetID)
+        }
+    }
+
+    /// A-09, N-09: the meet is gone, and with it what this device followed there.
+    private func markGone() {
+        gone = true
+        if let meetID {
+            follows = MeetFollows()
+            followStore.set(nil, server: api.address.origin, meetID: meetID)
+        }
     }
 
     public func setLabelStyle(_ style: LabelStyle) {

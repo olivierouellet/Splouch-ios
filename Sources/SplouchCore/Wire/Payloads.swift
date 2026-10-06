@@ -103,6 +103,9 @@ public struct MeetConfig: Sendable, Equatable {
     /// move, it names the new one, which A-09 follows as C-12 does.
     public var base: ServerAddress?
     public var settings: MeetSettings
+    /// N-01: the platforms the meet's node can notify — `apns`, `fcm`. Empty
+    /// from a node that cannot, and from a server too old to say.
+    public var push: [String] = []
 }
 
 /// `settings.console` (api.md §5.4, §6.1): which console is driving this meet.

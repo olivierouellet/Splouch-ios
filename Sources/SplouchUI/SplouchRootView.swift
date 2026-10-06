@@ -61,6 +61,12 @@ public struct SplouchRootView: View {
             // left out — the iOS answer to `adb shell am start -d`.
             if let link = ProcessInfo.processInfo.environment["SPLOUCH_LINK"] { app.openServerLink(link) }
             #endif
+            // N-08: the app was launched by tapping a notification.
+            if let focus = app.pendingFocus { await route(focus) }
+        }
+        // N-08: a notification tapped while the app runs.
+        .onChange(of: app.pendingFocus) { _, focus in
+            if let focus { Task { await route(focus) } }
         }
         // P-16: a yes given over the board lands on the meet list, so the meet the
         // old server was serving closes — the same goes for any other switch. A Pi
@@ -147,6 +153,22 @@ public struct SplouchRootView: View {
 
     private var showingMeet: Binding<Bool> {
         Binding(get: { meet != nil }, set: { if !$0 { close() } })
+    }
+
+    /// N-08: open the notification's meet on its Schedule tab, at its heat. The
+    /// meet already open is kept; another one is closed first. A meet this
+    /// server no longer lists is gone, and the tap lands on the picker.
+    private func route(_ focus: HeatFocus) async {
+        app.pendingFocus = nil
+        if let meet, meet.meetID == focus.meetID {
+            meet.focus = focus
+            return
+        }
+        if meet != nil { close() }
+        if app.meets.isEmpty { await app.load() }
+        guard let summary = app.meets.first(where: { $0.id == focus.meetID }) else { return }
+        await open { try await app.open(summary) }
+        meet?.focus = focus
     }
 
     /// Popped, by the back button, the edge swipe, or A-09's `dismiss()`.

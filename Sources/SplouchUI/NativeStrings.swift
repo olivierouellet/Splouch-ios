@@ -1,4 +1,5 @@
 import Foundation
+import SplouchCore
 
 /// The words the app owns (app.md T-05): about the app or the device, not what a
 /// web page shows. Translated natively in `Resources/Localizable.xcstrings`;
@@ -69,4 +70,30 @@ enum Native {
     static var introFollowBody: String { String(localized: "intro_follow_body", bundle: .module) }
     static var introCountingTitle: String { String(localized: "intro_counting_title", bundle: .module) }
     static var privacyWhere: String { String(localized: "privacy_where", bundle: .module) }
+    // N-01 to N-04. App-only — the web has no notifications — so every word is
+    // the app's (T-05), not the server's.
+    static var notifications: String { String(localized: "notifications", bundle: .module) }
+    static var notifySwimmers: String { String(localized: "notify_swimmers", bundle: .module) }
+    static var notifyAdd: String { String(localized: "notify_add", bundle: .module) }
+    static var notifyNone: String { String(localized: "notify_none", bundle: .module) }
+    static var notifyBefore: String { String(localized: "notify_before", bundle: .module) }
+    static var notifyByMinutes: String { String(localized: "notify_by_minutes", bundle: .module) }
+    static var notifyByHeats: String { String(localized: "notify_by_heats", bundle: .module) }
+    static var notifyWhen: String { String(localized: "notify_when", bundle: .module) }
+    static var notifySelected: String { String(localized: "notify_selected", bundle: .module) }
+    static var notifySelectedFooter: String { String(localized: "notify_selected_footer", bundle: .module) }
+    static var notifyPrivacy: String { String(localized: "notify_privacy", bundle: .module) }
+    static var notifyDenied: String { String(localized: "notify_denied", bundle: .module) }
+    static var notifyOpenSettings: String { String(localized: "notify_open_settings", bundle: .module) }
+    static var notifyTheseSwimmers: String { String(localized: "notify_these_swimmers", bundle: .module) }
+    static func notifyLead(_ lead: FollowLead) -> String {
+        switch lead {
+        case .minutes(let n): String(format: String(localized: "notify_minutes_value", bundle: .module), n)
+        case .heats(1): String(localized: "notify_heat_value", bundle: .module)
+        case .heats(let n): String(format: String(localized: "notify_heats_value", bundle: .module), n)
+        }
+    }
+    static func notifyFollowing(_ n: Int) -> String {
+        String(format: String(localized: "notify_following", bundle: .module), n)
+    }
 }

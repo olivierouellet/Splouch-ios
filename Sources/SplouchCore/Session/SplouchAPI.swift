@@ -94,6 +94,23 @@ public struct SplouchAPI: Sendable {
         try Schedule(data: try await get(address.endpoint("/meet/\(meetID)/schedule")))
     }
 
+    /// N-07: the swimmers this device follows at a meet, asked of the meet's
+    /// `base` (api.md §5.13). An empty list stops it. `409` is a meet held by
+    /// another worker, which the caller follows (C-12) before asking again.
+    public func follow(meetID: String, _ registration: FollowRegistration) async throws {
+        var req = URLRequest(url: address.endpoint("/meet/\(meetID)/follow"))
+        req.httpMethod = "PUT"
+        req.httpBody = registration.body
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let (_, response) = try await session.data(for: req)
+        guard let http = response as? HTTPURLResponse else { throw APIError.http(0) }
+        switch http.statusCode {
+        case 200..<300: return
+        case 404: throw APIError.notFound
+        default: throw APIError.http(http.statusCode)
+        }
+    }
+
     public func servers() async throws -> ServerDirectory {
         try decode(ServerDirectory.self, from: try await get(address.endpoint("/servers")))
     }

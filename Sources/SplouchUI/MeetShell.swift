@@ -48,6 +48,11 @@ struct MeetShell: View {
     @Environment(\.dismiss) private var dismiss
     @State private var network = NetworkWatcher()
     @State private var showFilter = false
+    /// N-01: the Notifications sheet.
+    @State private var showNotifications = false
+    /// N-03: the filter sheet asked for the Notifications sheet, which opens
+    /// once the filter's has gone — one sheet at a time.
+    @State private var notificationsAfterFilter = false
     /// The window is wider than it is tall and under 600pt tall: a phone on its
     /// side, short of height. An iPad on its side is not, and does not count.
     /// Decides the bar (the EVENT / HEAT row moves into it), never the board's layout.
@@ -121,7 +126,27 @@ struct MeetShell: View {
                 width = $0.width
             }
             .onPreferenceChange(BoardNeedsBarKey.self) { boardNeedsBar = $0 }
-            .sheet(isPresented: $showFilter) { FilterSheet(ctx: ctx) }
+            .sheet(
+                isPresented: $showFilter,
+                onDismiss: {
+                    if notificationsAfterFilter {
+                        notificationsAfterFilter = false
+                        showNotifications = true
+                    }
+                }
+            ) {
+                FilterSheet(ctx: ctx) {
+                    notificationsAfterFilter = true
+                    showFilter = false
+                }
+            }
+            .sheet(isPresented: $showNotifications) {
+                NotificationsSheet(ctx: ctx, privacyURL: app.privacyPolicyURL)
+            }
+            // N-08: a tapped notification lands on the Schedule tab.
+            .onChange(of: ctx.focus, initial: true) { _, focus in
+                if focus != nil { tabKey = MeetTab.schedule.key }
+            }
             .onAppear {
                 network.start()
                 #if DEBUG
@@ -301,6 +326,9 @@ struct MeetShell: View {
             }
         }
         if tab.wrappedValue == .schedule {
+            if ctx.canNotify {
+                ToolbarItem(placement: .primaryAction) { bellButton }
+            }
             ToolbarItem(placement: .primaryAction) { filterButton }
         }
     }
@@ -346,6 +374,20 @@ struct MeetShell: View {
                 .transition(.move(edge: .top).combined(with: .opacity))
                 .accessibilityHidden(true)  // announced once, in `leave()`
         }
+    }
+
+    // N-01. Filled, in the meet's timing colour, while someone is followed —
+    // the filter button's language for "active".
+    private var bellButton: some View {
+        let count = ctx.follows.swimmers.count
+        return Button {
+            showNotifications = true
+        } label: {
+            Image(systemName: count > 0 ? "bell.fill" : "bell")
+                .foregroundStyle(count > 0 ? palette.time : Color.primary)
+        }
+        .accessibilityLabel(Native.notifications)
+        .accessibilityValue(count > 0 ? Native.notifyFollowing(count) : "")
     }
 
     // S-08, S-12. The count sits beside the symbol rather than in a bubble

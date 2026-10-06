@@ -12,5 +12,14 @@
 	<array>
 		<string>applinks:splouch.org</string>
 	</array>
+	<!-- app.md N-04 to N-08: heat notifications, sent by the meet's cloud node
+	     through APNs. A debug build's token is the sandbox's (api.md §5.13). -->
+	<key>aps-environment</key>
+	<string>production</string>
+	<!-- A heat in five minutes is what Time Sensitive is for: it reaches the
+	     spectator through a Focus they have not exempted the app from. The
+	     server marks each alert `interruption-level: time-sensitive`. -->
+	<key>com.apple.developer.usernotifications.time-sensitive</key>
+	<true/>
 </dict>
 </plist>

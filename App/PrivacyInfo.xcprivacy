@@ -18,14 +18,33 @@
 			<false/>
 			<key>NSPrivacyCollectedDataTypeTracking</key>
 			<false/>
+			<!-- Also app.md N-07: the APNs token sent with the swimmers a spectator
+			     follows, so the meet's server can notify this device. -->
 			<key>NSPrivacyCollectedDataTypePurposes</key>
 			<array>
 				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<!-- app.md N-07, N-09: the names and clubs followed for heat notifications,
+		     kept by the meet's server until the meet is over. Not linked to the
+		     person: there is no account, and the names are the start list's. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeOtherUserContent</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
 			</array>
 		</dict>
 	</array>
-	<!-- UserDefaults holds the app's own preferences, and the vids with their
-	     dates and per-server counting choice (Preferences.swift, VidStore.swift): CA92.1. -->
+	<!-- UserDefaults holds the app's own preferences, the vids with their dates
+	     and per-server counting choice, and the swimmers followed per meet
+	     (Preferences.swift, VidStore.swift, Follows.swift): CA92.1. -->
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>
 		<dict>

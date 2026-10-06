@@ -115,6 +115,7 @@ extension MeetConfig {
         live = json.flag("live", default: false)
         base = ServerAddress(base: json.str("base"))
         settings = MeetSettings(json: json["settings"] ?? .object([:]))
+        push = json["push"]?.array?.compactMap(\.string) ?? []
     }
     public init(data: Data) throws { self.init(json: try JSONValue.parse(data)) }
 }

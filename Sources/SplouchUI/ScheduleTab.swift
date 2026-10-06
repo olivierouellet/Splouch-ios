@@ -64,10 +64,27 @@ struct ScheduleTab: View {
                 withAnimation { proxy.scrollTo(id, anchor: .top) }
             }
             .onChange(of: scenePhase) { _, phase in
-                if phase == .active { scrolledToCurrent = false }
+                if phase == .active, ctx.focus == nil { scrolledToCurrent = false }
+            }
+            // N-08: a tapped notification's heat, once the list holds it. It
+            // takes S-06's turn, so the current heat does not scroll it away.
+            .onChange(of: focusTarget(visible.map(\.heat)), initial: true) { _, id in
+                guard let id else { return }
+                scrolledToCurrent = true
+                withAnimation { proxy.scrollTo(id, anchor: .top) }
+                ctx.focus = nil
             }
             .onAppear { scrolledToCurrent = false }
         }
+    }
+}
+
+extension ScheduleTab {
+    /// The focused heat's id when the list carries it, else nil.
+    fileprivate func focusTarget(_ heats: [ScheduleHeat]) -> String? {
+        guard let f = ctx.focus else { return nil }
+        let id = f.event + "/" + f.heat
+        return heats.contains { $0.id == id } ? id : nil
     }
 }
 

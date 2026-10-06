@@ -80,6 +80,11 @@ public final class AppModel {
     private let bundleCache: any BundleCache
     private let session: URLSession
     private let connector: any WebSocketConnector
+    private let followStore: any FollowStore
+    /// N-04, N-07: the token and the permission, shared by every meet.
+    public let push: PushCenter
+    /// N-08: a tapped notification's heat, until the root view opens it.
+    public var pendingFocus: HeatFocus?
 
     public private(set) var preferences: Preferences
     public private(set) var server: ServerAddress
@@ -110,8 +115,11 @@ public final class AppModel {
         preferencesStore: any PreferencesStore = UserDefaultsPreferencesStore(),
         vidStore: any VidStore = UserDefaultsVidStore(),
         bundleCache: any BundleCache = FileBundleCache.standard(),
-        session: URLSession = .shared, connector: any WebSocketConnector = URLSessionWebSocketConnector()
+        session: URLSession = .shared, connector: any WebSocketConnector = URLSessionWebSocketConnector(),
+        followStore: any FollowStore = UserDefaultsFollowStore(), push: PushCenter = PushCenter()
     ) {
+        self.followStore = followStore
+        self.push = push
         self.defaultServer = defaultServer
         self.preferencesStore = preferencesStore
         self.vidStore = vidStore
@@ -479,7 +487,31 @@ public final class AppModel {
         return MeetContext(
             api: api, base: base, kind: .cloud, meetID: meet.id, title: title, settings: config.settings,
             stringsLoader: stringsLoader, preferences: preferences, vidStore: vidStore,
-            connector: connector)
+            connector: connector, pushPlatforms: config.push, push: push, followStore: followStore)
+    }
+
+    // MARK: - Heat notifications (app.md §10)
+
+    /// N-07: APNs handed over a new token — reinstall, restore, its own refresh —
+    /// so every meet with follows is sent again, at the `base` it was last
+    /// registered at. A meet that answers 404 is gone, and its follows with it
+    /// (N-09). The open meet, if any, re-sends through its own context too.
+    public func registerAllFollows() async {
+        guard let token = push.token, push.permission == .allowed else { return }
+        for (key, follows) in followStore.load() {
+            guard let bar = key.firstIndex(of: "|") else { continue }
+            let server = String(key[..<bar])
+            let meetID = String(key[key.index(after: bar)...])
+            guard let address = follows.base.flatMap(ServerAddress.init(base:)) ?? ServerAddress(typed: server)
+            else { continue }
+            let lang = preferences.language ?? picker?.lang ?? "en"
+            do {
+                try await SplouchAPI(address: address, session: session)
+                    .follow(meetID: meetID, FollowRegistration(token: token, lang: lang, follows: follows))
+            } catch APIError.notFound {
+                followStore.set(nil, server: server, meetID: meetID)
+            } catch {}
+        }
     }
 
     /// A Pi has one meet and no picker: straight to the board.

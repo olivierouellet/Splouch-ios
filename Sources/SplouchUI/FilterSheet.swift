@@ -5,6 +5,9 @@ import SwiftUI
 /// only the confirming checkmark is the platform's.
 struct FilterSheet: View {
     @Bindable var ctx: MeetContext
+    /// N-03: the swimmers were added to the follow list; the shell opens the
+    /// Notifications sheet once this one has gone.
+    var onNotify: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
     @State private var suggestions: [Suggestion] = []
@@ -50,6 +53,13 @@ struct FilterSheet: View {
                             chips
                         } else {
                             Text(strings.mobile("no_filters")).foregroundStyle(.secondary)
+                        }
+                        if ctx.canNotify, onNotify != nil, !filteredSwimmers.isEmpty {
+                            Button {
+                                followFiltered()
+                            } label: {
+                                Label(Native.notifyTheseSwimmers, systemImage: "bell")
+                            }
                         }
                     }
                     Section {
@@ -102,6 +112,21 @@ struct FilterSheet: View {
                 Button(strings.mobile("reset_filters"), role: .destructive) { ctx.filter.reset() }
             }
         }
+    }
+
+    /// N-03: the swimmer chips, each with the club the start list gives it.
+    private var filteredSwimmers: [FollowedSwimmer] {
+        let heats = ctx.schedule?.heats ?? []
+        return ctx.filter.terms.filter { $0.kind == .swimmer }.flatMap {
+            MeetFollows.swimmers(named: $0.name, in: heats)
+        }
+    }
+
+    private func followFiltered() {
+        var f = ctx.follows
+        for s in filteredSwimmers { f.add(s) }
+        Task { await ctx.setFollows(f) }
+        onNotify?()
     }
 
     private var entryField: some View {
