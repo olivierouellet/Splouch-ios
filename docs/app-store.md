@@ -14,7 +14,7 @@ per listing.
 | Primary language | English (Canada) |
 | Category | Sports |
 | Support URL | <https://splouch.org/support> (page still to publish) |
-| Privacy policy URL | <https://splouch.org/privacy> (page still to publish) |
+| Privacy policy URL | <https://splouch.org/privacy> |
 | Age rating | 4+ (every questionnaire answer "None" / "No") |
 | App Privacy | Device ID: collected, used for Analytics, not linked to the user, not used for tracking. Matches `App/PrivacyInfo.xcprivacy`. |
 | Export compliance | Answered by `ITSAppUsesNonExemptEncryption = NO` in Info.plist |
@@ -60,7 +60,7 @@ Meets come from splouch.org, or straight from the pool's own Splouch server on t
 
 Each meet shows in its own colours, in light or dark. Splouch speaks English, French and Spanish, and runs on iPhone and iPad.
 
-No account, no ads. Splouch only counts visitors anonymously to estimate attendance; no personal information is collected or shared.
+No account, no ads. To estimate attendance, Splouch counts visitors with a random identifier kept on your device — never your name, email or IP address — and you can turn it off in Settings.
 
 Results shown in Splouch are live and unofficial. Validated results are published by the meet's organizer.
 ```
@@ -106,7 +106,7 @@ Les compétitions viennent de splouch.org, ou directement du serveur Splouch de 
 
 Chaque compétition s'affiche à ses couleurs, en mode clair ou sombre. Splouch parle français, anglais et espagnol, et fonctionne sur iPhone et iPad.
 
-Aucun compte, aucune publicité. Splouch compte seulement les visiteurs de façon anonyme pour estimer l'assistance; aucun renseignement personnel n'est recueilli ni partagé.
+Aucun compte, aucune publicité. Pour estimer l'assistance, Splouch compte les visiteurs à l'aide d'un identifiant aléatoire conservé sur votre appareil — jamais votre nom, votre courriel ni votre adresse IP — et vous pouvez le désactiver dans les Réglages.
 
 Les résultats affichés dans Splouch sont en direct et non officiels. Les résultats validés sont publiés par l'organisateur de la compétition.
 ```
@@ -152,7 +152,7 @@ Las competencias vienen de splouch.org, o directamente del servidor Splouch de l
 
 Cada competencia se muestra con sus propios colores, en modo claro u oscuro. Splouch habla español, inglés y francés, y funciona en iPhone y iPad.
 
-Sin cuenta, sin anuncios. Splouch solo cuenta visitantes de forma anónima para estimar la asistencia; no se recopila ni comparte información personal.
+Sin cuenta, sin anuncios. Para estimar la asistencia, Splouch cuenta a los visitantes con un identificador aleatorio guardado en su dispositivo —nunca su nombre, su correo ni su dirección IP— y puede desactivarlo en Ajustes.
 
 Los resultados que muestra Splouch son en vivo y no oficiales. Los resultados validados los publica el organizador de la competencia.
 ```
@@ -175,5 +175,5 @@ Local network permission: at a pool, the timing console feeds a small Splouch se
 
 The QR code posted at a pool opens https://splouch.org/add?server=..., a universal link that offers to add that pool's server to the app.
 
-Splouch counts visitors anonymously to estimate attendance: a random identifier per server, never derived from the device and never used for tracking. Results are live and unofficial, as stated in the app.
+Splouch counts visitors to estimate attendance, and the reader can turn it off in Settings: a random identifier per server, never derived from the device and never used for tracking. Results are live and unofficial, as stated in the app.
 ```
