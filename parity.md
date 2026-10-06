@@ -180,6 +180,8 @@ describes it where it exists.
 | ID | Feature | Level | Status | Notes |
 | --- | --- | --- | --- | --- |
 | `S-21` | A new schedule from the Pi refreshes the list | must | `done` | `MeetSession.onScheduleUpdate` → `MeetContext.loadSchedule()`, filters pruned to names that still exist, `S-09`'s index rebuilt with it |
+| `S-22` | Lane time = best one known: official result or status > console > seed, each its own colour, official bolder | should | `done` | `LaneTime.of` (Sources/SplouchCore/Schedule/LaneTime.swift) picks the cell; colours `schedule_seed` / `_console` / `_official` copied into `ThemeColors` from `api.md` §6.1. `HH:MM:SS.hh` drawn without a leading `00:`. A `results_snapshot` patches its heat's `console_time` in place (`MeetSession.onResults` → `Schedule.applyConsoleTimes`), no re-fetch. VoiceOver names the kind (`time_seed` / `time_console` / `time_official`, `status_*` spelled out). Column sized by `ScheduleView.widestTime`, counting the gaps too so a tap does not move it. String snapshot recaptured from the Splouch repo's cloud code ahead of the deploy. Not yet seen on screen. Tests: LaneTimeTests |
+| `S-23` | Official heat: tap its times → gaps to the seed, back after 4 s or a second tap | could | `done` | `HeatCard.toggleDiff`: whole heat, `DeltaFormat` text in `delta_better` / `delta_worse`; a status lane shows its console time, a lane with no seed `NT`. Swap is `.contentTransition(.numericText())` under `withAnimation(.snappy)`, none under Reduce Motion. A `plusminus.circle` in the heading is the visible hint; VoiceOver gets the card's named action `show_seed_diff`. Not yet seen on screen. Tests: LaneTimeTests |
 
 ## 6. Connection and session
 

@@ -74,6 +74,7 @@ public final class MeetContext {
             style: .short, table: strings)
         session.onReload = { [weak self] in Task { await self?.refresh() } }
         session.onScheduleUpdate = { [weak self] in Task { await self?.loadSchedule() } }
+        session.onResults = { [weak self] snap in self?.schedule?.applyConsoleTimes(snap) }
         session.onReconnected = { [weak self] in Task { await self?.checkMeet() } }
         session.onMoved = { [weak self] _ in Task { await self?.checkMeet() } }  // C-12
     }

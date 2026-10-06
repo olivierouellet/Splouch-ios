@@ -292,14 +292,26 @@ public struct ScheduleHeat: Sendable, Equatable {
     public var eventNameParts: EventNameParts?
     public var time: String
     public var lanes: [ScheduleLane]
+    /// Every lane with a swimmer has an official time or status (S-23).
+    public var official: Bool = false
 }
 
+/// A lane's three times (S-22, api.md §5.8), each `HH:MM:SS.hh` or "".
 public struct ScheduleLane: Sendable, Equatable {
     public var lane: Int
     public var name: String
     public var club: String
     public var seedTime: String
     public var swimmers: [ScheduleSwimmer]
+    /// The timing console's finish, provisional.
+    public var consoleTime: String = ""
+    /// Validated in Meet Manager.
+    public var resultTime: String = ""
+    /// `DSQ`, `DNS`, `DNF`, `WDR`, `SICK`, or "" for a finish.
+    public var resultStatus: String = ""
+    /// Official − seed, negative = faster; nil with no seed, no official time, or a status.
+    public var resultDeltaSeconds: Double? = nil
+    public var resultDeltaBetter: Bool? = nil
 }
 
 public struct ScheduleSwimmer: Sendable, Equatable {

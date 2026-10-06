@@ -95,7 +95,7 @@ import Testing
 
     /// The seed column is sized from the widest time on screen, so the club
     /// beside it lands in the same place on every row.
-    @Test func widestSeedTimeSizesTheColumn() {
+    @Test func widestTimeSizesTheColumn() {
         func heat(_ times: [String]) -> ScheduleHeat {
             ScheduleHeat(
                 event: "1", heat: "1", eventName: "", eventNameParts: nil, time: "",
@@ -104,7 +104,7 @@ import Testing
                 })
         }
         func widest(_ heats: [ScheduleHeat]) -> String {
-            ScheduleView.widestSeedTime(ScheduleView.visible(heats, filter: ScheduleFilter(), current: nil))
+            ScheduleView.widestTime(ScheduleView.visible(heats, filter: ScheduleFilter(), current: nil))
         }
         // Across cards, not within one: the column spans the whole screen.
         #expect(widest([heat(["NT", "57.40"]), heat(["1:04.219"])]) == "1:04.219")

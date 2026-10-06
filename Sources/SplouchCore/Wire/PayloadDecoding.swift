@@ -192,8 +192,13 @@ extension Schedule {
                         seedTime: l.str("seed_time"),
                         swimmers: l.list("swimmers").map { s in
                             ScheduleSwimmer(name: s.str("name"), first: s.str("first"))
-                        })
-                })
+                        },
+                        consoleTime: l.str("console_time"), resultTime: l.str("result_time"),
+                        resultStatus: l.str("result_status"),
+                        resultDeltaSeconds: l["result_delta_seconds"]?.double,
+                        resultDeltaBetter: l["result_delta_better"]?.bool)
+                },
+                official: h.flag("official", default: false))
         }
     }
     public init(data: Data) throws { self.init(json: try JSONValue.parse(data)) }

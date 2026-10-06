@@ -11,10 +11,10 @@ struct ScheduleTab: View {
     var body: some View {
         let heats = ctx.schedule?.heats ?? []
         let visible = ScheduleView.visible(heats, filter: ctx.filter, current: ctx.currentHeat)
-        // One seed column for the whole screen, not one per card: a spectator
+        // One time column for the whole screen, not one per card: a spectator
         // scrolling past a hundred heats reads the times as a column, and a
         // width that changed card to card would undo that.
-        let seedTemplate = ScheduleView.widestSeedTime(visible)
+        let seedTemplate = ScheduleView.widestTime(visible)
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 0) {
@@ -50,7 +50,7 @@ struct ScheduleTab: View {
                             HeatCard(
                                 heat: v, labels: ctx.shortLabels,
                                 eventName: ctx.eventName(v.heat.eventName, parts: v.heat.eventNameParts),
-                                seedTemplate: seedTemplate
+                                seedTemplate: seedTemplate, strings: ctx.strings
                             )
                             .id(v.heat.id)
                         }
@@ -83,10 +83,16 @@ struct HeatCard: View {
     /// beside them do not already say.
     let labels: [String: String]
     let eventName: String
-    /// The widest seed time on screen, which sizes the seed column. Empty when
-    /// no lane has one — see `timingColumn`.
+    /// The widest time on screen, which sizes the time column. Empty when
+    /// no lane has one — see `timeColumn`.
     let seedTemplate: String
+    /// The `[mobile]` words a screen reader says for a time's kind (S-22).
+    let strings: StringTable
     @Environment(\.palette) private var palette
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// S-23: this official heat is showing its gaps to the seed.
+    @State private var showingDiff = false
+    @State private var springBack: Task<Void, Never>?
     @Environment(\.faces) private var faces
     /// The schedule is the screen a spectator reads hardest — hunting one name
     /// among several hundred — so its type follows the device's text size.
@@ -124,6 +130,34 @@ struct HeatCard: View {
         .overlay(alignment: .leading) {
             if heat.isCurrent { palette.time.frame(width: 4) }  // S-05
         }
+        .accessibilityActions {
+            if heat.heat.official {
+                Button(strings.mobile("show_seed_diff")) { toggleDiff() }
+            }
+        }
+        .onChange(of: heat.heat.official) { _, official in
+            if !official { setDiff(false) }
+        }
+        .onDisappear { springBack?.cancel() }
+    }
+
+    /// S-23: swap the heat's times for their gaps to the seed, and back after
+    /// four seconds or a second tap. The swap is SwiftUI's own numeric content
+    /// transition; under Reduce Motion it is instant.
+    private func toggleDiff() {
+        guard heat.heat.official else { return }
+        setDiff(!showingDiff)
+        springBack?.cancel()
+        guard showingDiff else { return }
+        springBack = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(4))
+            guard !Task.isCancelled else { return }
+            setDiff(false)
+        }
+    }
+
+    private func setDiff(_ on: Bool) {
+        withAnimation(reduceMotion ? nil : .snappy) { showingDiff = on }
     }
 
     @ViewBuilder private var header: some View {
@@ -158,6 +192,13 @@ struct HeatCard: View {
             ? nil
             : Text(heat.heat.time).font(faces.timing(13 * typeScale))
                 .foregroundStyle(palette.scheduleTime).lineLimit(1).fixedSize()
+        // S-23's affordance: this heat's times can be tapped for their gaps to
+        // the seed. VoiceOver gets the card's named action instead.
+        let tappable =
+            heat.heat.official
+            ? Image(systemName: "plusminus.circle").font(.system(size: 13 * typeScale))
+                .foregroundStyle(palette.scheduleOfficial).accessibilityHidden(true)
+            : nil
 
         // A header, so the VoiceOver rotor can jump heat to heat rather than
         // walking every lane — on the screen whose whole purpose is finding one
@@ -173,10 +214,11 @@ struct HeatCard: View {
                 // without one spends no line on it.
                 VStack(alignment: .leading, spacing: 2) {
                     eventHeat.fixedSize(horizontal: false, vertical: true)
-                    if let time {
-                        HStack(spacing: 0) {
+                    if time != nil || tappable != nil {
+                        HStack(spacing: 6) {
                             Spacer(minLength: 0)
                             time
+                            tappable
                         }
                     }
                     name?.fixedSize(horizontal: false, vertical: true)
@@ -206,6 +248,7 @@ struct HeatCard: View {
                         Spacer(minLength: 0)
                     }
                     time
+                    tappable
                 }
             }
         }
@@ -213,51 +256,74 @@ struct HeatCard: View {
         .accessibilityAddTraits(.isHeader)
     }
 
-    /// The seed column: as wide as the widest seed time on screen, with the
-    /// lane's own time at the trailing edge, so every seed time on a card — and
-    /// down the whole screen — shares one right edge. The heading's scheduled
-    /// time is not one of these; it is a clock time, and it sits at its own
-    /// width so the event name beside it is not held back by a ruler cut for
-    /// "1:04.219".
+    /// The time column: as wide as the widest time on screen, with the lane's
+    /// own at the trailing edge, so every time on a card — and down the whole
+    /// screen — shares one right edge. The heading's scheduled time is not one
+    /// of these; it is a clock time, and it sits at its own width so the event
+    /// name beside it is not held back by a ruler cut for "1:04.219".
     ///
     /// The club and the time used to be packed against the right edge at their
     /// natural widths, so the club's position followed the width of the time
-    /// beside it and the codes zig-zagged down the card. A lane with no time
-    /// reads "NT", six characters narrower than "1:04.219", which threw its
-    /// club that much further out; but "57.40" against "1:04.219" was already
-    /// enough to break the column on any ordinary heat. Sizing from a hidden
+    /// beside it and the codes zig-zagged down the card. Sizing from a hidden
     /// copy of the longest string rather than a constant keeps the column as
     /// narrow as the meet actually needs — a schedule of "NT" reserves two
     /// characters, not eight.
     ///
-    /// Never wrapped: a seed time broken across two lines reads as two times.
+    /// Which time, and its colour, is S-22's: official (bolder), console, seed.
+    /// Never wrapped: a time broken across two lines reads as two times.
     ///
     /// 14pt, the club's size, because the two were one size in the stylesheet
     /// this screen came from (12 each) and the pass that lifted the row to
     /// platform body sizes moved the club and missed the time.
-    @ViewBuilder private func seedColumn(_ value: String) -> some View {
-        if !value.isEmpty || !seedTemplate.isEmpty {
-            let text = Text(value)
+    @ViewBuilder private func timeColumn(_ lane: ScheduleLane) -> some View {
+        let cell = LaneTime.of(lane, diff: showingDiff && heat.heat.official)
+        if cell != nil || !seedTemplate.isEmpty {
+            let text = Text(cell?.text ?? "")
                 .font(faces.timing(14 * typeScale))
-                .foregroundStyle(palette.scheduleTime)
+                .fontWeight(cell.map { $0.kind == .seed || $0.kind == .console } ?? true ? .regular : .bold)
+                .foregroundStyle(color(cell?.kind))
                 .lineLimit(1)
                 .fixedSize()
-            if seedTemplate.isEmpty {
-                // No lane on screen has a seed time, so there is no column to
-                // keep and this lane has none either — nothing is drawn.
-                text
-            } else {
-                Text(seedTemplate)
-                    .font(faces.timing(14 * typeScale))
-                    .lineLimit(1)
-                    .fixedSize()
-                    // Out of the drawing and out of the accessibility tree: it
-                    // is a ruler, and VoiceOver reading every row's column width
-                    // before its time would be worse than the misalignment.
-                    .hidden()
-                    .overlay(alignment: .trailing) { text }
+                .contentTransition(.numericText())
+                .accessibilityLabel(spoken(cell))
+            Group {
+                if seedTemplate.isEmpty {
+                    // No lane on screen has a time, so there is no column to
+                    // keep and this lane has none either — nothing is drawn.
+                    text
+                } else {
+                    Text(seedTemplate)
+                        .font(faces.timing(14 * typeScale))
+                        .fontWeight(.bold)
+                        .lineLimit(1)
+                        .fixedSize()
+                        // Out of the drawing and out of the accessibility tree: it
+                        // is a ruler, and VoiceOver reading every row's column width
+                        // before its time would be worse than the misalignment.
+                        .hidden()
+                        .overlay(alignment: .trailing) { text }
+                }
             }
+            .contentShape(Rectangle())
+            .onTapGesture { toggleDiff() }
         }
+    }
+
+    private func color(_ kind: LaneTime.Kind?) -> Color {
+        switch kind {
+        case .console: palette.scheduleConsole
+        case .official: palette.scheduleOfficial
+        case .better: palette.deltaBetter
+        case .worse: palette.deltaWorse
+        case .seed, nil: palette.scheduleSeed
+        }
+    }
+
+    /// The kind of time said aloud: "Official time 30.12", "Disqualified".
+    private func spoken(_ cell: LaneTime?) -> String {
+        guard let cell else { return "" }
+        let word = strings.mobile(cell.spokenKey)
+        return cell.speaksText ? "\(word) \(cell.text)" : word
     }
 
     @ViewBuilder private func laneRow(_ lane: ScheduleLane) -> some View {
@@ -268,7 +334,7 @@ struct HeatCard: View {
         let club =
             lane.club.isEmpty
             ? nil : Text(lane.club).font(faces.text(14 * typeScale)).foregroundStyle(palette.scheduleClub)
-        let seed = seedColumn(lane.seedTime)
+        let seed = timeColumn(lane)
 
         if stacked {
             VStack(alignment: .leading, spacing: 2) {

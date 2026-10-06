@@ -60,6 +60,8 @@ public struct Palette: Equatable, Sendable {
     public let thText, thBg, rowOdd, rowEven, rowText: Color
     public let time, deltaBetter, deltaWorse: Color
     public let scheduleEvent, scheduleTime, scheduleName, scheduleClub: Color
+    /// A lane's time by how far it has come (S-22).
+    public let scheduleSeed, scheduleConsole, scheduleOfficial: Color
     private let rowTextRGBA, timeRGBA: RGBA
 
     /// The lane-number pulse colour between row text (0) and timing colour (1).
@@ -87,6 +89,9 @@ public struct Palette: Equatable, Sendable {
         scheduleTime = Color(hex: c.scheduleTime)
         scheduleName = Color(hex: c.scheduleName)
         scheduleClub = Color(hex: c.scheduleClub)
+        scheduleSeed = Color(hex: c.scheduleSeed)
+        scheduleConsole = Color(hex: c.scheduleConsole)
+        scheduleOfficial = Color(hex: c.scheduleOfficial)
     }
 }
 

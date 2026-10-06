@@ -43,6 +43,9 @@ public final class MeetSession {
     public var onReload: (@MainActor () -> Void)?
     /// Called on `schedule_update` (S-21) after `scheduleVersion` changes.
     public var onScheduleUpdate: (@MainActor () -> Void)?
+    /// Called with every non-empty `results_snapshot`: its heat's console times
+    /// belong on the Schedule too (S-22).
+    public var onResults: (@MainActor (ResultsSnapshot) -> Void)?
     /// Called when the scoreboard socket comes back after a drop (A-09 re-check).
     public var onReconnected: (@MainActor () -> Void)?
     /// Called after a `moved` has re-pointed the sockets (C-12): config is to be
@@ -263,6 +266,7 @@ public final class MeetSession {
                 guard !snap.lanes.isEmpty else { return }  // the reference ignores an empty snapshot
                 results = snap
                 currentHeat = HeatRef(event: snap.event, heat: snap.heat)
+                onResults?(snap)
             case "reload":
                 reloadVersion += 1
                 onReload?()
