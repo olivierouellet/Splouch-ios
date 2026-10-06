@@ -8,6 +8,10 @@
 # in this repo changing: the server's locale files moved. The weekly run is what
 # catches that between commits. The fix is always the same — run the script without
 # --check and commit what it writes.
+#
+# The state/province names (app.md P-01, P-21) are a snapshot too, of the server
+# repo's shared/regions/subdivisions.json rather than of a running server, and go
+# stale the same way; the second job compares them.
 name: Strings snapshot
 
 on:
@@ -42,3 +46,18 @@ jobs:
 
       - name: Compare with https://splouch.org
         run: zsh scripts/update-strings.sh --check https://splouch.org
+
+  subdivisions:
+    name: Subdivisions match the server repo
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install zsh
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends zsh
+
+      - name: Compare with the server repo's shared/regions/subdivisions.json
+        run: zsh scripts/update-subdivisions.sh --check
