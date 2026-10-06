@@ -26,11 +26,13 @@ BASE=${BASE%/}
 NEW=$(mktemp -d)
 trap 'rm -rf "$NEW"' EXIT
 
-curl -sfS "$BASE/locales" -o "$NEW/locales.json"
+# A 502 from a cloud mid-deploy is not a stale snapshot: retry before failing.
+FETCH=(curl -sfS --retry 3 --retry-delay 5 --retry-all-errors)
+"${FETCH[@]}" "$BASE/locales" -o "$NEW/locales.json"
 codes=$(python3 -c 'import json,sys; print(" ".join(sorted(e["code"] for e in json.load(open(sys.argv[1])))))' "$NEW/locales.json")
 [[ -n "$codes" ]] || { echo "no locales from $BASE" >&2; exit 1 }
 for code in ${=codes}; do
-    curl -sfS "$BASE/i18n/$code" -o "$NEW/$code.json"
+    "${FETCH[@]}" "$BASE/i18n/$code" -o "$NEW/$code.json"
     python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$NEW/$code.json"   # must be JSON
 done
 
