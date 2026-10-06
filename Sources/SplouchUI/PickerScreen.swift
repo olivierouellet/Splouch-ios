@@ -14,6 +14,8 @@ struct PickerScreen: View {
     @State private var showSettings = false
     /// P-06's tap.
     @State private var showDisclaimer = false
+    /// P-21.
+    @State private var showFilter = false
     /// P-17. State of the picker, which is the root of the navigation stack, so
     /// it outlives a pushed meet (A-02) and a pull-to-refresh (P-09) and is
     /// gone on a cold launch — what the web keeps in `sessionStorage`.
@@ -62,7 +64,9 @@ struct PickerScreen: View {
         .overlay { if app.loading && app.meets.isEmpty { ProgressView() } }
         .toolbar { toolbar }
         .sheet(isPresented: $showSettings) { SettingsSheet(app: app) }
+        .sheet(isPresented: $showFilter) { MeetFilterSheet(app: app) }
         .onChange(of: showSettings) { _, shown in if !shown { refocus(.settings) } }
+        .onChange(of: showFilter) { _, shown in if !shown { refocus(.filter) } }
         .onChange(of: showDisclaimer) { _, shown in if !shown { refocus(.disclaimer) } }
         // P-20, first launch: only once the server has answered, and not over
         // settings opened while it was still offline.
@@ -89,8 +93,16 @@ struct PickerScreen: View {
     /// query typed before a refresh shrank the list waits for it to grow back,
     /// as the web's does.
     private var searchShown: Bool { MeetSearch.isShown(meetCount: app.meets.count) }
+
+    /// P-21: offered with P-17's field, and whenever a filter is standing, so a
+    /// list it shrank always shows the control that can widen it again. A Pi
+    /// has no list to filter.
+    private var filter: MeetFilter { app.preferences.meetFilter }
+    private var filterShown: Bool { !app.isPi && !app.unreachable && (searchShown || filter.isActive) }
+    /// P-21 before P-17: the query searches what the filter leaves.
+    private var filteredMeets: [MeetSummary] { filter.apply(app.meets) }
     private var shownMeets: [MeetSummary] {
-        searchShown ? MeetSearch.filter(app.meets, query: query) : app.meets
+        searchShown ? MeetSearch.filter(filteredMeets, query: query) : filteredMeets
     }
 
     @ViewBuilder private var meets: some View {
@@ -135,6 +147,19 @@ struct PickerScreen: View {
             }
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
+        } else if filteredMeets.isEmpty {
+            Section {
+                // P-21's own empty state: the server has meets, the filter hid
+                // them all. Not P-04, and not P-17's — no query is to blame.
+                Unavailable(
+                    text: Native.filterHidesAll, symbol: "line.3.horizontal.decrease.circle",
+                    actionLabel: Native.filterClear, fillsContainer: false
+                ) { app.setMeetFilter(MeetFilter()) }
+            } header: {
+                disclaimerLine
+            }
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
         } else if shownMeets.isEmpty, !app.meets.isEmpty {
             Section {
                 // P-17's own empty state: the search hid every meet. Not P-04,
@@ -166,7 +191,26 @@ struct PickerScreen: View {
                 }
             } header: {
                 disclaimerLine
+            } footer: {
+                hiddenByFilter
             }
+        }
+    }
+
+    /// P-21: at the end of the list, how many meets the filter keeps out of it,
+    /// so a short list is never taken for the whole server.
+    @ViewBuilder private var hiddenByFilter: some View {
+        let hidden = app.meets.count - filteredMeets.count
+        if hidden > 0 {
+            VStack(spacing: 4) {
+                Label(Native.filterHidden(hidden), systemImage: "line.3.horizontal.decrease.circle")
+                    .foregroundStyle(.secondary)
+                Button(Native.filterClear) { app.setMeetFilter(MeetFilter()) }
+                    .frame(minHeight: 44)  // X-05
+            }
+            .font(.footnote)
+            .frame(maxWidth: .infinity)
+            .padding(.top, 8)
         }
     }
 
@@ -275,6 +319,21 @@ struct PickerScreen: View {
     /// P-19: a gear, not ☰ or ⋯ — settings now hold a toggle, its note and
     /// links, which a menu renders badly.
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {
+        // P-21: filled while a filter stands, the system's mark for "on".
+        if filterShown {
+            ToolbarItem(placement: .automatic) {
+                Button {
+                    showFilter = true
+                } label: {
+                    Label(
+                        Native.meetFilter,
+                        systemImage: filter.isActive
+                            ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                }
+                .accessibilityValue(filter.isActive ? Native.filterHidden(app.meets.count - filteredMeets.count) : "")
+                .accessibilityFocused($focus, equals: .filter)
+            }
+        }
         ToolbarItem(placement: .automatic) {
             Button {
                 showSettings = true
@@ -286,10 +345,11 @@ struct PickerScreen: View {
     }
 }
 
-/// X-10: the two controls on the picker that open a sheet.
+/// X-10: the controls on the picker that open a sheet.
 private enum Opener: Hashable {
     case settings
     case disclaimer
+    case filter
 }
 
 extension View {

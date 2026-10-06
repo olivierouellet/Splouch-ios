@@ -35,7 +35,8 @@ public enum Appearance: String, Sendable, Codable, CaseIterable {
     case auto
 }
 
-/// Per-device choices. Filters are deliberately not here (S-20).
+/// Per-device choices. The schedule's filters are deliberately not here (S-20);
+/// the picker's is (P-21).
 public struct Preferences: Sendable, Codable, Equatable {
     /// T-08: nil follows each meet's locale (T-06).
     public var language: String?
@@ -59,10 +60,13 @@ public struct Preferences: Sendable, Codable, Equatable {
     /// P-20: the introduction was finished or skipped on this install. Once,
     /// whichever server it was seen against.
     public var introSeen: Bool
+    /// P-21: one for the app, whichever server is in use.
+    public var meetFilter: MeetFilter
 
     public init(
         language: String? = nil, labelStyle: LabelStyle = .long, appearance: Appearance = .dark,
-        server: ServerAddress? = nil, savedServers: [SavedServer] = [], introSeen: Bool = false
+        server: ServerAddress? = nil, savedServers: [SavedServer] = [], introSeen: Bool = false,
+        meetFilter: MeetFilter = MeetFilter()
     ) {
         self.language = language
         self.labelStyle = labelStyle
@@ -70,6 +74,7 @@ public struct Preferences: Sendable, Codable, Equatable {
         self.server = server
         self.savedServers = savedServers
         self.introSeen = introSeen
+        self.meetFilter = meetFilter
     }
 
     /// Preferences stored before the style became a two-way choice carry either
@@ -91,6 +96,8 @@ public struct Preferences: Sendable, Codable, Equatable {
             (try? c.decodeIfPresent([Lenient<SavedServer>].self, forKey: .savedServers))?
             .compactMap(\.value) ?? []
         introSeen = try c.decodeIfPresent(Bool.self, forKey: .introSeen) ?? false
+        // A filter that no longer decodes costs the filter, not the record.
+        meetFilter = (try? c.decodeIfPresent(MeetFilter.self, forKey: .meetFilter)) ?? MeetFilter()
     }
 }
 

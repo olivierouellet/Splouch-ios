@@ -453,6 +453,15 @@ public final class AppModel {
         await load()
     }
 
+    /// P-21. Stored at once: the filter is the spectator's for every server
+    /// and every launch until they clear it.
+    public func setMeetFilter(_ filter: MeetFilter) {
+        var p = preferences
+        p.meetFilter = filter
+        preferences = p
+        preferencesStore.save(p)
+    }
+
     /// P-15. Device-local and immediate: nothing is re-fetched, the window just
     /// redraws in the chosen scheme.
     public func setAppearance(_ appearance: Appearance) {

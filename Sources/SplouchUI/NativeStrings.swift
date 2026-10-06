@@ -93,6 +93,18 @@ enum Native {
         case .heats(let n): String(format: String(localized: "notify_heats_value", bundle: .module), n)
         }
     }
+    // P-21: the picker's filter is the app's, so its words are too.
+    static var meetFilter: String { String(localized: "meet_filter", bundle: .module) }
+    static var filterCountry: String { String(localized: "filter_country", bundle: .module) }
+    static var filterProvince: String { String(localized: "filter_province", bundle: .module) }
+    static var filterClub: String { String(localized: "filter_club", bundle: .module) }
+    static var filterClear: String { String(localized: "filter_clear", bundle: .module) }
+    static var filterHidesAll: String { String(localized: "filter_hides_all", bundle: .module) }
+    static func filterHidden(_ n: Int) -> String {
+        n == 1
+            ? String(localized: "filter_hidden_one", bundle: .module)
+            : String(format: String(localized: "filter_hidden_other", bundle: .module), n)
+    }
     static func notifyFollowing(_ n: Int) -> String {
         String(format: String(localized: "notify_following", bundle: .module), n)
     }
