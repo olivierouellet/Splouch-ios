@@ -107,7 +107,7 @@ struct HeatCard: View {
     let strings: StringTable
     @Environment(\.palette) private var palette
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    /// S-23: this official heat is showing its gaps to the seed.
+    /// S-23: this heat is showing its gaps to the seed.
     @State private var showingDiff = false
     @State private var springBack: Task<Void, Never>?
     @Environment(\.faces) private var faces
@@ -132,6 +132,8 @@ struct HeatCard: View {
 
     private var laneColumn: CGFloat { 22 * typeScale }
 
+    private var swaps: Bool { LaneTime.swaps(official: heat.heat.official, lanes: heat.lanes) }
+
     var body: some View {
         // Tighter than the 6pt the smaller type needed: at 17pt the rows are
         // taller, so the same gap read as a gappy list rather than a heat.
@@ -148,21 +150,21 @@ struct HeatCard: View {
             if heat.isCurrent { palette.time.frame(width: 4) }  // S-05
         }
         .accessibilityActions {
-            if heat.heat.official {
+            if swaps {
                 Button(strings.mobile("show_seed_diff")) { toggleDiff() }
             }
         }
-        .onChange(of: heat.heat.official) { _, official in
-            if !official { setDiff(false) }
-        }
+        // Turning official changes which gap a swap shows, so the swap ends
+        // rather than jumping from the console's gaps to the result's.
+        .onChange(of: heat.heat.official) { setDiff(false) }
         .onDisappear { springBack?.cancel() }
     }
 
-    /// S-23: swap the heat's times for their gaps to the seed, and back after
-    /// four seconds or a second tap. The swap is SwiftUI's own numeric content
+    /// S-23: swap the heat's times — official, or the console's before then —
+    /// for their gaps to the seed, and back after four seconds or a second tap. The swap is SwiftUI's own numeric content
     /// transition; under Reduce Motion it is instant.
     private func toggleDiff() {
-        guard heat.heat.official else { return }
+        guard swaps else { return }
         setDiff(!showingDiff)
         springBack?.cancel()
         guard showingDiff else { return }
@@ -210,11 +212,14 @@ struct HeatCard: View {
             : Text(heat.heat.time).font(faces.timing(13 * typeScale))
                 .foregroundStyle(palette.scheduleTime).lineLimit(1).fixedSize()
         // S-23's affordance: this heat's times can be tapped for their gaps to
-        // the seed. VoiceOver gets the card's named action instead.
+        // the seed, and so can the glyph itself. VoiceOver gets the card's named
+        // action instead.
         let tappable =
-            heat.heat.official
+            swaps
             ? Image(systemName: "plusminus.circle").font(.system(size: 13 * typeScale))
-                .foregroundStyle(palette.scheduleOfficial).accessibilityHidden(true)
+                .foregroundStyle(heat.heat.official ? palette.scheduleOfficial : palette.scheduleConsole)
+                .contentShape(Rectangle()).onTapGesture { toggleDiff() }
+                .accessibilityHidden(true)
             : nil
 
         // A header, so the VoiceOver rotor can jump heat to heat rather than
@@ -293,7 +298,7 @@ struct HeatCard: View {
     /// this screen came from (12 each) and the pass that lifted the row to
     /// platform body sizes moved the club and missed the time.
     @ViewBuilder private func timeColumn(_ lane: ScheduleLane) -> some View {
-        let cell = LaneTime.of(lane, diff: showingDiff && heat.heat.official)
+        let cell = LaneTime.of(lane, diff: showingDiff && swaps)
         if cell != nil || !seedTemplate.isEmpty {
             let text = Text(cell?.text ?? "")
                 .font(faces.timing(14 * typeScale))

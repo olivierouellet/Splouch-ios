@@ -2,7 +2,8 @@ import Foundation
 
 /// What a Schedule lane's time cell shows (app.md S-22, S-23): the best time
 /// known — official result or its status, else the console's, else the seed —
-/// or, while an official heat is showing its gaps, the gap to the seed.
+/// or, while a heat is swapped (S-23), the gap to the seed: the official
+/// result's once there is one, else the console time's.
 public struct LaneTime: Sendable, Equatable {
     public enum Kind: Sendable, Equatable {
         case seed
@@ -48,6 +49,30 @@ public struct LaneTime: Sendable, Equatable {
         return "\(two(h / 360000)):\(two(h / 6000 % 60)):\(two(h / 100 % 60)).\(two(h % 100))"
     }
 
+    /// S-23: a heat whose times swap on a tap for their gaps to the seed — an
+    /// official one, or one the console has timed.
+    public static func swaps(official: Bool, lanes: [ScheduleLane]) -> Bool {
+        official || lanes.contains { !$0.consoleTime.isEmpty }
+    }
+
+    /// A time in hundredths: `HH:MM:SS.hh` as the schedule carries it, or a
+    /// seed as Hytek wrote it (`58.21`, `1:02.34`) — the server's own
+    /// `parse_time_hundredths`. nil when empty, zero or not a time.
+    public static func hundredths(_ time: String) -> Int? {
+        let parts = time.trimmingCharacters(in: .whitespaces).split(separator: ":", omittingEmptySubsequences: false)
+        let sec = parts.last?.split(separator: ".", omittingEmptySubsequences: false) ?? []
+        let fields = parts.dropLast() + sec
+        guard (1...3).contains(parts.count), sec.count == 2, sec[1].count == 2,
+            parts.count == 3 ? parts[1].count == 2 && sec[0].count == 2 : (1...2).contains(sec[0].count),
+            fields.allSatisfy({ !$0.isEmpty && $0.allSatisfy { $0.isASCII && $0.isNumber } })
+        else { return nil }
+        let n = fields.map { Int($0)! }.reversed().map { $0 }  // c, s, m?, h?
+        let h = n.count > 3 ? n[3] : 0
+        let m = n.count > 2 ? n[2] : 0
+        let total = ((h * 60 + m) * 60 + n[1]) * 100 + n[0]
+        return total > 0 ? total : nil
+    }
+
     public static func of(_ lane: ScheduleLane, diff: Bool = false) -> LaneTime? {
         let status = lane.resultStatus
         if diff {
@@ -58,6 +83,14 @@ public struct LaneTime: Sendable, Equatable {
             } else if let d = lane.resultDeltaSeconds {
                 return LaneTime(
                     text: DeltaFormat.text(d), kind: lane.resultDeltaBetter == true ? .better : .worse,
+                    spokenKey: "seed_diff")
+            } else if lane.resultTime.isEmpty, let c = hundredths(lane.consoleTime),
+                let s = hundredths(lane.seedTime)
+            {
+                // Not official yet: the console's own gap, on the server's rule.
+                let d = c - s
+                return LaneTime(
+                    text: DeltaFormat.text(Double(d) / 100), kind: d < 0 ? .better : .worse,
                     spokenKey: "seed_diff")
             } else {
                 let seed = lane.seedTime.isEmpty ? "NT" : display(lane.seedTime)

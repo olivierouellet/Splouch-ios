@@ -51,6 +51,31 @@ import Testing
         #expect(LaneTime.of(lane(seed: "", result: "00:00:30.12"), diff: true)?.text == "NT")
     }
 
+    @Test func theConsoleTimesGapBeforeTheResult() {
+        #expect(
+            LaneTime.of(lane(console: "00:00:30.15"), diff: true)
+                == LaneTime(text: "-0.85", kind: .better, spokenKey: "seed_diff"))
+        #expect(LaneTime.of(lane(seed: "30.15", console: "00:00:31.40"), diff: true)?.text == "+1.25")
+        #expect(LaneTime.of(lane(console: "00:00:31.00"), diff: true)?.kind == .worse)  // the server's rule
+        #expect(LaneTime.of(lane(seed: "", console: "00:00:30.15"), diff: true)?.text == "NT")
+    }
+
+    @Test func aTimeIsReadInHundredths() {
+        #expect(LaneTime.hundredths("00:01:02.34") == 6234)
+        #expect(LaneTime.hundredths("1:02.34") == 6234)
+        #expect(LaneTime.hundredths("58.21") == 5821)
+        #expect(LaneTime.hundredths("01:00:00.00") == 360_000)
+        #expect(LaneTime.hundredths("") == nil)
+        #expect(LaneTime.hundredths("NT") == nil)
+        #expect(LaneTime.hundredths("00:00:00.00") == nil)
+    }
+
+    @Test func whichHeatsSwap() {
+        #expect(LaneTime.swaps(official: true, lanes: [lane()]))
+        #expect(LaneTime.swaps(official: false, lanes: [lane(), lane(console: "00:00:30.15")]))
+        #expect(!LaneTime.swaps(official: false, lanes: [lane()]))
+    }
+
     @Test func aResultsFramePatchesItsHeatsConsoleTimes() throws {
         var s = try Schedule(
             data: Data(
