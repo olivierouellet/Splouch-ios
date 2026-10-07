@@ -175,6 +175,9 @@ struct PickerScreen: View {
             // P-01: a section per day, headed by it. P-06's line heads the
             // first, above the day; P-21's count ends the last.
             let days = MeetDay.group(shownMeets)
+            let ranks = Dictionary(
+                days.flatMap(\.meets).enumerated().map { ($1.id, $0) },
+                uniquingKeysWith: { first, _ in first })
             ForEach(Array(days.enumerated()), id: \.element.id) { index, day in
                 Section {
                     ForEach(day.meets) { meet in
@@ -191,7 +194,8 @@ struct PickerScreen: View {
                                 filter: filter,
                                 unnamed: served("unnamed_meet"),
                                 offline: strings.mobile("offline"),
-                                testBadge: served("test_meet"))
+                                testBadge: served("test_meet"),
+                                pulseRank: ranks[meet.id] ?? 0)
                         }
                         .buttonStyle(CardButtonStyle())
                         .disabled(opening)
@@ -434,8 +438,9 @@ struct MeetCard: View {
     var offline: String = ""
     /// P-22: the server's word for a test meet (`test_meet`), after its name.
     var testBadge: String = ""
+    /// The row's place in the list, which sets where in its breath the live dot is.
+    var pulseRank = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var pulsing = false
     /// P-01: one height for every row — one line of name leaves it padding, a
     /// second takes it back. Scaled with the text, so large type still fits.
     @ScaledMetric(relativeTo: .headline) private var rowHeight: CGFloat = 72
@@ -525,21 +530,34 @@ struct MeetCard: View {
     @ViewBuilder private var liveDot: some View {
         if meet.offline {
             Circle().strokeBorder(.secondary, lineWidth: 1).frame(width: 8, height: 8)
+        } else if reduceMotion {
+            dot(mix: 0)
         } else {
-            Circle()
-                .fill(Self.liveGreen)
-                .frame(width: 8, height: 8)
-                .shadow(color: Self.liveGreen.opacity(0.7), radius: 3)
-                .opacity(pulsing ? 1 : 0.45)
-                .scaleEffect(pulsing ? 1 : 0.78)
-                // Core Animation drives this, unlike the board's per-frame
-                // TimelineView pulse (L-12) — that one has to start and stop
-                // with a lane, this one runs for the life of the row.
-                .animation(
-                    reduceMotion ? nil : .easeInOut(duration: 0.85).repeatForever(autoreverses: true),
-                    value: pulsing
-                )
-                .onAppear { pulsing = true }
+            // On the clock rather than from when the row appeared, so a row
+            // scrolled back in picks up where it was instead of restarting.
+            TimelineView(.animation) { ctx in
+                dot(mix: Self.breath(at: ctx.date.timeIntervalSinceReferenceDate, rank: pulseRank))
+            }
         }
+    }
+
+    private func dot(mix: Double) -> some View {
+        Circle()
+            .fill(Self.liveGreen)
+            .frame(width: 8, height: 8)
+            .shadow(color: Self.liveGreen.opacity(0.7), radius: 3)
+            .opacity(1 - 0.55 * mix)
+            .scaleEffect(1 - 0.22 * mix)
+    }
+
+    /// One breath every 1.7s, 0 full → 1 faint. Each row is set a golden-ratio
+    /// step of the cycle past the one above it, so the list looks unsynchronised
+    /// yet no two rows close together ever breathe together: neighbours sit at
+    /// least 0.38 of a breath apart, rows two apart 0.24.
+    nonisolated static func breath(at t: TimeInterval, rank: Int) -> Double {
+        let period = 1.7
+        let offset = (Double(rank) * 0.618_033_988_75).truncatingRemainder(dividingBy: 1)
+        let phase = t / period + offset
+        return (1 - cos(phase * 2 * .pi)) / 2
     }
 }
