@@ -85,9 +85,10 @@ struct IntroView: View {
                     .font(.title2.bold())
                     .multilineTextAlignment(.center)
                     .accessibilityAddTraits(.isHeader)
-                Text(p.text)
+                Self.withIcons(p.text)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
+                    .accessibilityLabel(Self.spoken(p.text))
                 if p.counting {
                     CountingToggle(app: app)
                         .padding()
@@ -103,6 +104,41 @@ struct IntroView: View {
             .frame(maxWidth: 560)
             .frame(maxWidth: .infinity)
         }
+    }
+
+    /// The controls a page names, drawn as they look on screen: `{filter}` in the
+    /// text becomes the filter's own symbol, and so on. A name not listed stays as
+    /// written, so a server's text with braces in it is left alone.
+    nonisolated static let icons = [
+        "filter": "line.3.horizontal.decrease.circle",
+        "gear": "gearshape",
+        "bell": "bell",
+        "plusminus": "plusminus.circle",
+    ]
+
+    /// Verbatim pieces, so a stray `%` in the text is never a format.
+    static func withIcons(_ text: String) -> Text {
+        var out = Text(verbatim: "")
+        var rest = Substring(text)
+        while let open = rest.firstIndex(of: "{"), let close = rest[open...].firstIndex(of: "}") {
+            let name = String(rest[rest.index(after: open)..<close])
+            let piece =
+                icons[name].map { Text(Image(systemName: $0)).foregroundStyle(.tint) }
+                ?? Text(verbatim: String(rest[open...close]))
+            out = Text("\(out)\(Text(verbatim: String(rest[..<open])))\(piece)")
+            rest = rest[rest.index(after: close)...]
+        }
+        return Text("\(out)\(Text(verbatim: String(rest)))")
+    }
+
+    /// What VoiceOver reads: the words alone, since each names its control already —
+    /// except `±`, which stands for itself.
+    nonisolated static func spoken(_ text: String) -> String {
+        var out = text.replacingOccurrences(of: "{plusminus}", with: "±")
+        for name in icons.keys {
+            out = out.replacingOccurrences(of: " {\(name)}", with: "")
+        }
+        return out
     }
 
     private func finish() {

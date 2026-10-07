@@ -552,19 +552,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In Schedule, add a swimmer or a club with the filter: only their heats are listed.\n\nTurn on All heats to see every heat again.\n\nWhere the meet allows it, the bell at the top of Schedule tells you when their heat is near."
+            "value" : "In Schedule, add a swimmer or a club with the filter {filter}: only their heats are listed.\n\nTurn on All heats to see every heat again.\n\nWhere the meet allows it, the bell {bell} at the top of Schedule tells you when their heat is near."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "En Programa, agregue un nadador o un club con el filtro y solo se listan sus series.\n\nActive Todas las series para volver a verlas todas.\n\nCuando la competición lo permite, la campana en la parte superior de Programa le avisa cuando su serie se acerca."
+            "value" : "En Programa, agregue un nadador o un club con el filtro {filter} y solo se listan sus series.\n\nActive Todas las series para volver a verlas todas.\n\nCuando la competición lo permite, la campana {bell} en la parte superior de Programa le avisa cuando su serie se acerca."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dans Horaire, ajoutez un nageur ou un club avec le filtre : seules leurs séries sont listées.\n\nActivez Toutes les séries pour les revoir toutes.\n\nQuand la compétition le permet, la cloche en haut d'Horaire vous prévient quand leur série approche."
+            "value" : "Dans Horaire, ajoutez un nageur ou un club avec le filtre {filter} : seules leurs séries sont listées.\n\nActivez Toutes les séries pour les revoir toutes.\n\nQuand la compétition le permet, la cloche {bell} en haut d'Horaire vous prévient quand leur série approche."
           }
         }
       }
@@ -598,19 +598,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Meets are listed by day.\n\nThe filter keeps only the meets of your club, country or province. It stays set until you clear it.\n\nThe gear opens Settings: language, appearance and privacy."
+            "value" : "Meets are listed by day.\n\nThe filter {filter} keeps only the meets of your club, country or province. It stays set until you clear it.\n\nThe gear {gear} opens Settings: language, appearance and privacy."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les compétitions sont classées par jour.\n\nLe filtre ne garde que celles de votre club, pays ou province. Il reste actif jusqu'à ce que vous l'effaciez.\n\nL'engrenage ouvre les Réglages : langue, apparence et confidentialité."
+            "value" : "Les compétitions sont classées par jour.\n\nLe filtre {filter} ne garde que celles de votre club, pays ou province. Il reste actif jusqu'à ce que vous l'effaciez.\n\nL'engrenage {gear} ouvre les Réglages : langue, apparence et confidentialité."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Las competiciones se listan por día.\n\nEl filtro deja solo las de su club, país o provincia. Queda activo hasta que lo borre.\n\nEl engranaje abre los Ajustes: idioma, apariencia y privacidad."
+            "value" : "Las competiciones se listan por día.\n\nEl filtro {filter} deja solo las de su club, país o provincia. Queda activo hasta que lo borre.\n\nEl engranaje {gear} abre los Ajustes: idioma, apariencia y privacidad."
           }
         }
       }
@@ -782,19 +782,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Each lane shows its seed time, then its console time once swum, then its official time, each in its own colour.\n\nTap a heat marked ± to see each lane's gap to its seed."
+            "value" : "Each lane shows its seed time, then its console time once swum, then its official time, each in its own colour.\n\nTap a heat marked {plusminus} to see each lane's gap to its seed."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chaque couloir montre son temps d'inscription, puis le temps de la console une fois nagé, puis le temps officiel, chacun de sa couleur.\n\nTouchez une série marquée ± pour voir l'écart de chaque couloir avec son inscription."
+            "value" : "Chaque couloir montre son temps d'inscription, puis le temps de la console une fois nagé, puis le temps officiel, chacun de sa couleur.\n\nTouchez une série marquée {plusminus} pour voir l'écart de chaque couloir avec son inscription."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cada carril muestra su tiempo de inscripción, luego el tiempo de la consola una vez nadado y luego el tiempo oficial, cada uno con su color.\n\nToque una serie marcada con ± para ver la diferencia de cada carril con su inscripción."
+            "value" : "Cada carril muestra su tiempo de inscripción, luego el tiempo de la consola una vez nadado y luego el tiempo oficial, cada uno con su color.\n\nToque una serie marcada con {plusminus} para ver la diferencia de cada carril con su inscripción."
           }
         }
       }
