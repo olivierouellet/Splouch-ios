@@ -299,10 +299,10 @@ import Testing
         // Two spellings of one province are one choice.
         #expect(qc.place(filter: MeetFilter(provinces: [quebec, qcCode])) == ["Pool"])
         #expect(qc.place(filter: MeetFilter(provinces: [quebec, on])) == ["Pool", "QC"])
-        // Every value is an alternative: a club's meets, or another country's, may show too.
-        #expect(qc.place(filter: MeetFilter(countries: ["CA"], clubs: ["CAMO"])) == ["Pool", "QC", "CA"])
-        #expect(qc.place(filter: MeetFilter(countries: ["CA"], provinces: [qcCode])) == ["Pool", "QC"])
-        #expect(qc.place(filter: MeetFilter(countries: ["US"], provinces: [qcCode])) == ["Pool", "QC", "CA"])
+        // A club only narrows; another country is another place.
+        #expect(qc.place(filter: MeetFilter(countries: ["CA"], clubs: ["CAMO"])) == ["Pool", "QC"])
+        #expect(qc.place(filter: MeetFilter(countries: ["CA"], provinces: [qcCode], clubs: ["CAMO"])) == ["Pool"])
+        #expect(qc.place(filter: MeetFilter(countries: ["CA", "US"], provinces: [qcCode])) == ["Pool", "QC", "CA"])
     }
 
     @Test func meetsGoUnderTheirDayAnUndatedOneLast() {

@@ -4,9 +4,12 @@ import Foundation
 /// the app across launches and servers. A spectator follows one region or club
 /// for a season, so unlike the schedule's (S-20) it is stored.
 ///
-/// Several values per facet, every one an alternative: a meet passes when it
-/// holds any chosen country, province or club (OR within and across facets).
-/// A meet whose field is empty never holds that facet's values.
+/// Places, then clubs. A meet is in the chosen places when it is in a chosen
+/// province, or in a chosen country none of whose provinces is chosen: a
+/// province narrows its own country only (Canada, Québec and the United States
+/// are Québec and the whole United States). Of the clubs, any one will do. A
+/// meet passes when it passes both, each only while something in it is chosen.
+/// A meet whose field is empty holds none of that field's values.
 public struct MeetFilter: Sendable, Codable, Equatable {
     /// ISO 3166-1 alpha-2, upper-cased.
     public var countries: Set<String>
@@ -42,13 +45,18 @@ public struct MeetFilter: Sendable, Codable, Equatable {
 
     public var isActive: Bool { !countries.isEmpty || !provinces.isEmpty || !clubs.isEmpty }
 
-    /// Any chosen value the meet holds lets it through; an empty filter, every meet.
     public func matches(_ meet: MeetSummary) -> Bool {
-        if !isActive { return true }
-        if !meet.country.isEmpty, has(country: meet.country) { return true }
-        if !meet.province.isEmpty, has(province: Province(country: meet.country, name: meet.province)) { return true }
-        if !Self.clubKey(meet.organizer).isEmpty, has(club: meet.organizer) { return true }
-        return false
+        if !countries.isEmpty || !provinces.isEmpty {
+            let code = meet.country.uppercased()
+            let inProvince =
+                !meet.province.isEmpty && has(province: Province(country: code, name: meet.province))
+            let inCountry = !code.isEmpty && countries.contains(code) && !provinces.contains { $0.country == code }
+            if !inProvince, !inCountry { return false }
+        }
+        if !clubs.isEmpty {
+            if Self.clubKey(meet.organizer).isEmpty || !has(club: meet.organizer) { return false }
+        }
+        return true
     }
 
     /// Two spellings of one club: folded as S-09 folds, then letters and digits
@@ -78,9 +86,15 @@ public struct MeetFilter: Sendable, Codable, Equatable {
         return clubs.contains { Self.clubKey($0) == key }
     }
 
+    /// Taking a country away takes its provinces with it: the sheet no longer
+    /// lists them.
     public mutating func toggle(country: String) {
         let code = country.uppercased()
-        if countries.remove(code) == nil { countries.insert(code) }
+        if countries.remove(code) == nil {
+            countries.insert(code)
+        } else {
+            provinces = provinces.filter { $0.country != code }
+        }
     }
 
     public mutating func toggle(province: Province) {
@@ -111,7 +125,8 @@ public struct MeetFilter: Sendable, Codable, Equatable {
 
     /// The values to offer: clubs the list holds; every country and province
     /// the app knows, plus any other the list holds; plus any chosen value, so
-    /// it can still be unchecked. Each sorted by what the reader sees.
+    /// it can still be unchecked. Provinces only of the chosen countries once
+    /// one is chosen, and any chosen one. Each sorted by what the reader sees.
     public struct Options: Sendable, Equatable {
         public var countries: [String]
         public var provinces: [Province]
@@ -140,6 +155,10 @@ public struct MeetFilter: Sendable, Codable, Equatable {
             let p = Province(country: m.country, name: m.province)
             if provinceByKey[p.key] == nil { provinceByKey[p.key] = p }
         }
+        var shownProvinces = Array(provinceByKey.values)
+        if !countries.isEmpty {
+            shownProvinces = shownProvinces.filter { countries.contains($0.country) || has(province: $0) }
+        }
 
         var clubByKey: [String: String] = [:]
         for c in clubs { clubByKey[Self.clubKey(c)] = c }
@@ -150,7 +169,7 @@ public struct MeetFilter: Sendable, Codable, Equatable {
 
         return Options(
             countries: sorted(Array(codes), by: name),
-            provinces: sorted(Array(provinceByKey.values)) { $0.label(locale: locale) },
+            provinces: sorted(shownProvinces) { $0.label(locale: locale) },
             clubs: sorted(Array(clubByKey.values)) { $0 })
     }
 }

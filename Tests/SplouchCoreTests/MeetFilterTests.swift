@@ -33,10 +33,20 @@ import Testing
         #expect(f.apply(meets).map(\.id) == ["mtl", "tor"])
     }
 
-    /// A country, a province and a club: a meet holding any one of them shows.
-    @Test func facetsAreAlternativesToo() {
-        let f = MeetFilter(countries: ["US"], provinces: [.init(country: "CA", name: "ON")], clubs: ["CAMO"])
-        #expect(f.apply(meets).map(\.id) == ["mtl", "tor", "nyc"])
+    @Test func clubsNarrowThePlaces() {
+        let f = MeetFilter(countries: ["CA"], clubs: ["CAMO", "Asphalt Green"])
+        #expect(f.apply(meets).map(\.id) == ["mtl"])
+    }
+
+    /// Canada, Québec and the United States: Québec, and the whole United States.
+    @Test func aProvinceNarrowsItsOwnCountryOnly() {
+        let f = MeetFilter(countries: ["CA", "US"], provinces: [.init(country: "CA", name: "QC")])
+        #expect(f.apply(meets).map(\.id) == ["mtl", "qc", "nyc"])
+        let alone = MeetFilter(provinces: [.init(country: "CA", name: "ON")])
+        #expect(alone.apply(meets).map(\.id) == ["tor"])
+        let withClub = MeetFilter(
+            countries: ["CA", "US"], provinces: [.init(country: "CA", name: "QC")], clubs: ["CAMO", "Asphalt Green"])
+        #expect(withClub.apply(meets).map(\.id) == ["mtl", "nyc"])
     }
 
     /// A meet that recorded no country is not "in" any country.
@@ -65,12 +75,12 @@ import Testing
         #expect(!f.isActive)
     }
 
-    /// Provinces are choices of their own: dropping their country keeps them.
-    @Test func droppingACountryKeepsItsProvinces() {
-        var f = MeetFilter(countries: ["CA"], provinces: [.init(country: "CA", name: "QC")])
+    @Test func droppingACountryDropsItsProvinces() {
+        var f = MeetFilter(
+            countries: ["CA", "US"], provinces: [.init(country: "CA", name: "QC"), .init(country: "US", name: "NY")])
         f.toggle(country: "CA")
-        #expect(f.countries.isEmpty)
-        #expect(f.provinces == [.init(country: "CA", name: "QC")])
+        #expect(f.countries == ["US"])
+        #expect(f.provinces == [.init(country: "US", name: "NY")])
     }
 
     /// Typed letters kept upper-cased, without spaces or symbols.
@@ -102,10 +112,11 @@ import Testing
         #expect(o.clubs == ["Asphalt Green", "CAMO", "Etobicoke", "Rouge et Or"])
     }
 
-    /// Any province may widen what a country lets through, so all stay offered.
-    @Test func provincesStayOfferedWhateverTheCountries() {
+    @Test func provincesNarrowToTheChosenCountries() {
         let o = MeetFilter(countries: ["CA"]).options(for: meets, locale: en)
-        #expect(o.provinces.count == 13 + 32 + 56)
+        #expect(o.provinces.count == 13)
+        #expect(o.provinces.allSatisfy { $0.country == "CA" })
+        #expect(o.provinces.first?.label(locale: en) == "Alberta, Canada")
     }
 
     /// A region the app does not know is offered once the list holds it.

@@ -63,15 +63,13 @@ extension MeetSummary {
 }
 
 extension MeetFilter {
-    /// Countries and provinces of only one country, and no club (a club's meets
-    /// may be anywhere): every meet shown is in it.
-    public var pinsCountry: Bool {
-        clubs.isEmpty && Set(countries).union(provinces.map(\.country)).count == 1
-    }
+    /// Countries and provinces all of one country: every meet shown is in it,
+    /// clubs only narrowing.
+    public var pinsCountry: Bool { Set(countries).union(provinces.map(\.country)).count == 1 }
 
-    /// One state/province chosen and nothing else, however many spellings of it
-    /// the list held.
+    /// One state/province, and no other country: every meet shown is in it,
+    /// however many spellings of it the list held.
     public var pinsProvince: Bool {
-        clubs.isEmpty && countries.isEmpty && Set(provinces.map(\.key)).count == 1
+        Set(provinces.map(\.key)).count == 1 && countries.subtracting(provinces.map(\.country)).isEmpty
     }
 }
