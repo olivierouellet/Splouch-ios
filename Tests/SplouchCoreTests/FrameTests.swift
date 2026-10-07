@@ -37,6 +37,12 @@ import Testing
         #expect(round.data["vid"]?.string == "0f1e")
     }
 
+    /// The socket dedupes a queued join by its text, so equal frames encode alike.
+    @Test func equalFramesEncodeToTheSameText() throws {
+        let texts = try Set((0..<200).map { _ in try Frame.joinMeet(meetID: "m1", vid: "v1").encoded() })
+        #expect(texts == [#"{"data":{"meet_id":"m1","vid":"v1"},"event":"join_meet"}"#])
+    }
+
     @Test func joinMeetOmitsVidWhenAbsent() throws {
         let round = try Frame.decode(try Frame.joinMeet(meetID: "m", vid: nil).encoded())
         #expect(round.data["vid"] == nil)

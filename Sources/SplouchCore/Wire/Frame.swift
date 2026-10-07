@@ -27,8 +27,13 @@ public struct Frame: Sendable, Equatable {
         try JSONDecoder().decode(Frame.self, from: Data(text.utf8))
     }
 
+    /// Keys sorted: the socket drops a queued join that matches the one it just
+    /// sent by comparing text, and a dictionary's key order differs between two
+    /// equal values.
     public func encoded() throws -> String {
-        let data = try JSONEncoder().encode(self)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        let data = try encoder.encode(self)
         return String(decoding: data, as: UTF8.self)
     }
 }
