@@ -35,7 +35,15 @@ struct SettingsSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) { CloseButton() }
+                // A checkmark, as the schedule's filter sheet has: every
+                // setting applies as it changes, so this only dismisses.
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Label(Native.done, systemImage: "checkmark").labelStyle(.iconOnly)
+                    }
+                }
             }
         }
         .introCover(isPresented: $replayingIntro, app: app) { refocus() }
