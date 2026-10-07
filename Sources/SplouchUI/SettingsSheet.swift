@@ -176,23 +176,33 @@ struct CountingToggle: View {
 
 /// P-06's tap: the server's full disclaimer. A sheet at half height on a
 /// phone, a popover on iPad (`PickerScreen`).
+///
+/// No `NavigationStack`: the popover is declared inside the picker's list, so
+/// it inherits the picker's `.searchable`, and a navigation bar here gave that
+/// search field a second home inside the sheet. The title row is drawn instead.
 struct DisclaimerSheet: View {
     let title: String
     let text: String
 
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            ZStack {
+                Text(title)
+                    .font(.headline)
+                    .lineLimit(1)
+                    .padding(.horizontal, 56)
+                    .accessibilityAddTraits(.isHeader)
+                HStack {
+                    Spacer()
+                    CloseButton(standalone: true)
+                }
+            }
+            .padding(.horizontal)
+            .padding(.top, 12)
             ScrollView {
                 Text(text)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding()
-            }
-            .navigationTitle(title)
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) { CloseButton() }
             }
         }
         // A popover sizes to its content's ideal; a sheet ignores this.
@@ -202,12 +212,25 @@ struct DisclaimerSheet: View {
 }
 
 /// The platform's own close where it offers one, a Done below that.
+/// `standalone` is one outside a toolbar, which draws the role as a word; it
+/// gets the toolbar's round glass ✕ by hand.
 struct CloseButton: View {
+    var standalone = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         if #available(iOS 26.0, macOS 26.0, *) {
-            Button(role: .close) { dismiss() }
+            if standalone {
+                Button(role: .close) {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark").frame(width: 32, height: 32)
+                }
+                .buttonStyle(.glassProminent)
+                .buttonBorderShape(.circle)
+            } else {
+                Button(role: .close) { dismiss() }
+            }
         } else {
             Button(Native.done) { dismiss() }
         }
