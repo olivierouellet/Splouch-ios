@@ -362,9 +362,19 @@ extension View {
     @ViewBuilder fileprivate func meetSearch(shown: Bool, text: Binding<String>, prompt: String) -> some View {
         if shown {
             #if os(iOS)
-            self.searchable(text: text, placement: .navigationBarDrawer(displayMode: .always), prompt: Text(prompt))
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)  // folded either way
+            Group {
+                // On iOS 26 the drawer placement was the bottom bar on a cold
+                // launch and gone after a pushed meet's tab bar popped, then
+                // back at the top; `.automatic` is the bottom bar throughout.
+                if #available(iOS 26, *) {
+                    self.searchable(text: text, placement: .automatic, prompt: Text(prompt))
+                } else {
+                    self.searchable(
+                        text: text, placement: .navigationBarDrawer(displayMode: .always), prompt: Text(prompt))
+                }
+            }
+            .autocorrectionDisabled()
+            .textInputAutocapitalization(.never)  // folded either way
             #else
             self.searchable(text: text, prompt: Text(prompt))
             #endif
