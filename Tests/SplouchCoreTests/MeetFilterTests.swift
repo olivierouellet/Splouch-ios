@@ -33,9 +33,10 @@ import Testing
         #expect(f.apply(meets).map(\.id) == ["mtl", "tor"])
     }
 
-    @Test func facetsAreAllRequired() {
-        let f = MeetFilter(countries: ["CA"], clubs: ["CAMO", "Asphalt Green"])
-        #expect(f.apply(meets).map(\.id) == ["mtl"])
+    /// A country, a province and a club: a meet holding any one of them shows.
+    @Test func facetsAreAlternativesToo() {
+        let f = MeetFilter(countries: ["US"], provinces: [.init(country: "CA", name: "ON")], clubs: ["CAMO"])
+        #expect(f.apply(meets).map(\.id) == ["mtl", "tor", "nyc"])
     }
 
     /// A meet that recorded no country is not "in" any country.
@@ -64,12 +65,31 @@ import Testing
         #expect(!f.isActive)
     }
 
-    @Test func droppingACountryDropsItsProvinces() {
-        var f = MeetFilter(
-            countries: ["CA", "US"], provinces: [.init(country: "CA", name: "QC"), .init(country: "US", name: "NY")])
+    /// Provinces are choices of their own: dropping their country keeps them.
+    @Test func droppingACountryKeepsItsProvinces() {
+        var f = MeetFilter(countries: ["CA"], provinces: [.init(country: "CA", name: "QC")])
         f.toggle(country: "CA")
-        #expect(f.countries == ["US"])
-        #expect(f.provinces == [.init(country: "US", name: "NY")])
+        #expect(f.countries.isEmpty)
+        #expect(f.provinces == [.init(country: "CA", name: "QC")])
+    }
+
+    /// Typed letters kept upper-cased, without spaces or symbols.
+    @Test func aTypedClubIsKeptAsItsOfficialLetters() {
+        #expect(MeetFilter.clubLetters("  c.a.m.o ") == "CAMO")
+        #expect(MeetFilter.clubLetters("Rouge-et-Or!") == "ROUGEETOR")
+        var f = MeetFilter()
+        f.add(clubLetters: " camo ")
+        #expect(f.clubs == ["CAMO"])
+        f.add(clubLetters: "C A M O")
+        f.add(clubLetters: " .- ")
+        #expect(f.clubs == ["CAMO"])
+        #expect(f.apply(meets).map(\.id) == ["mtl"])
+    }
+
+    /// `C.A.M.O.` on the meet is the `CAMO` chosen.
+    @Test func clubsMatchByLettersAndDigitsOnly() {
+        #expect(MeetFilter(clubs: ["CAMO"]).matches(meet("x", organizer: "C.A.M.O.")))
+        #expect(!MeetFilter(clubs: ["CAMO"]).matches(meet("x", organizer: "CAMOX")))
     }
 
     /// Clubs from the list; every country and province the app knows, whether
@@ -82,11 +102,10 @@ import Testing
         #expect(o.clubs == ["Asphalt Green", "CAMO", "Etobicoke", "Rouge et Or"])
     }
 
-    @Test func provincesNarrowToTheChosenCountries() {
+    /// Any province may widen what a country lets through, so all stay offered.
+    @Test func provincesStayOfferedWhateverTheCountries() {
         let o = MeetFilter(countries: ["CA"]).options(for: meets, locale: en)
-        #expect(o.provinces.count == 13)
-        #expect(o.provinces.allSatisfy { $0.country == "CA" })
-        #expect(o.provinces.first?.label(locale: en) == "Alberta, Canada")
+        #expect(o.provinces.count == 13 + 32 + 56)
     }
 
     /// A region the app does not know is offered once the list holds it.

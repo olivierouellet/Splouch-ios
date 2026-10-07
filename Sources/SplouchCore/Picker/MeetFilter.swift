@@ -4,14 +4,15 @@ import Foundation
 /// the app across launches and servers. A spectator follows one region or club
 /// for a season, so unlike the schedule's (S-20) it is stored.
 ///
-/// Several values per facet: a meet passes a facet when it holds any of its
-/// values (OR), and passes the filter when it passes every active facet (AND).
-/// A meet whose field is empty fails that facet while it is active.
+/// Several values per facet, every one an alternative: a meet passes when it
+/// holds any chosen country, province or club (OR within and across facets).
+/// A meet whose field is empty never holds that facet's values.
 public struct MeetFilter: Sendable, Codable, Equatable {
     /// ISO 3166-1 alpha-2, upper-cased.
     public var countries: Set<String>
     public var provinces: Set<Province>
-    /// The organizer as first chosen; compared folded, as S-09 compares a club.
+    /// The organizer as first chosen, or letters the spectator typed; compared
+    /// by `clubKey`.
     public var clubs: Set<String>
 
     /// A state or province is only one with its country: `ON` is not unique the
@@ -41,17 +42,26 @@ public struct MeetFilter: Sendable, Codable, Equatable {
 
     public var isActive: Bool { !countries.isEmpty || !provinces.isEmpty || !clubs.isEmpty }
 
+    /// Any chosen value the meet holds lets it through; an empty filter, every meet.
     public func matches(_ meet: MeetSummary) -> Bool {
-        if !countries.isEmpty, !countries.contains(meet.country.uppercased()) { return false }
-        if !provinces.isEmpty {
-            let key = Province(country: meet.country, name: meet.province).key
-            if meet.province.isEmpty || !provinces.contains(where: { $0.key == key }) { return false }
-        }
-        if !clubs.isEmpty {
-            let key = SuggestionIndex.fold(meet.organizer)
-            if key.isEmpty || !clubs.contains(where: { SuggestionIndex.fold($0) == key }) { return false }
-        }
-        return true
+        if !isActive { return true }
+        if !meet.country.isEmpty, has(country: meet.country) { return true }
+        if !meet.province.isEmpty, has(province: Province(country: meet.country, name: meet.province)) { return true }
+        if !Self.clubKey(meet.organizer).isEmpty, has(club: meet.organizer) { return true }
+        return false
+    }
+
+    /// Two spellings of one club: folded as S-09 folds, then letters and digits
+    /// only, so `C.A.M.O.` is `CAMO`.
+    static func clubKey(_ club: String) -> String {
+        String(
+            SuggestionIndex.fold(club).unicodeScalars.filter(CharacterSet.alphanumerics.contains).map(Character.init))
+    }
+
+    /// A club typed by the spectator, as kept: its official letters upper-cased,
+    /// spaces and symbols dropped (` c.a.m.o ` → `CAMO`).
+    public static func clubLetters(_ typed: String) -> String {
+        String(typed.uppercased().filter { $0.isLetter || $0.isNumber })
     }
 
     /// The meets the filter leaves, in the server's order.
@@ -64,19 +74,13 @@ public struct MeetFilter: Sendable, Codable, Equatable {
     public func has(country: String) -> Bool { countries.contains(country.uppercased()) }
     public func has(province: Province) -> Bool { provinces.contains { $0.key == province.key } }
     public func has(club: String) -> Bool {
-        let key = SuggestionIndex.fold(club)
-        return clubs.contains { SuggestionIndex.fold($0) == key }
+        let key = Self.clubKey(club)
+        return clubs.contains { Self.clubKey($0) == key }
     }
 
-    /// Taking a country away takes its provinces with it: the sheet no longer
-    /// lists them, and kept they would hide every meet of the countries left.
     public mutating func toggle(country: String) {
         let code = country.uppercased()
-        if countries.remove(code) == nil {
-            countries.insert(code)
-        } else {
-            provinces = provinces.filter { $0.country != code }
-        }
+        if countries.remove(code) == nil { countries.insert(code) }
     }
 
     public mutating func toggle(province: Province) {
@@ -88,20 +92,26 @@ public struct MeetFilter: Sendable, Codable, Equatable {
     }
 
     public mutating func toggle(club: String) {
-        let key = SuggestionIndex.fold(club)
-        if let held = clubs.first(where: { SuggestionIndex.fold($0) == key }) {
+        let key = Self.clubKey(club)
+        if let held = clubs.first(where: { Self.clubKey($0) == key }) {
             clubs.remove(held)
         } else {
             clubs.insert(club)
         }
     }
 
+    /// Chooses the club whose official letters the spectator typed; letters
+    /// already chosen, or none left once cleaned, change nothing.
+    public mutating func add(clubLetters typed: String) {
+        let letters = Self.clubLetters(typed)
+        if !letters.isEmpty, !has(club: letters) { clubs.insert(letters) }
+    }
+
     // MARK: - What the sheet offers
 
     /// The values to offer: clubs the list holds; every country and province
     /// the app knows, plus any other the list holds; plus any chosen value, so
-    /// it can still be unchecked. Provinces only of the chosen countries once
-    /// one is chosen. Each sorted by what the reader sees.
+    /// it can still be unchecked. Each sorted by what the reader sees.
     public struct Options: Sendable, Equatable {
         public var countries: [String]
         public var provinces: [Province]
@@ -130,19 +140,17 @@ public struct MeetFilter: Sendable, Codable, Equatable {
             let p = Province(country: m.country, name: m.province)
             if provinceByKey[p.key] == nil { provinceByKey[p.key] = p }
         }
-        var shownProvinces = Array(provinceByKey.values)
-        if !countries.isEmpty { shownProvinces = shownProvinces.filter { countries.contains($0.country) } }
 
         var clubByKey: [String: String] = [:]
-        for c in clubs { clubByKey[SuggestionIndex.fold(c)] = c }
+        for c in clubs { clubByKey[Self.clubKey(c)] = c }
         for m in meets where !m.organizer.isEmpty {
-            let key = SuggestionIndex.fold(m.organizer)
+            let key = Self.clubKey(m.organizer)
             if !key.isEmpty, clubByKey[key] == nil { clubByKey[key] = m.organizer }
         }
 
         return Options(
             countries: sorted(Array(codes), by: name),
-            provinces: sorted(shownProvinces) { $0.label(locale: locale) },
+            provinces: sorted(Array(provinceByKey.values)) { $0.label(locale: locale) },
             clubs: sorted(Array(clubByKey.values)) { $0 })
     }
 }

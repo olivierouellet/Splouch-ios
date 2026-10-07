@@ -102,6 +102,9 @@ enum Native {
     static var filterCountry: String { String(localized: "filter_country", bundle: .module) }
     static var filterProvince: String { String(localized: "filter_province", bundle: .module) }
     static var filterClub: String { String(localized: "filter_club", bundle: .module) }
+    static var filterClubLetters: String { String(localized: "filter_club_letters", bundle: .module) }
+    static var filterClubLettersHint: String { String(localized: "filter_club_letters_hint", bundle: .module) }
+    static var filterClubAdd: String { String(localized: "filter_club_add", bundle: .module) }
     static var filterClear: String { String(localized: "filter_clear", bundle: .module) }
     static var filterHidesAll: String { String(localized: "filter_hides_all", bundle: .module) }
     static func filterHidden(_ n: Int) -> String {

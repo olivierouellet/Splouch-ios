@@ -1,13 +1,15 @@
 import SplouchCore
 import SwiftUI
 
-/// P-21: the picker's filter. Three sections of checkable rows — club,
-/// country, state/province — offering what the list holds. Every tap writes
-/// straight to the stored filter, so the list behind is already filtered and
-/// the checkmark only confirms, as the schedule's filter sheet does.
+/// P-21: the picker's filter. Three sections of checkable rows — country,
+/// state/province, club — the club's opening with a field for a club the list
+/// does not hold, by its official letters. Every tap writes straight to the
+/// stored filter, so the list behind is already filtered and the checkmark only
+/// confirms, as the schedule's filter sheet does.
 struct MeetFilterSheet: View {
     let app: AppModel
     @Environment(\.dismiss) private var dismiss
+    @State private var letters = ""
 
     private var filter: MeetFilter { app.preferences.meetFilter }
 
@@ -15,13 +17,6 @@ struct MeetFilterSheet: View {
         let options = filter.options(for: app.meets, locale: app.locale)
         NavigationStack {
             List {
-                if !options.clubs.isEmpty {
-                    Section(Native.filterClub) {
-                        ForEach(options.clubs, id: \.self) { club in
-                            row(club, checked: filter.has(club: club)) { $0.toggle(club: club) }
-                        }
-                    }
-                }
                 if !options.countries.isEmpty {
                     Section(Native.filterCountry) {
                         ForEach(options.countries, id: \.self) { code in
@@ -40,6 +35,26 @@ struct MeetFilterSheet: View {
                             }
                         }
                     }
+                }
+                Section {
+                    HStack {
+                        TextField(Native.filterClubLetters, text: $letters)
+                            #if os(iOS)
+                        .textInputAutocapitalization(.characters)
+                            #endif
+                            .autocorrectionDisabled()
+                            .submitLabel(.done)
+                            .onSubmit(addClub)
+                        Button(Native.filterClubAdd, action: addClub)
+                            .disabled(MeetFilter.clubLetters(letters).isEmpty)
+                    }
+                    ForEach(options.clubs, id: \.self) { club in
+                        row(club, checked: filter.has(club: club)) { $0.toggle(club: club) }
+                    }
+                } header: {
+                    Text(Native.filterClub)
+                } footer: {
+                    Text(Native.filterClubLettersHint)
                 }
                 Section {
                     Button(Native.filterClear, role: .destructive) {
@@ -64,6 +79,14 @@ struct MeetFilterSheet: View {
             }
             .sensoryFeedback(.selection, trigger: filter)
         }
+    }
+
+    /// The typed letters, cleaned, become a chosen club; the field empties.
+    private func addClub() {
+        var f = filter
+        f.add(clubLetters: letters)
+        app.setMeetFilter(f)
+        letters = ""
     }
 
     /// A checkable row, the way Settings lists a multiple choice: the whole row
