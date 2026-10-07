@@ -1,9 +1,10 @@
 #!/bin/sh
 # Captures the screenshots in Screenshots/: every screen, in English, French and
-# Spanish, light and dark, on the two App Store sizes (6.9" iPhone, 13" iPad).
+# Spanish, light and dark, on the App Store sizes (6.9" and 6.3" iPhone, 13" iPad).
 #
 #   scripts/screenshots.sh [server] [meet-name]
 #   LANGS=es scripts/screenshots.sh     # recapture one language only
+#   DEVICES=iphone-6.3 scripts/screenshots.sh   # or one size only
 #
 # Every screen comes from the live server (default https://splouch.org): the
 # picker lists its meets with their images, and the meet screens open the meet
@@ -30,6 +31,7 @@ OUT="$ROOT/Screenshots"
 BUNDLE=app.splouch.ios
 WAIT=${WAIT:-8}
 LANGS=${LANGS:-en fr es}
+DEVICES=${DEVICES:-iphone-6.9 iphone-6.3 ipad-13}
 
 udid() { xcrun simctl list devices available | grep -F "$1 (" | head -1 | sed 's/.*(\([0-9A-F-]*\)).*/\1/'; }
 
@@ -69,8 +71,13 @@ capture() { # device-name folder
   xcrun simctl status_bar "$D" clear
 }
 
-capture "iPhone 17 Pro Max" iphone-6.9
-capture "iPad Pro 13-inch (M5)" ipad-13
+for dev in $DEVICES; do
+  case $dev in
+    iphone-6.9) capture "iPhone 17 Pro Max" "$dev" ;;
+    iphone-6.3) capture "iPhone 17 Pro" "$dev" ;;
+    ipad-13) capture "iPad Pro 13-inch (M5)" "$dev" ;;
+  esac
+done
 
 # App Store Connect refuses images with an alpha channel; the simulator's PNGs
 # carry one, so every capture is flattened.
@@ -92,7 +99,7 @@ STORE="$OUT/AppStore"
 rm -rf "$STORE"
 for listing in en-CA fr-CA es-MX; do
   lang=${listing%-*}
-  for dev in iphone-6.9 ipad-13; do
+  for dev in iphone-6.9 iphone-6.3 ipad-13; do
     [ -d "$OUT/$dev/$lang/dark" ] || continue
     mkdir -p "$STORE/$listing/$dev"
     cp "$OUT/$dev/$lang/dark/"*.png "$STORE/$listing/$dev/"
