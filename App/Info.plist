@@ -2,60 +2,31 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- app.md P-12: cleartext for the local network only. A Pi is plain HTTP;
-         anything remote must be HTTPS. Scoped, never NSAllowsArbitraryLoads. -->
-    <key>NSAppTransportSecurity</key>
-    <dict>
-        <key>NSAllowsLocalNetworking</key>
-        <true/>
-    </dict>
-    <key>NSLocalNetworkUsageDescription</key>
-    <string>Finds Splouch timing servers on the pool's network so you can follow a meet without an internet connection.</string>
-    <key>NSBonjourServices</key>
-    <array>
-        <string>_splouch._tcp</string>
-    </array>
-    <!-- app.md T-03: the bundled faces. -->
-    <key>UIAppFonts</key>
-    <array>
-        <string>Fonts/OverpassMono[wght].ttf</string>
-        <string>Fonts/DSEG7Classic-Regular.ttf</string>
-        <string>Fonts/DSEG14Classic-Regular.ttf</string>
-        <string>Fonts/ShareTechMono-Regular.ttf</string>
-        <string>Fonts/Orbitron[wght].ttf</string>
-        <string>Fonts/RobotoMono[wght].ttf</string>
-    </array>
-    <!-- The languages the app runs in (app.md T-05, native words). iOS matches the
-         device's preferred languages against this list; the served words follow
-         the same choice through Accept-Language. -->
-    <key>CFBundleLocalizations</key>
-    <array>
-        <string>en</string>
-        <string>fr</string>
-        <string>es</string>
-    </array>
-    <key>CFBundleDevelopmentRegion</key>
-    <string>en</string>
-    <key>UISupportedInterfaceOrientations</key>
-    <array>
-        <string>UIInterfaceOrientationPortrait</string>
-        <string>UIInterfaceOrientationLandscapeLeft</string>
-        <string>UIInterfaceOrientationLandscapeRight</string>
-    </array>
-    <!-- iPad multitasking (no UIRequiresFullScreen) needs all four, or the upload
-         is refused (ITMS-90474). -->
-    <key>UISupportedInterfaceOrientations~ipad</key>
-    <array>
-        <string>UIInterfaceOrientationPortrait</string>
-        <string>UIInterfaceOrientationPortraitUpsideDown</string>
-        <string>UIInterfaceOrientationLandscapeLeft</string>
-        <string>UIInterfaceOrientationLandscapeRight</string>
-    </array>
-    <!-- HTTPS through the system only: exempt, so no export-compliance question
-         on each upload. -->
-    <key>ITSAppUsesNonExemptEncryption</key>
-    <false/>
-    <key>UILaunchScreen</key>
-    <dict/>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>fr</string>
+		<string>es</string>
+	</array>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_splouch._tcp</string>
+	</array>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Fonts/OverpassMono[wght].ttf</string>
+		<string>Fonts/DSEG7Classic-Regular.ttf</string>
+		<string>Fonts/DSEG14Classic-Regular.ttf</string>
+		<string>Fonts/ShareTechMono-Regular.ttf</string>
+		<string>Fonts/Orbitron[wght].ttf</string>
+		<string>Fonts/RobotoMono[wght].ttf</string>
+	</array>
+	<key>UILaunchScreen</key>
+	<dict/>
 </dict>
 </plist>

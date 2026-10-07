@@ -12,8 +12,8 @@ Connect requires: 6.9" iPhone (iPhone 17 Pro Max, 1320 × 2868) and 13" iPad
 AppStore/<en-CA|fr-CA|es-MX>/<device>/   the dark set, ready to drop into each listing
 ```
 
-The picker is the live `splouch.org`; the meet screens are a local Pi replaying
-heat 1 of `200m_medley_2heats`. All images are flattened (no alpha channel), which
+Every screen is the live `splouch.org`: the picker lists its meets, and the meet
+screens open Dolphins, one of the test meets it replays around the clock. All images are flattened (no alpha channel), which
 App Store Connect requires. The app icon is not here: App Store Connect takes it
 from the build's `App/AppIcon.icon`.
 

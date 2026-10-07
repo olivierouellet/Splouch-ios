@@ -2,23 +2,16 @@
 # Captures the screenshots in Screenshots/: every screen, in English, French and
 # Spanish, light and dark, on the two App Store sizes (6.9" iPhone, 13" iPad).
 #
-#   scripts/screenshots.sh [pi] [cloud]
+#   scripts/screenshots.sh [server] [meet-name]
 #   LANGS=es scripts/screenshots.sh     # recapture one language only
 #
-# The meet screens come from a local Pi (default http://127.0.0.1:5056) playing a
-# recording, so the board and results carry real names and times; start it first:
-#   cd ../Splouch/server && uv run uvicorn app:app --port 5056
-#   log in (score / swimming) and POST /test_play a recording that holds heat 1's
-#   finish: the stock 200m_medley_2heats.serial clears the board when it ends, so
-#   cut it after heat 1 (line 1889) and repeat that last line an hour later:
-#     R=../Splouch/server/console_recordings/200m_medley_2heats; H=~/SplouchData/recorded/hold
-#     { sed -n 1,1889p $R.serial; sed -n 1889p $R.serial | sed 's/^\[1700000178/[1700003778/'; } > $H.serial
-#     cp $R.lxf $H.lxf      # then POST /test_play {"name": "hold.serial"}
-#   and run this once heat 1 has finished (about 3 min in).
-# The picker comes from the cloud (default https://splouch.org), which lists meets
-# with their images; a Pi opens straight into its own meet.
+# Every screen comes from the live server (default https://splouch.org): the
+# picker lists its meets with their images, and the meet screens open the meet
+# named by the second argument (default Dolphins, one of the test meets the
+# server replays around the clock, so its board is mid-race and its results
+# and schedule carry real names and times).
 #
-# Needs a Debug build (it reads SPLOUCH_SERVER / SPLOUCH_TAB):
+# Needs a Debug build (it reads SPLOUCH_SERVER / SPLOUCH_MEET / SPLOUCH_TAB):
 #   xcodebuild -project App/Splouch.xcodeproj -scheme Splouch \
 #     -destination 'generic/platform=iOS Simulator' -derivedDataPath .build/xcode build
 #
@@ -27,8 +20,10 @@
 # device language with -AppleLanguages so native strings follow.
 set -eu
 
-PI=${1:-http://127.0.0.1:5056}
-CLOUD=${2:-https://splouch.org}
+SERVER=${1:-https://splouch.org}
+MEET_NAME=${2:-Dolphins}
+MEET=$(curl -fsS "$SERVER/meets" | python3 -c 'import json, sys
+print(next(m["id"] for m in json.load(sys.stdin)["meets"] if m["name"] == sys.argv[1]))' "$MEET_NAME")
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 APP="$ROOT/.build/xcode/Build/Products/Debug-iphonesimulator/Splouch.app"
 OUT="$ROOT/Screenshots"
@@ -51,16 +46,16 @@ capture() { # device-name folder
       xcrun simctl ui "$D" appearance "$theme"
       dir="$OUT/$2/$lang/$theme"
       mkdir -p "$dir"
-      prefs=$(printf '{"language":"%s","labelStyle":"long","appearance":"%s","savedServers":[]}' "$lang" "$theme" | xxd -p | tr -d '\n')
+      prefs=$(printf '{"language":"%s","labelStyle":"long","appearance":"%s","savedServers":[],"introSeen":true}' "$lang" "$theme" | xxd -p | tr -d '\n')
       i=1
       for screen in picker scoreboard results schedule; do
         xcrun simctl terminate "$D" "$BUNDLE" 2>/dev/null || true
         xcrun simctl spawn "$D" defaults write "$BUNDLE" splouch.preferences -data "$prefs"
         if [ "$screen" = picker ]; then
-          SIMCTL_CHILD_SPLOUCH_SERVER=$CLOUD \
+          SIMCTL_CHILD_SPLOUCH_SERVER=$SERVER \
             xcrun simctl launch "$D" "$BUNDLE" -AppleLanguages "($lang)" -AppleLocale "${lang}_CA" >/dev/null
         else
-          SIMCTL_CHILD_SPLOUCH_SERVER=$PI SIMCTL_CHILD_SPLOUCH_TAB=$screen \
+          SIMCTL_CHILD_SPLOUCH_SERVER=$SERVER SIMCTL_CHILD_SPLOUCH_MEET=$MEET SIMCTL_CHILD_SPLOUCH_TAB=$screen \
             xcrun simctl launch "$D" "$BUNDLE" -AppleLanguages "($lang)" -AppleLocale "${lang}_CA" >/dev/null
         fi
         sleep "$WAIT"
