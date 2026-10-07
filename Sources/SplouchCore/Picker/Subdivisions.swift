@@ -50,6 +50,16 @@ public enum Subdivisions {
         return out
     }
 
+    /// P-21: every country the table knows, ISO 3166-1 alpha-2, upper-cased.
+    public static var countries: [String] { Array(table.keys) }
+
+    /// P-21: every subdivision of `country` the table knows, once each.
+    public static func all(country: String) -> [Entry] {
+        var byCode: [String: Entry] = [:]
+        for entry in (table[country.uppercased()] ?? [:]).values { byCode[entry.code] = entry }
+        return Array(byCode.values)
+    }
+
     /// The subdivision `province` spells in `country`, matched by code or any
     /// listed spelling, folded as S-09 folds; nil when the table has no such one.
     public static func lookup(country: String, province: String) -> Entry? {

@@ -98,9 +98,10 @@ public struct MeetFilter: Sendable, Codable, Equatable {
 
     // MARK: - What the sheet offers
 
-    /// The values to offer: those the list holds, plus any chosen value it no
-    /// longer holds, so it can still be unchecked. Provinces only of the chosen
-    /// countries once one is chosen. Each sorted by what the reader sees.
+    /// The values to offer: clubs the list holds; every country and province
+    /// the app knows, plus any other the list holds; plus any chosen value, so
+    /// it can still be unchecked. Provinces only of the chosen countries once
+    /// one is chosen. Each sorted by what the reader sees.
     public struct Options: Sendable, Equatable {
         public var countries: [String]
         public var provinces: [Province]
@@ -115,9 +116,16 @@ public struct MeetFilter: Sendable, Codable, Equatable {
 
         var codes = Set(meets.map { $0.country.uppercased() }.filter { !$0.isEmpty })
         codes.formUnion(countries)
+        codes.formUnion(Subdivisions.countries)
 
         var provinceByKey: [String: Province] = [:]
         for p in provinces { provinceByKey[p.key] = p }
+        for code in codes {
+            for entry in Subdivisions.all(country: code) {
+                let p = Province(country: code, name: entry.code)
+                if provinceByKey[p.key] == nil { provinceByKey[p.key] = p }
+            }
+        }
         for m in meets where !m.province.isEmpty {
             let p = Province(country: m.country, name: m.province)
             if provinceByKey[p.key] == nil { provinceByKey[p.key] = p }

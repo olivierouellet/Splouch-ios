@@ -72,16 +72,28 @@ import Testing
         #expect(f.provinces == [.init(country: "US", name: "NY")])
     }
 
-    @Test func optionsComeFromTheListSortedAsRead() {
+    /// Clubs from the list; every country and province the app knows, whether
+    /// or not a meet of the list is there.
+    @Test func optionsOfferEveryKnownRegionSortedAsRead() {
         let o = MeetFilter().options(for: meets, locale: en)
-        #expect(o.countries == ["CA", "US"])
-        #expect(o.provinces.map(\.name) == ["NY", "ON", "QC"])
+        #expect(o.countries == ["CA", "MX", "US"])
+        #expect(o.provinces.count == 13 + 32 + 56)
+        #expect(o.provinces.first?.label(locale: en) == "Aguascalientes, Mexico")
         #expect(o.clubs == ["Asphalt Green", "CAMO", "Etobicoke", "Rouge et Or"])
     }
 
     @Test func provincesNarrowToTheChosenCountries() {
-        let o = MeetFilter(countries: ["US"]).options(for: meets, locale: en)
-        #expect(o.provinces == [.init(country: "US", name: "NY")])
+        let o = MeetFilter(countries: ["CA"]).options(for: meets, locale: en)
+        #expect(o.provinces.count == 13)
+        #expect(o.provinces.allSatisfy { $0.country == "CA" })
+        #expect(o.provinces.first?.label(locale: en) == "Alberta, Canada")
+    }
+
+    /// A region the app does not know is offered once the list holds it.
+    @Test func anUnknownRegionTheListHoldsIsOffered() {
+        let o = MeetFilter().options(for: [meet("muc", country: "DE", province: "BY")], locale: en)
+        #expect(o.countries.contains("DE"))
+        #expect(o.provinces.contains(.init(country: "DE", name: "BY")))
     }
 
     /// A chosen club gone from today's list can still be unchecked.
@@ -102,9 +114,11 @@ import Testing
             meet("a", country: "CA", province: "QC"), meet("b", country: "CA", province: "Québec"),
             meet("c", country: "CA", province: "quebec"),
         ]
-        let o = MeetFilter().options(for: spelled, locale: en)
-        #expect(o.provinces.count == 1)
-        #expect(MeetFilter(provinces: [o.provinces[0]]).apply(spelled).count == 3)
+        let quebec = MeetFilter().options(for: spelled, locale: en).provinces.filter {
+            $0.label(locale: en) == "Québec, Canada"
+        }
+        #expect(quebec.count == 1)
+        #expect(MeetFilter(provinces: [quebec[0]]).apply(spelled).count == 3)
     }
 
     // MARK: - Remembered
