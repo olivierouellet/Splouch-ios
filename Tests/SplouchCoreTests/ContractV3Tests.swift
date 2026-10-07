@@ -281,9 +281,46 @@ import Testing
     @Test func theCountryIsNamedInTheReadersLanguage() {
         let m = meet(country: "DE", province: "BY")
         #expect(m.countryName(locale: Locale(identifier: "fr")) == "Allemagne")
-        #expect(m.region(locale: Locale(identifier: "en")) == "BY, Germany")
-        #expect(meet(country: "", province: "QC").region(locale: Locale(identifier: "en")) == "QC")
-        #expect(meet(country: "", province: "").region() == nil)
+    }
+
+    @Test func theCardShowsTheCityAndTheCodes() {
+        #expect(meet(country: "CA", province: "Québec").place() == ["Pool", "QC", "CA"])
+        #expect(meet(country: "de", province: "Bayern").place() == ["Pool", "Bayern", "DE"])
+        #expect(meet(country: "", province: "").place() == ["Pool"])
+    }
+
+    @Test func whatTheFilterPinsIsNotRepeated() {
+        let qc = meet(country: "CA", province: "QC")
+        #expect(qc.place(filter: MeetFilter(countries: ["CA"])) == ["Pool", "QC"])
+        #expect(qc.place(filter: MeetFilter(countries: ["CA", "US"])) == ["Pool", "QC", "CA"])
+        let quebec = MeetFilter.Province(country: "CA", name: "Québec")
+        let qcCode = MeetFilter.Province(country: "CA", name: "QC")
+        let on = MeetFilter.Province(country: "CA", name: "ON")
+        // Two spellings of one province are one choice.
+        #expect(qc.place(filter: MeetFilter(provinces: [quebec, qcCode])) == ["Pool"])
+        #expect(qc.place(filter: MeetFilter(provinces: [quebec, on])) == ["Pool", "QC"])
+    }
+
+    @Test func meetsGoUnderTheirDayAnUndatedOneLast() {
+        func m(_ id: String, _ date: String) -> MeetSummary {
+            MeetSummary(
+                id: id, name: id, location: "", sport: "", organizer: "", meetDate: date, offline: false,
+                hasPickerImage: false)
+        }
+        let days = MeetDay.group([m("a", ""), m("b", "2026-10-07"), m("c", "2026-10-06"), m("d", "2026-10-07")])
+        #expect(days.map(\.date) == ["2026-10-06", "2026-10-07", ""])
+        #expect(days[1].meets.map(\.id) == ["b", "d"])
+    }
+
+    @Test func aDayIsNamedInTheReadersLanguage() {
+        let now = Calendar(identifier: .gregorian).date(from: DateComponents(year: 2026, month: 10, day: 6))!
+        let day = MeetDay(date: "2026-10-06", meets: [])
+        #expect(day.heading(locale: Locale(identifier: "en_US"), now: now) == "Tuesday, October 6")
+        #expect(day.heading(locale: Locale(identifier: "fr_CA"), now: now) == "mardi 6 octobre")
+        #expect(
+            MeetDay(date: "2027-01-02", meets: []).heading(locale: Locale(identifier: "en_US"), now: now)
+                == "Saturday, January 2, 2027")
+        #expect(MeetDay(date: "", meets: []).heading() == nil)
     }
 
     @Test(arguments: [

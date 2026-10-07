@@ -54,11 +54,9 @@ import Testing
             id: "m", name: "Invitational", location: "", sport: "", organizer: "", meetDate: "",
             offline: false, hasPickerImage: false, country: "CA", province: "QC")
         #expect(MeetSearch.filter([m], query: "québec").count == 1)
-        #expect(m.region(locale: Locale(identifier: "en")) == "Québec, Canada")
         let bc = MeetSummary(
             id: "b", name: "Invitational", location: "", sport: "", organizer: "", meetDate: "",
             offline: false, hasPickerImage: false, country: "CA", province: "BC")
-        #expect(bc.region(locale: Locale(identifier: "fr")) == "Colombie-Britannique, Canada")
         #expect(MeetSearch.filter([bc], query: "colombie", locale: Locale(identifier: "fr")).count == 1)
         #expect(
             MeetFilter.Province(country: "CA", name: "BC").label(locale: Locale(identifier: "fr"))

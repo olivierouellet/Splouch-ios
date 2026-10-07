@@ -172,29 +172,41 @@ struct PickerScreen: View {
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
         } else {
-            Section {
-                ForEach(shownMeets) { meet in
-                    Button {
-                        Task { await open(meet) }
-                    } label: {
-                        // P-18: past ten meets every row is compact and no
-                        // picker image is asked for — `pickerImageURL` is nil
-                        // for all of them.
-                        MeetCard(
-                            meet: meet,
-                            imageURL: app.pickerImageURL(for: meet),
-                            compact: app.listIsCompact,
-                            locale: app.locale,
-                            unnamed: served("unnamed_meet"),
-                            offline: strings.mobile("offline"))
+            // P-01: a section per day, headed by it. P-06's line heads the
+            // first, above the day; P-21's count ends the last.
+            let days = MeetDay.group(shownMeets)
+            ForEach(Array(days.enumerated()), id: \.element.id) { index, day in
+                Section {
+                    ForEach(day.meets) { meet in
+                        Button {
+                            Task { await open(meet) }
+                        } label: {
+                            // P-18: past ten meets every row is compact and no
+                            // picker image is asked for — `pickerImageURL` is nil
+                            // for all of them.
+                            MeetCard(
+                                meet: meet,
+                                imageURL: app.pickerImageURL(for: meet),
+                                compact: app.listIsCompact,
+                                filter: filter,
+                                unnamed: served("unnamed_meet"),
+                                offline: strings.mobile("offline"))
+                        }
+                        .buttonStyle(CardButtonStyle())
+                        .disabled(opening)
                     }
-                    .buttonStyle(CardButtonStyle())
-                    .disabled(opening)
+                } header: {
+                    VStack(alignment: .leading, spacing: 8) {
+                        if index == 0 { disclaimerLine }
+                        Text(day.heading(locale: app.locale) ?? (day.date.isEmpty ? served("date_unknown") : day.date))
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                            .textCase(nil)
+                            .accessibilityAddTraits(.isHeader)
+                    }
+                } footer: {
+                    if index == days.count - 1 { hiddenByFilter }
                 }
-            } header: {
-                disclaimerLine
-            } footer: {
-                hiddenByFilter
             }
         }
     }
@@ -407,18 +419,23 @@ extension View {
 }
 
 /// P-01, P-02, P-03. One meet as a list row: no card, no border, no padding of
-/// its own — the list draws all three. `compact` is P-18's row: name, date,
-/// location, province/country and the live dot — no image slot, no sport.
+/// its own — the list draws all three. The name on two lines at most, then
+/// city, state/province code and country code on one; the day is the
+/// section's. `compact` is P-18's row: the name on one line, no image slot.
 struct MeetCard: View {
     let meet: MeetSummary
     let imageURL: URL?
     var compact = false
-    var locale: Locale = .current
+    /// P-21's filter: a country or province it narrows to one is not repeated.
+    var filter = MeetFilter()
     let unnamed: String
     /// The server's word for a retained meet with no relay (`mobile.offline`).
     var offline: String = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulsing = false
+    /// P-01: one height for every row — one line of name leaves it padding, a
+    /// second takes it back. Scaled with the text, so large type still fits.
+    @ScaledMetric(relativeTo: .headline) private var rowHeight: CGFloat = 72
 
     /// The one colour here that is the product rather than the chrome, so it is
     /// the only one not taken from the system palette.
@@ -447,25 +464,24 @@ struct MeetCard: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8))
             }
             VStack(alignment: .leading, spacing: 4) {
-                // The name wraps rather than shrinking. On one line with a 0.5
-                // floor a long name hit that floor in portrait — half of
-                // `.headline`, about 8.5pt — because the row is narrow there.
+                // Two lines, shrinking a little before the ellipsis. On one
+                // line with a 0.5 floor a long name hit that floor in portrait —
+                // half of `.headline`, about 8.5pt — because the row is narrow.
                 Text(meet.name.isEmpty ? unnamed : meet.name)
                     .font(.headline)
-                    .lineLimit(2)
+                    .lineLimit(compact ? 1 : 2)
                     .minimumScaleFactor(0.8)
                     .fixedSize(horizontal: false, vertical: true)
-                let details = [meet.meetDate, meet.location, meet.offline ? offline : ""].filter { !$0.isEmpty }
-                if !details.isEmpty {
-                    Text(details.joined(separator: " · ")).font(.subheadline).foregroundStyle(.secondary)
-                }
-                // P-01: the organizer's province and country, named in the
-                // app's language.
-                let footer = [meet.region(locale: locale) ?? "", compact ? "" : meet.sport].filter { !$0.isEmpty }
-                if !footer.isEmpty {
-                    Text(footer.joined(separator: " · ")).font(.caption).foregroundStyle(.secondary)
+                // P-01: `Montréal · QC · CA`, cut at the end.
+                let place = meet.place(filter: filter) + (meet.offline ? [offline] : [])
+                if !place.isEmpty {
+                    Text(place.joined(separator: " · "))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
             }
+            .frame(minHeight: compact ? nil : rowHeight)
             Spacer(minLength: 8)
             // The disclosure glyph at the weight and colour the system draws it,
             // since an async open cannot be a NavigationLink.
@@ -475,7 +491,6 @@ struct MeetCard: View {
                 // Decoration: the row is already a button.
                 .accessibilityHidden(true)
         }
-        .padding(.vertical, compact ? 0 : 4)
         .opacity(meet.offline ? 0.75 : 1)
     }
 
