@@ -552,19 +552,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In Schedule, add a swimmer or a club with the filter and only their heats are listed. Turn on All heats to see every heat again. Where the meet allows it, the bell tells you when their heat is near."
+            "value" : "In Schedule, add a swimmer or a club with the filter: only their heats are listed.\n\nTurn on All heats to see every heat again.\n\nWhere the meet allows it, the bell at the top of Schedule tells you when their heat is near."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "En Programa, agregue un nadador o un club con el filtro y solo se listan sus series. Active Todas las series para volver a verlas todas. Cuando la competición lo permite, la campana le avisa cuando su serie se acerca."
+            "value" : "En Programa, agregue un nadador o un club con el filtro y solo se listan sus series.\n\nActive Todas las series para volver a verlas todas.\n\nCuando la competición lo permite, la campana en la parte superior de Programa le avisa cuando su serie se acerca."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dans Horaire, ajoutez un nageur ou un club avec le filtre : seules leurs séries sont listées. Activez Toutes les séries pour les revoir toutes. Quand la compétition le permet, la cloche vous prévient quand leur série approche."
+            "value" : "Dans Horaire, ajoutez un nageur ou un club avec le filtre : seules leurs séries sont listées.\n\nActivez Toutes les séries pour les revoir toutes.\n\nQuand la compétition le permet, la cloche en haut d'Horaire vous prévient quand leur série approche."
           }
         }
       }
@@ -588,6 +588,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Suivre un nageur ou un club"
+          }
+        }
+      }
+    },
+    "intro_meets_body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meets are listed by day.\n\nThe filter keeps only the meets of your club, country or province. It stays set until you clear it.\n\nThe gear opens Settings: language, appearance and privacy."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les compétitions sont classées par jour.\n\nLe filtre ne garde que celles de votre club, pays ou province. Il reste actif jusqu'à ce que vous l'effaciez.\n\nL'engrenage ouvre les Réglages : langue, apparence et confidentialité."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las competiciones se listan por día.\n\nEl filtro deja solo las de su club, país o provincia. Queda activo hasta que lo borre.\n\nEl engranaje abre los Ajustes: idioma, apariencia y privacidad."
+          }
+        }
+      }
+    },
+    "intro_meets_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find your meet"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trouver votre compétition"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encontrar su competición"
           }
         }
       }
@@ -690,19 +736,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scoreboard shows the heat in the water, Results the finished heats, and Schedule the start lists — all three along the bottom of a meet."
+            "value" : "Scoreboard shows the heat in the water, Results the finished heats, and Schedule the start lists.\n\nAll three sit along the bottom of a meet."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Marcador muestra la serie en el agua, Resultados las series terminadas y Programa las listas de salida — las tres en la parte inferior de una competencia."
+            "value" : "Marcador muestra la serie en el agua, Resultados las series terminadas y Programa las listas de salida.\n\nLas tres están en la parte inferior de una competición."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tableau montre la série dans l'eau, Résultats les séries terminées et Horaire les listes de départ — les trois au bas de l'écran d'une compétition."
+            "value" : "Tableau montre la série dans l'eau, Résultats les séries terminées et Horaire les listes de départ.\n\nLes trois sont au bas de l'écran d'une compétition."
           }
         }
       }
@@ -726,6 +772,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Trois onglets"
+          }
+        }
+      }
+    },
+    "intro_times_body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Each lane shows its seed time, then its console time once swum, then its official time, each in its own colour.\n\nTap a heat marked ± to see each lane's gap to its seed."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaque couloir montre son temps d'inscription, puis le temps de la console une fois nagé, puis le temps officiel, chacun de sa couleur.\n\nTouchez une série marquée ± pour voir l'écart de chaque couloir avec son inscription."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada carril muestra su tiempo de inscripción, luego el tiempo de la consola una vez nadado y luego el tiempo oficial, cada uno con su color.\n\nToque una serie marcada con ± para ver la diferencia de cada carril con su inscripción."
+          }
+        }
+      }
+    },
+    "intro_times_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Times in the schedule"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les temps à l'horaire"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los tiempos en el programa"
           }
         }
       }
@@ -1472,19 +1564,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You can change this at any time in Settings, under Privacy."
+            "value" : "You can turn it off at any time, here or in Settings, under Privacy."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Puede cambiarlo en cualquier momento en Ajustes, en Privacidad."
+            "value" : "Puede desactivarlo en cualquier momento, aquí o en Ajustes, en Privacidad."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vous pouvez changer ce choix en tout temps dans Réglages, sous Confidentialité."
+            "value" : "Vous pouvez le désactiver en tout temps, ici ou dans Réglages, sous Confidentialité."
           }
         }
       }

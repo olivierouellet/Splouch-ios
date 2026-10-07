@@ -57,15 +57,19 @@ enum Native {
     static var privacyCount: String { String(localized: "privacy_count", bundle: .module) }
     static var privacyPolicy: String { String(localized: "privacy_policy", bundle: .module) }
     static var appVersion: String { String(localized: "app_version", bundle: .module) }
-    // P-20. Pages 1 and 4 carry the server's text; titles, pages 2 and 3, and
-    // the controls are the app's.
+    // P-20. The first and last pages carry the server's text; titles, the pages
+    // between, and the controls are the app's.
     static var showIntroduction: String { String(localized: "show_introduction", bundle: .module) }
     static var introSkip: String { String(localized: "intro_skip", bundle: .module) }
     static var introNext: String { String(localized: "intro_next", bundle: .module) }
     static var introStart: String { String(localized: "intro_start", bundle: .module) }
     static var introResultsTitle: String { String(localized: "intro_results_title", bundle: .module) }
+    static var introMeetsTitle: String { String(localized: "intro_meets_title", bundle: .module) }
+    static var introMeetsBody: String { String(localized: "intro_meets_body", bundle: .module) }
     static var introTabsTitle: String { String(localized: "intro_tabs_title", bundle: .module) }
     static var introTabsBody: String { String(localized: "intro_tabs_body", bundle: .module) }
+    static var introTimesTitle: String { String(localized: "intro_times_title", bundle: .module) }
+    static var introTimesBody: String { String(localized: "intro_times_body", bundle: .module) }
     static var introFollowTitle: String { String(localized: "intro_follow_title", bundle: .module) }
     static var introFollowBody: String { String(localized: "intro_follow_body", bundle: .module) }
     static var introCountingTitle: String { String(localized: "intro_counting_title", bundle: .module) }

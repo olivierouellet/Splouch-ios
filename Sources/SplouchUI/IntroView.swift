@@ -1,13 +1,13 @@
 import SplouchCore
 import SwiftUI
 
-/// P-20: the introduction. Four short pages — icon, title, a sentence or two —
-/// paged, skippable from the first, ending on the picker. Pages 1 and 4 are the
-/// server's words (`results_disclaimer`, `privacy_note`); the rest is the app's
-/// (T-05). Page 4 only while the server counts.
+/// P-20: the introduction. Up to six short pages — icon, title, a sentence per
+/// line — paged, skippable from the first, ending on the picker. The first and
+/// last are the server's words (`results_disclaimer`, `privacy_note`); the rest
+/// is the app's (T-05). The last only while the server counts.
 ///
 /// Finishing and skipping are the same act: both mark it seen, and neither
-/// touches counting — page 4's toggle is `C-10`'s own setting, not a consent.
+/// touches counting — the last page's toggle is `C-10`'s own setting, not a consent.
 struct IntroView: View {
     let app: AppModel
     @Environment(\.dismiss) private var dismiss
@@ -24,18 +24,20 @@ struct IntroView: View {
     private var pages: [Page] {
         var out = [
             Page(id: 0, symbol: "hourglass", title: Native.introResultsTitle, text: app.disclaimer ?? ""),
-            Page(id: 1, symbol: "rectangle.split.3x1", title: Native.introTabsTitle, text: Native.introTabsBody),
+            Page(id: 1, symbol: "magnifyingglass", title: Native.introMeetsTitle, text: Native.introMeetsBody),
+            Page(id: 2, symbol: "rectangle.split.3x1", title: Native.introTabsTitle, text: Native.introTabsBody),
+            Page(id: 3, symbol: "plusminus.circle", title: Native.introTimesTitle, text: Native.introTimesBody),
             Page(
-                id: 2, symbol: "line.3.horizontal.decrease.circle", title: Native.introFollowTitle,
+                id: 4, symbol: "line.3.horizontal.decrease.circle", title: Native.introFollowTitle,
                 text: Native.introFollowBody),
         ]
         if app.analyticsEnabled, let note = app.privacyNote {
-            out.append(Page(id: 3, symbol: "person.2", title: Native.introCountingTitle, text: note, counting: true))
+            out.append(Page(id: 5, symbol: "person.2", title: Native.introCountingTitle, text: note, counting: true))
         }
         return out
     }
 
-    /// Clamped: the server can stop counting while page 4 is on screen.
+    /// Clamped: the server can stop counting while the last page is on screen.
     private var isLast: Bool { page >= pages.count - 1 }
 
     var body: some View {
