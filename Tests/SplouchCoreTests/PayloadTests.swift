@@ -26,13 +26,15 @@ import Testing
     @Test func meetListReadsFlagsAndDefaults() throws {
         let list = try MeetList(
             json: json(
-                #"{"meets":[{"id":"aBc","name":"Open","offline":true},{"id":"d","meet_date":"2026-09-12","has_picker_image":true}]}"#
+                #"{"meets":[{"id":"aBc","name":"Open","offline":true},{"id":"d","meet_date":"2026-09-12","has_picker_image":true,"test":true}]}"#
             ))
         #expect(list.meets.count == 2)
         #expect(list.meets[0].offline == true)
         #expect(list.meets[0].location == "")
         #expect(list.meets[1].hasPickerImage == true)
         #expect(list.meets[1].meetDate == "2026-09-12")
+        #expect(list.meets[0].test == false)
+        #expect(list.meets[1].test == true)
     }
 
     @Test func meetWithoutIDIsAnError() {

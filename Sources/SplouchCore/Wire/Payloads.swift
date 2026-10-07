@@ -56,11 +56,14 @@ public struct MeetSummary: Sendable, Equatable, Identifiable {
     /// a server older than the field, or one that fails P-12's floor: the
     /// server's own address then.
     public var base: ServerAddress?
+    /// One of the server's own test meets (P-22): badged, since its name is a
+    /// team's and does not say so.
+    public var test: Bool
 
     public init(
         id: String, name: String, location: String, sport: String, organizer: String, meetDate: String,
         offline: Bool, hasPickerImage: Bool, country: String = "", province: String = "",
-        base: ServerAddress? = nil
+        base: ServerAddress? = nil, test: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -73,6 +76,7 @@ public struct MeetSummary: Sendable, Equatable, Identifiable {
         self.country = country
         self.province = province
         self.base = base
+        self.test = test
     }
 }
 

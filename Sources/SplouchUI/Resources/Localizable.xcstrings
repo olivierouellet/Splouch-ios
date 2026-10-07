@@ -14,6 +14,26 @@
         }
       }
     },
+    "%@%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@%2$@"
+          }
+        }
+      }
+    },
+    "%@%@%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@%2$@%3$@"
+          }
+        }
+      }
+    },
     "%lld" : {
 
     },
@@ -601,16 +621,16 @@
             "value" : "Meets are listed by day.\n\nThe filter {filter} keeps only the meets of your club, country or province. It stays set until you clear it.\n\nThe gear {gear} opens Settings: language, appearance and privacy."
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Les compétitions sont classées par jour.\n\nLe filtre {filter} ne garde que celles de votre club, pays ou province. Il reste actif jusqu'à ce que vous l'effaciez.\n\nL'engrenage {gear} ouvre les Réglages : langue, apparence et confidentialité."
-          }
-        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Las competiciones se listan por día.\n\nEl filtro {filter} deja solo las de su club, país o provincia. Queda activo hasta que lo borre.\n\nEl engranaje {gear} abre los Ajustes: idioma, apariencia y privacidad."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les compétitions sont classées par jour.\n\nLe filtre {filter} ne garde que celles de votre club, pays ou province. Il reste actif jusqu'à ce que vous l'effaciez.\n\nL'engrenage {gear} ouvre les Réglages : langue, apparence et confidentialité."
           }
         }
       }
@@ -624,16 +644,16 @@
             "value" : "Find your meet"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trouver votre compétition"
-          }
-        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Encontrar su competición"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trouver votre compétition"
           }
         }
       }
@@ -785,16 +805,16 @@
             "value" : "Each lane shows its seed time, then its console time once swum, then its official time, each in its own colour.\n\nTap a heat marked {plusminus} to see each lane's gap to its seed."
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chaque couloir montre son temps d'inscription, puis le temps de la console une fois nagé, puis le temps officiel, chacun de sa couleur.\n\nTouchez une série marquée {plusminus} pour voir l'écart de chaque couloir avec son inscription."
-          }
-        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cada carril muestra su tiempo de inscripción, luego el tiempo de la consola una vez nadado y luego el tiempo oficial, cada uno con su color.\n\nToque una serie marcada con {plusminus} para ver la diferencia de cada carril con su inscripción."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaque couloir montre son temps d'inscription, puis le temps de la console une fois nagé, puis le temps officiel, chacun de sa couleur.\n\nTouchez une série marquée {plusminus} pour voir l'écart de chaque couloir avec son inscription."
           }
         }
       }
@@ -808,16 +828,16 @@
             "value" : "Times in the schedule"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Les temps à l'horaire"
-          }
-        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Los tiempos en el programa"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les temps à l'horaire"
           }
         }
       }

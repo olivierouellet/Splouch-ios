@@ -39,7 +39,8 @@ extension MeetSummary {
             meetDate: json.str("meet_date"), offline: json.flag("offline", default: false),
             hasPickerImage: json.flag("has_picker_image", default: false),
             country: json.str("country"), province: json.str("province"),
-            base: ServerAddress(base: json.str("base")))
+            base: ServerAddress(base: json.str("base")),
+            test: json.flag("test", default: false))
     }
 }
 

@@ -190,7 +190,8 @@ struct PickerScreen: View {
                                 compact: app.listIsCompact,
                                 filter: filter,
                                 unnamed: served("unnamed_meet"),
-                                offline: strings.mobile("offline"))
+                                offline: strings.mobile("offline"),
+                                testBadge: served("test_meet"))
                         }
                         .buttonStyle(CardButtonStyle())
                         .disabled(opening)
@@ -431,6 +432,8 @@ struct MeetCard: View {
     let unnamed: String
     /// The server's word for a retained meet with no relay (`mobile.offline`).
     var offline: String = ""
+    /// P-22: the server's word for a test meet (`test_meet`), after its name.
+    var testBadge: String = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulsing = false
     /// P-01: one height for every row — one line of name leaves it padding, a
@@ -467,11 +470,14 @@ struct MeetCard: View {
                 // Two lines, shrinking a little before the ellipsis. On one
                 // line with a 0.5 floor a long name hit that floor in portrait —
                 // half of `.headline`, about 8.5pt — because the row is narrow.
-                Text(meet.name.isEmpty ? unnamed : meet.name)
-                    .font(.headline)
-                    .lineLimit(compact ? 1 : 2)
-                    .minimumScaleFactor(0.8)
-                    .fixedSize(horizontal: false, vertical: true)
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(meet.name.isEmpty ? unnamed : meet.name)
+                        .font(.headline)
+                        .lineLimit(compact ? 1 : 2)
+                        .minimumScaleFactor(0.8)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if meet.test, !testBadge.isEmpty { TestBadge(text: testBadge) }
+                }
                 // P-01: `Montréal · QC · CA`, cut at the end.
                 let place = meet.place(filter: filter) + (meet.offline ? [offline] : [])
                 if !place.isEmpty {
@@ -495,6 +501,23 @@ struct MeetCard: View {
     }
 
     private var placeholder: some View { Color.secondary.opacity(0.15) }
+
+    /// P-22: the web's `.test-badge` — small, bold, outlined in the accent
+    /// colour. Never shrunk or cut: the name gives way to it.
+    private struct TestBadge: View {
+        let text: String
+        var body: some View {
+            Text(text)
+                .font(.caption2.weight(.bold))
+                .tracking(0.5)
+                .foregroundStyle(.tint)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 1)
+                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(.tint, lineWidth: 1))
+                .fixedSize()
+                .layoutPriority(1)
+        }
+    }
 
     /// A live meet breathes; a retained one is a hollow ring and holds still.
     /// Both are the same 8pt frame and only `opacity`/`scaleEffect` move, so a
