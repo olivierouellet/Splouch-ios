@@ -56,9 +56,10 @@ struct PickerScreen: View {
             meets
         }
         .groupedList()
-        // The grouped list's own top inset is generous, which is right in
-        // portrait and costly on the axis that has no height to spare.
-        .trimmedTop(shortScreen)
+        // The grouped list's own top inset sits over a first section with no
+        // header: under the toolbar it read as dead space above the logo, in
+        // portrait as much as in landscape. The branding's padding is the gap.
+        .contentMargins(.top, 0, for: .scrollContent)
         .refreshable { await app.load() }  // P-09
         .meetSearch(shown: searchShown, text: $query, prompt: served("meet_search"))
         .overlay { if app.loading && app.meets.isEmpty { ProgressView() } }
@@ -235,11 +236,13 @@ struct PickerScreen: View {
                 .foregroundStyle(.secondary)
                 .textCase(nil)
                 .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, minHeight: 44)  // X-05
                 .contentShape(Rectangle())
-                .frame(minHeight: 44)  // X-05
             }
             .buttonStyle(.plain)
+            // The 44pt target already spaces the line from the logo; the
+            // header's own vertical inset only doubled that gap.
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
             .accessibilityFocused($focus, equals: .disclaimer)
             .popover(isPresented: $showDisclaimer) {
                 DisclaimerSheet(title: short, text: full)
@@ -378,14 +381,6 @@ extension View {
             #else
             self.searchable(text: text, prompt: Text(prompt))
             #endif
-        } else {
-            self
-        }
-    }
-
-    @ViewBuilder fileprivate func trimmedTop(_ trim: Bool) -> some View {
-        if trim {
-            self.contentMargins(.top, 0, for: .scrollContent)
         } else {
             self
         }
