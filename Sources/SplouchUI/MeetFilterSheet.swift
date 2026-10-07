@@ -1,8 +1,8 @@
 import SplouchCore
 import SwiftUI
 
-/// P-21: the picker's filter. Three sections of checkable rows — country,
-/// state/province, club — offering what the list holds. Every tap writes
+/// P-21: the picker's filter. Three sections of checkable rows — club,
+/// country, state/province — offering what the list holds. Every tap writes
 /// straight to the stored filter, so the list behind is already filtered and
 /// the checkmark only confirms, as the schedule's filter sheet does.
 struct MeetFilterSheet: View {
@@ -15,6 +15,13 @@ struct MeetFilterSheet: View {
         let options = filter.options(for: app.meets)
         NavigationStack {
             List {
+                if !options.clubs.isEmpty {
+                    Section(Native.filterClub) {
+                        ForEach(options.clubs, id: \.self) { club in
+                            row(club, checked: filter.has(club: club)) { $0.toggle(club: club) }
+                        }
+                    }
+                }
                 if !options.countries.isEmpty {
                     Section(Native.filterCountry) {
                         ForEach(options.countries, id: \.self) { code in
@@ -29,13 +36,6 @@ struct MeetFilterSheet: View {
                     Section(Native.filterProvince) {
                         ForEach(options.provinces, id: \.self) { p in
                             row(p.label(), checked: filter.has(province: p)) { $0.toggle(province: p) }
-                        }
-                    }
-                }
-                if !options.clubs.isEmpty {
-                    Section(Native.filterClub) {
-                        ForEach(options.clubs, id: \.self) { club in
-                            row(club, checked: filter.has(club: club)) { $0.toggle(club: club) }
                         }
                     }
                 }
