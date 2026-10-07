@@ -101,6 +101,9 @@ public final class AppModel {
     public private(set) var unreachable = false
     /// Chrome strings in the device's language.
     public private(set) var strings: StringTable
+    /// The picker's names — a country, a province (P-01) — in the language its
+    /// words are in, not the device's.
+    public var locale: Locale { Locale(identifier: strings.language) }
     /// P-16: the question a scanned code raised, nil when there is none on screen.
     public private(set) var invite: ServerInvite?
     /// P-14: the contract versions that differ from the ones this app was built

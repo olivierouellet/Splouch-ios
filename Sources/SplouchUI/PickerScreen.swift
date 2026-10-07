@@ -103,7 +103,7 @@ struct PickerScreen: View {
     /// P-21 before P-17: the query searches what the filter leaves.
     private var filteredMeets: [MeetSummary] { filter.apply(app.meets) }
     private var shownMeets: [MeetSummary] {
-        searchShown ? MeetSearch.filter(filteredMeets, query: query) : filteredMeets
+        searchShown ? MeetSearch.filter(filteredMeets, query: query, locale: app.locale) : filteredMeets
     }
 
     @ViewBuilder private var meets: some View {
@@ -184,6 +184,7 @@ struct PickerScreen: View {
                             meet: meet,
                             imageURL: app.pickerImageURL(for: meet),
                             compact: app.listIsCompact,
+                            locale: app.locale,
                             unnamed: served("unnamed_meet"),
                             offline: strings.mobile("offline"))
                     }
@@ -412,6 +413,7 @@ struct MeetCard: View {
     let meet: MeetSummary
     let imageURL: URL?
     var compact = false
+    var locale: Locale = .current
     let unnamed: String
     /// The server's word for a retained meet with no relay (`mobile.offline`).
     var offline: String = ""
@@ -457,9 +459,9 @@ struct MeetCard: View {
                 if !details.isEmpty {
                     Text(details.joined(separator: " · ")).font(.subheadline).foregroundStyle(.secondary)
                 }
-                // P-01: the organizer's province and country, the country
-                // named in the device's language.
-                let footer = [meet.region() ?? "", compact ? "" : meet.sport].filter { !$0.isEmpty }
+                // P-01: the organizer's province and country, named in the
+                // app's language.
+                let footer = [meet.region(locale: locale) ?? "", compact ? "" : meet.sport].filter { !$0.isEmpty }
                 if !footer.isEmpty {
                     Text(footer.joined(separator: " · ")).font(.caption).foregroundStyle(.secondary)
                 }

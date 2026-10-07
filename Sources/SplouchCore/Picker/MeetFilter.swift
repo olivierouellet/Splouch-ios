@@ -142,7 +142,7 @@ public struct MeetFilter: Sendable, Codable, Equatable {
 extension MeetFilter.Province {
     /// `Québec, Canada`, as P-01 names a meet's region.
     public func label(locale: Locale = .current) -> String {
-        let province = Subdivisions.name(country: country, province: name)
+        let province = Subdivisions.name(country: country, province: name, locale: locale)
         let country = locale.localizedString(forRegionCode: country) ?? country
         return country.isEmpty ? province : "\(province), \(country)"
     }

@@ -12,7 +12,7 @@ struct MeetFilterSheet: View {
     private var filter: MeetFilter { app.preferences.meetFilter }
 
     var body: some View {
-        let options = filter.options(for: app.meets)
+        let options = filter.options(for: app.meets, locale: app.locale)
         NavigationStack {
             List {
                 if !options.clubs.isEmpty {
@@ -26,7 +26,7 @@ struct MeetFilterSheet: View {
                     Section(Native.filterCountry) {
                         ForEach(options.countries, id: \.self) { code in
                             row(
-                                Locale.current.localizedString(forRegionCode: code) ?? code,
+                                app.locale.localizedString(forRegionCode: code) ?? code,
                                 checked: filter.has(country: code)
                             ) { $0.toggle(country: code) }
                         }
@@ -35,7 +35,9 @@ struct MeetFilterSheet: View {
                 if !options.provinces.isEmpty {
                     Section(Native.filterProvince) {
                         ForEach(options.provinces, id: \.self) { p in
-                            row(p.label(), checked: filter.has(province: p)) { $0.toggle(province: p) }
+                            row(p.label(locale: app.locale), checked: filter.has(province: p)) {
+                                $0.toggle(province: p)
+                            }
                         }
                     }
                 }
