@@ -195,7 +195,13 @@ struct PickerScreen: View {
                                 unnamed: served("unnamed_meet"),
                                 offline: strings.mobile("offline"),
                                 testBadge: served("test_meet"),
-                                pulseRank: ranks[meet.id] ?? 0)
+                                pulseRank: ranks[meet.id] ?? 0
+                            )
+                            // The whole cell chooses the meet, as Android's card
+                            // does: a custom style hit-tests only what is drawn,
+                            // which left the gap before the chevron and the row's
+                            // insets dead. The cell's own bounds stop the overhang.
+                            .contentShape(Rectangle().inset(by: -24))
                         }
                         .buttonStyle(CardButtonStyle())
                         .disabled(opening)
