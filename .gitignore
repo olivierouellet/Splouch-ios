@@ -3,3 +3,6 @@
 # The Xcode project and its shared scheme are tracked — a clone has to be able
 # to build the app target (README, emulator.md). Only per-user state is not.
 xcuserdata/
+
+# App Store marketing art, rebuilt by scripts/store-art.py
+Screenshots/Marketing/
