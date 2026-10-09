@@ -1279,6 +1279,29 @@
         }
       }
     },
+    "notify_enabled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notify me"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avisarme"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Me prévenir"
+          }
+        }
+      }
+    },
     "notify_following" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1413,6 +1436,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Activer dans Réglages"
+          }
+        }
+      }
+    },
+    "notify_paused" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paused. Your swimmers are kept."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En pausa. Sus nadadores se conservan."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En pause. Vos nageurs sont conservés."
           }
         }
       }

@@ -30,9 +30,13 @@ struct NotificationsSheet: View {
         NavigationStack {
             Form {
                 if refused { refusedSection }
+                enabledSection
                 swimmersSection
-                leadSection
-                selectedSection
+                Group {
+                    leadSection
+                    selectedSection
+                }
+                .disabled(!follows.enabled)
             }
             .navigationTitle(Native.notifications)
             #if os(iOS)
@@ -69,6 +73,15 @@ struct NotificationsSheet: View {
                 if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
             }
             #endif
+        }
+    }
+
+    /// N-11: a quiet hour without losing the list.
+    private var enabledSection: some View {
+        Section {
+            Toggle(Native.notifyEnabled, isOn: enabled)
+        } footer: {
+            if !follows.enabled { Text(Native.notifyPaused) }
         }
     }
 
@@ -196,6 +209,16 @@ struct NotificationsSheet: View {
             set: {
                 var f = follows
                 f.lead = $0
+                save(f)
+            })
+    }
+
+    private var enabled: Binding<Bool> {
+        Binding(
+            get: { follows.enabled },
+            set: {
+                var f = follows
+                f.enabled = $0
                 save(f)
             })
     }

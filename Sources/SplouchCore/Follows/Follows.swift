@@ -41,20 +41,37 @@ public struct MeetFollows: Sendable, Codable, Equatable {
     public var lead: FollowLead
     /// N-06: also when the console reaches the heat.
     public var selected: Bool
+    /// N-11: off pauses the meet's notifications; the list stays.
+    public var enabled: Bool
     /// The meet's `base` (C-11) when last registered, so a new token can be
     /// sent everywhere without opening every meet again (N-07).
     public var base: String?
 
     public init(
-        swimmers: [FollowedSwimmer] = [], lead: FollowLead = .standard, selected: Bool = true, base: String? = nil
+        swimmers: [FollowedSwimmer] = [], lead: FollowLead = .standard, selected: Bool = true,
+        enabled: Bool = true, base: String? = nil
     ) {
         self.swimmers = swimmers
         self.lead = lead
         self.selected = selected
+        self.enabled = enabled
         self.base = base
     }
 
+    /// A list saved before N-11 has no `enabled`: it was on.
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        swimmers = try c.decode([FollowedSwimmer].self, forKey: .swimmers)
+        lead = try c.decode(FollowLead.self, forKey: .lead)
+        selected = try c.decode(Bool.self, forKey: .selected)
+        enabled = try c.decodeIfPresent(Bool.self, forKey: .enabled) ?? true
+        base = try c.decodeIfPresent(String.self, forKey: .base)
+    }
+
     public var isEmpty: Bool { swimmers.isEmpty }
+
+    /// Someone to notify about: swimmers followed and not paused (N-11).
+    public var isActive: Bool { enabled && !swimmers.isEmpty }
 
     public func contains(_ s: FollowedSwimmer) -> Bool { swimmers.contains(s) }
 
@@ -174,7 +191,10 @@ public struct FollowRegistration: Sendable, Equatable {
             "sandbox": .bool(token.sandbox),
             "lang": .string(lang),
             "swimmers": .array(
-                follows.swimmers.map { .object(["name": .string($0.name), "club": .string($0.club)]) }),
+                // N-11: paused, the node is told to stop; the device keeps the list.
+                (follows.enabled ? follows.swimmers : []).map {
+                    .object(["name": .string($0.name), "club": .string($0.club)])
+                }),
             "lead": lead,
             "selected": .bool(follows.selected),
         ])

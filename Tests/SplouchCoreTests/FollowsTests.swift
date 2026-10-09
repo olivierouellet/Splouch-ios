@@ -146,6 +146,39 @@ import Testing
         #expect(Self.bodies(stub).first?["swimmers"]?.array?.isEmpty == true)
     }
 
+    // MARK: N-11
+
+    @Test func pausedSendsAnEmptyListAndKeepsTheSwimmers() async {
+        let stub = StubServer()
+        stub.route("/meet/m1/follow") { _ in .init(status: 204) }
+        let store = InMemoryFollowStore()
+        let ctx = make(stub: stub, push: PushCenter(permission: .allowed, token: Self.token), store: store)
+        await ctx.setFollows(MeetFollows(swimmers: [Self.emma]))
+        await ctx.setFollows(MeetFollows(swimmers: [Self.emma], enabled: false))
+        await ctx.setFollows(MeetFollows(swimmers: [Self.emma]))
+        let sent = Self.bodies(stub).map { $0["swimmers"]?.array?.count }
+        #expect(sent == [1, 0, 1])
+        #expect(store.follows(server: stub.address.origin, meetID: "m1").swimmers == [Self.emma])
+    }
+
+    @Test func pausedIsSentEvenWithoutPermission() async {
+        let stub = StubServer()
+        stub.route("/meet/m1/follow") { _ in .init(status: 204) }
+        let ctx = make(stub: stub, push: PushCenter(permission: .refused, token: Self.token))
+        await ctx.setFollows(MeetFollows(swimmers: [Self.emma], enabled: false))
+        #expect(Self.bodies(stub).first?["swimmers"]?.array?.isEmpty == true)
+    }
+
+    @Test func aListSavedBeforeThePauseIsOn() throws {
+        let old = #"{"swimmers":[{"name":"Emma Roy","club":"CNQ"}],"lead":{"minutes":{"_0":5}},"selected":true}"#
+        let f = try JSONDecoder().decode(MeetFollows.self, from: Data(old.utf8))
+        #expect(f.enabled)
+        #expect(f.swimmers == [Self.emma])
+        let paused = MeetFollows(swimmers: [Self.emma], enabled: false)
+        let back = try JSONDecoder().decode(MeetFollows.self, from: JSONEncoder().encode(paused))
+        #expect(back == paused)
+    }
+
     @Test func aMeetHeldElsewhereIsFollowedThenAskedAgain() async {
         let stub = StubServer()
         let worker = ServerAddress(url: stub.address.url.appendingPathComponent("w2"))!

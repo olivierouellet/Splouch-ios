@@ -377,17 +377,19 @@ struct MeetShell: View {
     }
 
     // N-01. Filled, in the meet's timing colour, while someone is followed —
-    // the filter button's language for "active".
+    // the filter button's language for "active". Struck through while paused
+    // (N-11): the list is there, the notifications are not.
     private var bellButton: some View {
         let count = ctx.follows.swimmers.count
+        let paused = count > 0 && !ctx.follows.enabled
         return Button {
             showNotifications = true
         } label: {
-            Image(systemName: count > 0 ? "bell.fill" : "bell")
-                .foregroundStyle(count > 0 ? palette.time : Color.primary)
+            Image(systemName: paused ? "bell.slash" : count > 0 ? "bell.fill" : "bell")
+                .foregroundStyle(count > 0 && !paused ? palette.time : Color.primary)
         }
         .accessibilityLabel(Native.notifications)
-        .accessibilityValue(count > 0 ? Native.notifyFollowing(count) : "")
+        .accessibilityValue(paused ? Native.notifyPaused : count > 0 ? Native.notifyFollowing(count) : "")
     }
 
     // S-08, S-12. The count sits beside the symbol rather than in a bubble

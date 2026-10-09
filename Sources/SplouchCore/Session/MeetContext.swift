@@ -259,9 +259,9 @@ public final class MeetContext {
     /// device. A `409` names another worker: follow it (C-12) and send again.
     public func registerFollows() async {
         guard canNotify, let meetID, let push, let token = push.token else { return }
-        // An empty list stops the server notifying whatever the permission;
-        // a non-empty one is only worth sending once notifications can show.
-        guard follows.isEmpty || push.permission == .allowed else { return }
+        // An empty or paused list stops the server notifying whatever the
+        // permission; an active one is only worth sending once notifications can show.
+        guard !follows.isActive || push.permission == .allowed else { return }
         let registration = FollowRegistration(token: token, lang: effectiveLanguage, follows: follows)
         do {
             try await meetAPI.follow(meetID: meetID, registration)
