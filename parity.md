@@ -102,6 +102,7 @@ language controls reuse all of it.
 | `L-06` | Relay member names on a dimmed second line under the name | must | `done` | `alt` under the name in `thText` |
 | `L-07` | Column visibility follows config: `show_name`, `show_club`, `show_delta`, `show_position` | must | `done` | `Columns(settings)` from `show_name/club/delta/position` |
 | `L-08` | Column *headers* hide independently of the columns: `show_*_header` | should | `done` | `BoardTable.header` per `show_*_header`, landscape only (L-16) |
+| `L-25` | An empty lane is still water: one faint wave, drifting every 10 s, only when the heat has names | should | `done` | `StillWater` (Canvas under a `TimelineView` at 20 fps, paused by Reduce Motion) in place of the cells; `BoardRow.vacant`, and `BoardTable` checks the heat has a name. Tests: BoardRowTests |
 | `L-09` | Empty lanes render blank in place — rows never collapse or shift | must | `done` | rows are fixed slots with a `minHeight` floor; blanks render in place. Portrait rows share the height the way the landscape table already did, with 52pt as the floor rather than the size: fixed at 52 under a Spacer, a six-lane board drew 312pt of stripes and left the rest of the screen bare, which is a table sized to its content rather than a board filling its board |
 | `L-10` | Frames are partial: merge changed keys into local state, never replace | must | `done` | `ScoreboardState.apply` merges key by key (Board/ScoreboardState.swift); running flags first, then `running_time`, then cells. Tests: ScoreboardStateTests |
 | `L-11` | A running lane's time is styled distinctly; on stop it plays a one-shot "locked" transition, cancelled if the lane starts running… | must | `done` | `TimeCell`: running dimmed, `.locked(generation:)` replays a 0.8s white→timing flash per edge |
@@ -141,7 +142,7 @@ describes it where it exists.
 | `R-03` | Header shows the snapshot's own event, heat, and event name | must | `done` | `BoardHeader` from the snapshot |
 | `R-04` | Same six columns and visibility flags as the Scoreboard tab | must | `done` | same `BoardTable`, `Columns(settings)` |
 | `R-05` | Lane sort: row index = `channel`; a lane with no final time leaves its row blank | must | `done` | `ResultsBoard.rows`: row = `channel`, `sort` absent reads as lane (Board/ResultsBoard.swift). Tests: ResultsBoardTests |
-| `R-06` | Place sort: rows fill top-down as a ranking | must | `done` | `ResultsBoard.rows` with `sort == "place"` fills top-down |
+| `R-06` | Place sort: rows fill top-down as a ranking | must | `done` | `ResultsBoard.rows` with `sort == "place"` fills top-down; an unfilled rank has an empty `laneLabel` and is still water (`L-25`) |
 | `R-07` | A missing time renders as `—`, not blank; a missing place renders empty — no dash, and no `#` in front of it | should | `done` | `ResultRow.time` is `—` when empty, `place` is `""` when empty; the view renders the strings as they are |
 | `R-08` | Long names shrink to fit rather than clipping | should | `done` | `fitOneLine()` |
 | `R-09` | Final times carry the "locked" styling | should | `done` | `ResultRow.locked` → `TimeCell` locked styling |
@@ -222,7 +223,7 @@ describes it where it exists.
 
 | ID | Feature | Level | Status | Notes |
 | --- | --- | --- | --- | --- |
-| `X-01` | A lane is one element saying the whole lane, in the server's column words | must | `done` | `BoardTable.spoken(_:)`: composed from `T-04`'s words, so spoken in the meet's language; an empty lane says only its number. `L-23`'s lap is spoken as `Native.laps` + the number |
+| `X-01` | A lane is one element saying the whole lane, in the server's column words | must | `done` | `BoardTable.spoken(_:)`: composed from `T-04`'s words, so spoken in the meet's language; an empty lane (`L-25`) says only its number, an unfilled rank nothing. `L-23`'s lap is spoken as `Native.laps` + the number |
 | `X-02` | EVENT and HEAT read with their numbers, silent before a number | must | `done` | `BoardHeader`: the word and its number are one element, and say nothing before a number arrives |
 | `X-03` | A start-list lane is one utterance; a heat heading says the long words | should | `deferred` | not yet: a lane on a heat card is still its separate texts |
 | `X-04` | Heat headings, the picker's title and empty states are headings | should | `deferred` | heat headings carry `.isHeader`, so the rotor jumps heat to heat; the picker's title and the empty-state titles are not checked |

@@ -496,6 +496,9 @@ struct BoardTable: View {
             value.isEmpty ? nil : [labels[key], value].compactMap { $0 }.joined(separator: " ")
         }
         var parts = [pair("lane", row.laneLabel)]
+        // L-25: nobody in the lane — its number, or nothing for an unfilled rank. Not
+        // the Results row's `—`, which is drawn under the water and was never a time.
+        if row.vacant { return parts.compactMap { $0 }.joined(separator: ", ") }
         if columns.name {
             parts.append(row.name.isEmpty ? nil : row.name)
             parts.append(row.alt.isEmpty ? nil : row.alt)
