@@ -17,6 +17,9 @@ struct BoardRow: Equatable {
     var lap: LapCount?
     var timeStyle: TimeStyle = .plain
     var pulse = false
+    /// Nothing in the lane: no swimmer, no time, not running. Whether it is drawn
+    /// as still water is the table's call, which sees the whole heat (L-25).
+    var vacant = false
 
     init(_ i: Int, _ l: LaneRow, lap: LapCount? = nil) {
         laneLabel = String(i)
@@ -30,6 +33,7 @@ struct BoardRow: Equatable {
         self.lap = lap
         timeStyle = l.timeStyle
         pulse = l.pulse
+        vacant = [l.name, l.alt, l.club, l.time, l.place].allSatisfy(\.isEmpty) && !l.running && !l.pulse
     }
 
     init(_ r: ResultRow) {
@@ -42,6 +46,7 @@ struct BoardRow: Equatable {
         delta = DeltaFormat.text(r.deltaSeconds)
         deltaBetter = r.deltaBetter
         timeStyle = r.locked ? .locked(generation: 1) : .plain  // R-09
+        vacant = r.isEmpty
     }
 }
 
@@ -408,6 +413,10 @@ struct BoardTable: View {
         let portraitScale = min(1, max(Self.portraitTypeFloor, portraitRow / portraitWant))
         let wide = isWide ? wideSizes(rowFont) : nil
         let numbersFit = isWide ? 1 : narrowNumbersFit(base: base, scale: portraitScale)
+        // L-25: a lane only reads as empty against lanes that are not. A console
+        // that sends no names at all leaves every lane bare, and a pool of still
+        // water there would be a claim the board cannot make.
+        let named = rows.contains { !$0.name.isEmpty }
         VStack(spacing: 0) {
             if let wide, landscape.showsHeader { header(size: rowFont, widths: wide.widths) }
             ForEach(Array(rows.enumerated()), id: \.offset) { i, row in
@@ -415,11 +424,11 @@ struct BoardTable: View {
                     if let wide {
                         LandscapeRow(
                             row: row, columns: columns, size: rowFont, widths: wide.widths,
-                            timeSize: wide.timeSize, deltaSize: wide.deltaSize)
+                            timeSize: wide.timeSize, deltaSize: wide.deltaSize, still: named && row.vacant)
                     } else {
                         PortraitRow(
                             row: row, columns: columns, base: base, scale: portraitScale, showsAlt: showsAlt,
-                            numbersFit: numbersFit)
+                            numbersFit: numbersFit, still: named && row.vacant)
                     }
                 }
                 .frame(
@@ -594,6 +603,8 @@ struct PortraitRow: View {
     /// The time and delta's one shared factor, fitted to the widest case on the
     /// board rather than to what the cells hold now (`BoardFit.timeTemplate`).
     var numbersFit: CGFloat = 1
+    /// L-25: nobody in this lane, so the row is still water rather than cells.
+    var still = false
     static let padding: CGFloat = 10
     @Environment(\.palette) private var palette
     @Environment(\.faces) private var faces
@@ -603,46 +614,54 @@ struct PortraitRow: View {
         let u = base / BoardFit.portraitReference * scale
         HStack(alignment: .center, spacing: 10 * u) {
             LaneNumber(text: row.laneLabel, pulse: row.pulse, size: 22 * u).frame(width: 34 * u)
-            VStack(alignment: .leading, spacing: 2 * u) {
-                HStack(alignment: .firstTextBaseline) {
-                    if columns.name {
-                        VStack(alignment: .leading, spacing: 0) {
-                            Text(row.name).font(faces.text(17 * u)).foregroundStyle(palette.rowText)
-                                .fitOneLine(size: 17 * u)
-                            if !row.alt.isEmpty, showsAlt {  // L-06
-                                Text(row.alt).font(faces.text(12 * u)).foregroundStyle(palette.thText)
-                                    .fitOneLine(size: 12 * u)
-                            }
-                        }
-                    }
-                    Spacer(minLength: 8)
-                    if columns.club {
-                        Text(row.club).font(faces.text(17 * u)).foregroundStyle(palette.thText)
-                            .fitOneLine(size: 17 * u)
-                    }
-                }
-                HStack(spacing: 12 * u) {
-                    TimeCell(text: row.time, style: row.timeStyle, size: 20 * u * numbersFit)
-                    // No fixed column here — a compact row lays its second line
-                    // out in flow — so the cell is sized to what it holds and
-                    // L-23's centring has nothing to centre in. It still swaps
-                    // tenant and colour on the same rule as the table's.
-                    if columns.delta {
-                        DeltaCell(text: row.delta, better: row.deltaBetter, lap: row.lap, size: 17 * u * numbersFit)
-                            .fixedSize()
-                    }
-                    Spacer(minLength: 8)
-                    if columns.place, !row.place.isEmpty {
-                        Text("#" + row.place).font(faces.text(18 * u, weight: .bold)).foregroundStyle(
-                            palette.headerLabel
-                        )
-                        .lineLimit(1)
-                    }
-                }
+            if still {
+                StillWater(amplitude: 2.5 * u).frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                cells(u)
             }
         }
         .padding(.horizontal, Self.padding)
         .padding(.vertical, 6 * u)
+    }
+
+    @ViewBuilder private func cells(_ u: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 2 * u) {
+            HStack(alignment: .firstTextBaseline) {
+                if columns.name {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(row.name).font(faces.text(17 * u)).foregroundStyle(palette.rowText)
+                            .fitOneLine(size: 17 * u)
+                        if !row.alt.isEmpty, showsAlt {  // L-06
+                            Text(row.alt).font(faces.text(12 * u)).foregroundStyle(palette.thText)
+                                .fitOneLine(size: 12 * u)
+                        }
+                    }
+                }
+                Spacer(minLength: 8)
+                if columns.club {
+                    Text(row.club).font(faces.text(17 * u)).foregroundStyle(palette.thText)
+                        .fitOneLine(size: 17 * u)
+                }
+            }
+            HStack(spacing: 12 * u) {
+                TimeCell(text: row.time, style: row.timeStyle, size: 20 * u * numbersFit)
+                // No fixed column here — a compact row lays its second line
+                // out in flow — so the cell is sized to what it holds and
+                // L-23's centring has nothing to centre in. It still swaps
+                // tenant and colour on the same rule as the table's.
+                if columns.delta {
+                    DeltaCell(text: row.delta, better: row.deltaBetter, lap: row.lap, size: 17 * u * numbersFit)
+                        .fixedSize()
+                }
+                Spacer(minLength: 8)
+                if columns.place, !row.place.isEmpty {
+                    Text("#" + row.place).font(faces.text(18 * u, weight: .bold)).foregroundStyle(
+                        palette.headerLabel
+                    )
+                    .lineLimit(1)
+                }
+            }
+        }
     }
 }
 
@@ -678,6 +697,8 @@ struct LandscapeRow: View {
     /// One size per column, fitted to its widest case (`BoardTable.wideSizes`).
     let timeSize: CGFloat
     let deltaSize: CGFloat
+    /// L-25: nobody in this lane, so the row is still water rather than cells.
+    var still = false
     @Environment(\.palette) private var palette
     @Environment(\.faces) private var faces
 
@@ -685,39 +706,91 @@ struct LandscapeRow: View {
         HStack(spacing: TableColumns.gap) {
             LaneNumber(text: row.laneLabel, pulse: row.pulse, size: size)
                 .frame(width: widths.lane, alignment: .leading)
-            if columns.name {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(row.name).font(faces.text(size * 0.85)).foregroundStyle(palette.rowText)
-                        .fitOneLine(size: size * 0.85)
-                    if !row.alt.isEmpty {
-                        Text(row.alt).font(faces.text(size * 0.55)).foregroundStyle(palette.thText)
-                            .fitOneLine(size: size * 0.55)
-                    }
-                }
-                .frame(width: widths.name, alignment: .leading)
-            }
-            if columns.club {
-                Text(row.club).font(faces.text(size * 0.85)).foregroundStyle(palette.thText)
-                    .fitOneLine(size: size * 0.85)
-                    .frame(width: widths.club, alignment: .leading)
-            }
-            TimeCell(text: row.time, style: row.timeStyle, size: timeSize)
-                .frame(width: widths.time, alignment: .trailing)
-            if columns.delta {
-                // The column's width is the cell's; the cell decides where in
-                // it the number sits, because the lap centres and the delta does
-                // not (L-23).
-                DeltaCell(text: row.delta, better: row.deltaBetter, lap: row.lap, size: deltaSize)
-                    .frame(width: widths.delta)
-            }
-            if columns.place {
-                Text(row.place).font(faces.text(size, weight: .bold)).foregroundStyle(palette.headerLabel)
-                    .fitOneLine()
-                    .frame(width: widths.place, alignment: .trailing)
+            if still {
+                StillWater(amplitude: size * 0.1).frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                cells
             }
         }
         .padding(.horizontal, TableColumns.inset)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder private var cells: some View {
+        if columns.name {
+            VStack(alignment: .leading, spacing: 0) {
+                Text(row.name).font(faces.text(size * 0.85)).foregroundStyle(palette.rowText)
+                    .fitOneLine(size: size * 0.85)
+                if !row.alt.isEmpty {
+                    Text(row.alt).font(faces.text(size * 0.55)).foregroundStyle(palette.thText)
+                        .fitOneLine(size: size * 0.55)
+                }
+            }
+            .frame(width: widths.name, alignment: .leading)
+        }
+        if columns.club {
+            Text(row.club).font(faces.text(size * 0.85)).foregroundStyle(palette.thText)
+                .fitOneLine(size: size * 0.85)
+                .frame(width: widths.club, alignment: .leading)
+        }
+        TimeCell(text: row.time, style: row.timeStyle, size: timeSize)
+            .frame(width: widths.time, alignment: .trailing)
+        if columns.delta {
+            // The column's width is the cell's; the cell decides where in
+            // it the number sits, because the lap centres and the delta does
+            // not (L-23).
+            DeltaCell(text: row.delta, better: row.deltaBetter, lap: row.lap, size: deltaSize)
+                .frame(width: widths.delta)
+        }
+        if columns.place {
+            Text(row.place).font(faces.text(size, weight: .bold)).foregroundStyle(palette.headerLabel)
+                .fitOneLine()
+                .frame(width: widths.place, alignment: .trailing)
+        }
+    }
+}
+
+/// L-25: an empty lane, drawn as the surface of water nobody is swimming in.
+/// One faint sine line across the row, fading out at both ends, that drifts a
+/// wavelength every ten seconds — slow enough to sit under the eye rather than
+/// catch it. Every lane shares the clock, so empty lanes side by side move as
+/// one surface. Reduce Motion stills it; it says the same thing standing.
+///
+/// Not the lane number: that already pulses for a lane waiting on its clock
+/// (L-12), and a second animation there would read as the first.
+struct StillWater: View {
+    let amplitude: CGFloat
+    static let period: TimeInterval = 10
+    @Environment(\.palette) private var palette
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 20, paused: reduceMotion)) { ctx in
+            let phase =
+                reduceMotion
+                ? 0 : ctx.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: Self.period) / Self.period
+            Canvas { gc, size in
+                let wavelength = max(36, amplitude * 18)
+                let mid = size.height / 2
+                var path = Path()
+                var x: CGFloat = 0
+                while x <= size.width {
+                    let y = mid + amplitude * sin((x / wavelength - phase) * 2 * .pi)
+                    if x == 0 { path.move(to: CGPoint(x: x, y: y)) } else { path.addLine(to: CGPoint(x: x, y: y)) }
+                    x += 2
+                }
+                gc.stroke(path, with: .color(palette.thText.opacity(0.35)), lineWidth: 1.2)
+            }
+        }
+        .mask(
+            LinearGradient(
+                stops: [
+                    .init(color: .clear, location: 0), .init(color: .black, location: 0.15),
+                    .init(color: .black, location: 0.85), .init(color: .clear, location: 1),
+                ],
+                startPoint: .leading, endPoint: .trailing)
+        )
+        .accessibilityHidden(true)
     }
 }
 

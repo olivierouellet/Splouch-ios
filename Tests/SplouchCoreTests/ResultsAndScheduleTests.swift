@@ -50,7 +50,7 @@ import Testing
         let rows = ResultsBoard.rows(snap, numLanes: 4)
         #expect(rows[0].name == "A" && rows[0].laneLabel == "4")
         #expect(rows[1].name == "B" && rows[1].laneLabel == "2")
-        #expect(rows[2].isEmpty && rows[2].laneLabel == "—")
+        #expect(rows[2].isEmpty && rows[2].laneLabel.isEmpty)
     }
 
     @Test func missingTimeIsDashAndMissingPlaceIsEmpty() {

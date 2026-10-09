@@ -93,7 +93,7 @@ import Testing
     }
 
     /// R-09: a final time is styled locked. A row that is not final is plain,
-    /// and the lane label is the result's own — which may be a `—` for an
+    /// and the lane label is the result's own — which may be empty for an
     /// unfilled row of a ranking, not a lane number.
     @Test func aResultRowCarriesItsOwnLabelAndItsLockedStyling() {
         var result = ResultRow(laneLabel: "3")
@@ -112,10 +112,30 @@ import Testing
         #expect(row.deltaBetter == true)
         if case .locked = row.timeStyle {} else { Issue.record("a final time should be locked") }
 
-        var running = ResultRow(laneLabel: "\u{2014}")
+        var running = ResultRow(laneLabel: "")
         running.locked = false
-        #expect(BoardRow(running).laneLabel == "\u{2014}")
+        #expect(BoardRow(running).laneLabel.isEmpty)
         #expect(BoardRow(running).timeStyle == .plain)
+    }
+
+    /// L-25: a lane is vacant only with nothing in it and nothing about to be —
+    /// a running lane with no name yet is a swimmer, not still water.
+    @Test func aLaneIsVacantOnlyWithNothingInIt() {
+        #expect(BoardRow(1, LaneRow()).vacant)
+        var named = LaneRow()
+        named.name = "Roy"
+        #expect(!BoardRow(1, named).vacant)
+        var running = LaneRow()
+        running.running = true
+        #expect(!BoardRow(1, running).vacant)
+        var timed = LaneRow()
+        timed.time = "58.11"
+        #expect(!BoardRow(1, timed).vacant)
+
+        #expect(BoardRow(ResultRow(laneLabel: "2")).vacant)
+        var result = ResultRow(laneLabel: "2")
+        result.isEmpty = false
+        #expect(!BoardRow(result).vacant)
     }
 }
 

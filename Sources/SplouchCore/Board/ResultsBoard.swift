@@ -3,7 +3,8 @@ import Foundation
 /// One row of the Results tab grid (app.md §4).
 public struct ResultRow: Sendable, Equatable {
     /// The lane number cell: the result's `channel`, or the row's own lane in
-    /// lane order, or `—` for an unfilled row of a ranking.
+    /// lane order, or empty for an unfilled row of a ranking — that row is no
+    /// lane at all, and its still water (L-25) says so without a dash.
     public var laneLabel: String
     public var name = ""
     public var alt = ""
@@ -44,7 +45,7 @@ public enum ResultsBoard {
         }
         return (1...n).map { i in
             guard let r = byRow[i] else {
-                return ResultRow(laneLabel: laneMode ? String(i) : "\u{2014}")
+                return ResultRow(laneLabel: laneMode ? String(i) : "")
             }
             var row = ResultRow(laneLabel: r.channel > 0 ? String(r.channel) : String(i))
             row.name = r.name
