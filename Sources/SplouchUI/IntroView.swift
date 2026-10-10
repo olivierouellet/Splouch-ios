@@ -11,6 +11,7 @@ import SwiftUI
 struct IntroView: View {
     let app: AppModel
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @State private var page = 0
 
     private struct Page: Identifiable {
@@ -19,13 +20,16 @@ struct IntroView: View {
         let title: String
         let text: String
         var counting = false
+        var laneKey = false
     }
 
     private var pages: [Page] {
         var out = [
             Page(id: 0, symbol: "hourglass", title: Native.introResultsTitle, text: app.disclaimer ?? ""),
             Page(id: 1, symbol: "magnifyingglass", title: Native.introMeetsTitle, text: Native.introMeetsBody),
-            Page(id: 2, symbol: "rectangle.split.3x1", title: Native.introTabsTitle, text: Native.introTabsBody),
+            Page(
+                id: 2, symbol: "rectangle.split.3x1", title: Native.introTabsTitle, text: Native.introTabsBody,
+                laneKey: true),
             Page(id: 3, symbol: "plusminus.circle", title: Native.introTimesTitle, text: Native.introTimesBody),
             Page(
                 id: 4, symbol: "line.3.horizontal.decrease.circle", title: Native.introFollowTitle,
@@ -89,6 +93,17 @@ struct IntroView: View {
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
                     .accessibilityLabel(Self.spoken(p.text))
+                if p.laneKey {
+                    // How to read a lane, in the server's default palette for the
+                    // reader's Appearance (P-15) — the board's own, there being no meet yet.
+                    LaneKey(
+                        words: LaneKeyWords(
+                            lane: Native.introKeyLane, club: Native.introKeyClub, time: Native.introKeyTime,
+                            gap: Native.introKeyGap, place: Native.introKeyPlace)
+                    )
+                    .environment(\.palette, Palette(colorScheme == .dark ? .dark : .light))
+                    .environment(\.faces, Faces(ThemeFonts()))
+                }
                 if p.counting {
                     CountingToggle(app: app)
                         .padding()

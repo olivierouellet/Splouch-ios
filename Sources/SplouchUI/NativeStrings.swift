@@ -68,6 +68,11 @@ enum Native {
     static var introMeetsBody: String { String(localized: "intro_meets_body", bundle: .module) }
     static var introTabsTitle: String { String(localized: "intro_tabs_title", bundle: .module) }
     static var introTabsBody: String { String(localized: "intro_tabs_body", bundle: .module) }
+    static var introKeyLane: String { String(localized: "intro_key_lane", bundle: .module) }
+    static var introKeyClub: String { String(localized: "intro_key_club", bundle: .module) }
+    static var introKeyTime: String { String(localized: "intro_key_time", bundle: .module) }
+    static var introKeyGap: String { String(localized: "intro_key_gap", bundle: .module) }
+    static var introKeyPlace: String { String(localized: "intro_key_place", bundle: .module) }
     static var introTimesTitle: String { String(localized: "intro_times_title", bundle: .module) }
     static var introTimesBody: String { String(localized: "intro_times_body", bundle: .module) }
     static var introFollowTitle: String { String(localized: "intro_follow_title", bundle: .module) }

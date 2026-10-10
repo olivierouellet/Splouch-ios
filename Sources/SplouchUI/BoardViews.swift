@@ -36,6 +36,17 @@ struct BoardRow: Equatable {
         vacant = [l.name, l.alt, l.club, l.time, l.place].allSatisfy(\.isEmpty) && !l.running && !l.pulse
     }
 
+    /// A lane made up for the introduction's key (P-20), never from a meet.
+    init(sample lane: String, name: String, club: String, time: String, deltaSeconds: Double, place: String) {
+        laneLabel = lane
+        self.name = name
+        self.club = club
+        self.time = time
+        self.place = place
+        delta = DeltaFormat.text(deltaSeconds)
+        deltaBetter = deltaSeconds < 0
+    }
+
     init(_ r: ResultRow) {
         laneLabel = r.laneLabel
         name = r.name
@@ -680,6 +691,76 @@ struct LaneIdealKey: PreferenceKey {
 struct BoardNeedsBarKey: PreferenceKey {
     static let defaultValue = false
     static func reduce(value: inout Bool, nextValue: () -> Bool) { value = value || nextValue() }
+}
+
+/// P-20's key words, the app's own (T-05): what each part of a lane is.
+struct LaneKeyWords {
+    var lane, club, time, gap, place: String
+}
+
+/// P-20, page 3: how to read a lane, since the narrow board (L-15) has no header
+/// row to name its columns. Two sample lanes drawn by the board's own
+/// `PortraitRow` — one faster than its seed, one slower — then a key pairing each
+/// part, drawn as on the board, with its meaning. Reads the environment's palette:
+/// the server's default (api.md §6.1), there being no meet yet.
+///
+/// The lanes are illustration and VoiceOver skips them; each key line is read as
+/// value, then meaning.
+struct LaneKey: View {
+    let words: LaneKeyWords
+    @Environment(\.palette) private var palette
+    @Environment(\.faces) private var faces
+
+    private static let faster = BoardRow(
+        sample: "4", name: "Noah Gagnon", club: "CAMO", time: "1:02.41", deltaSeconds: -0.83, place: "1")
+    private static let slower = BoardRow(
+        sample: "5", name: "Léa Roy", club: "CNQ", time: "1:03.12", deltaSeconds: 0.41, place: "2")
+    private static let columns = Columns(MeetSettings(numLanes: 2))
+    private let size: CGFloat = 18
+
+    var body: some View {
+        let faster = Self.faster
+        let slower = Self.slower
+        VStack(spacing: 0) {
+            VStack(spacing: 0) {
+                PortraitRow(row: faster, columns: Self.columns, showsAlt: false).background(palette.rowOdd)
+                PortraitRow(row: slower, columns: Self.columns, showsAlt: false).background(palette.rowEven)
+            }
+            .accessibilityHidden(true)
+            Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
+                line(faster.laneLabel, words.lane) { LaneNumber(text: faster.laneLabel, pulse: false, size: size) }
+                line(faster.club, words.club) {
+                    Text(faster.club).font(faces.text(size)).foregroundStyle(palette.thText).lineLimit(1)
+                }
+                line(faster.time, words.time) { TimeCell(text: faster.time, style: .plain, size: size) }
+                line("\(faster.delta), \(slower.delta)", words.gap) {
+                    HStack(spacing: 8) {
+                        DeltaCell(text: faster.delta, better: faster.deltaBetter, size: size).fixedSize()
+                        DeltaCell(text: slower.delta, better: slower.deltaBetter, size: size).fixedSize()
+                    }
+                }
+                line("#" + faster.place, words.place) {
+                    Text("#" + faster.place).font(faces.text(size, weight: .bold)).foregroundStyle(palette.headerLabel)
+                }
+            }
+            .padding(12)
+        }
+        .background(palette.bg)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    /// One line of the key: the part as the board draws it, and what it is, read
+    /// as one. A `Grid` row, so every meaning starts at the same edge.
+    private func line(_ spoken: String, _ meaning: String, @ViewBuilder value: () -> some View) -> some View {
+        GridRow {
+            value().fixedSize().accessibilityHidden(true)
+            Text(meaning)
+                .font(.subheadline)
+                .foregroundStyle(palette.rowText)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityLabel("\(spoken), \(meaning)")
+        }
+    }
 }
 
 /// L-16: a full table row.
