@@ -1578,6 +1578,29 @@
         }
       }
     },
+    "notify_pause_all" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause all"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pausar todo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout mettre en pause"
+          }
+        }
+      }
+    },
     "notify_paused" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1597,6 +1620,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "En pause. Vos nageurs sont conservés."
+          }
+        }
+      }
+    },
+    "notify_paused_short" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paused"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En pausa"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En pause"
           }
         }
       }

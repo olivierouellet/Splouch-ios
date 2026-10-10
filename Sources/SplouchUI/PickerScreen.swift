@@ -195,6 +195,7 @@ struct PickerScreen: View {
                                 unnamed: served("unnamed_meet"),
                                 offline: strings.mobile("offline"),
                                 testBadge: served("test_meet"),
+                                follow: app.followState(meet),
                                 pulseRank: ranks[meet.id] ?? 0
                             )
                             // The whole cell chooses the meet, as Android's card
@@ -444,6 +445,9 @@ struct MeetCard: View {
     var offline: String = ""
     /// P-22: the server's word for a test meet (`test_meet`), after its name.
     var testBadge: String = ""
+    /// N-13: a bell while this device follows swimmers here, struck through
+    /// while paused.
+    var follow: FollowState = .none
     /// The row's place in the list, which sets where in its breath the live dot is.
     var pulseRank = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -488,6 +492,7 @@ struct MeetCard: View {
                         .minimumScaleFactor(0.8)
                         .fixedSize(horizontal: false, vertical: true)
                     if meet.test, !testBadge.isEmpty { TestBadge(text: testBadge) }
+                    if follow != .none { bell }
                 }
                 // P-01: `Montréal · QC · CA`, cut at the end.
                 let place = meet.place(filter: filter) + (meet.offline ? [offline] : [])
@@ -512,6 +517,17 @@ struct MeetCard: View {
     }
 
     private var placeholder: some View { Color.secondary.opacity(0.15) }
+
+    /// N-13: N-01's glyphs, quiet — the meet's name stays what the row is about.
+    private var bell: some View {
+        Image(systemName: follow == .paused ? "bell.slash" : "bell")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .fixedSize()
+            .layoutPriority(1)
+            .accessibilityLabel(
+                follow == .paused ? "\(Native.notifications), \(Native.notifyPausedShort)" : Native.notifications)
+    }
 
     /// P-22: the web's `.test-badge` — small, bold, outlined in the accent
     /// colour. Never shrunk or cut: the name gives way to it.

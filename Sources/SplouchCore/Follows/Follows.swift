@@ -46,16 +46,23 @@ public struct MeetFollows: Sendable, Codable, Equatable {
     /// The meet's `base` (C-11) when last registered, so a new token can be
     /// sent everywhere without opening every meet again (N-07).
     public var base: String?
+    /// N-12: the meet's name, for settings' list without its server's list.
+    public var name: String?
+    /// The meet's language when last registered (T-06), so settings can send
+    /// the list again in it (N-12) while the app has no language of its own.
+    public var lang: String?
 
     public init(
         swimmers: [FollowedSwimmer] = [], lead: FollowLead = .standard, selected: Bool = true,
-        enabled: Bool = true, base: String? = nil
+        enabled: Bool = true, base: String? = nil, name: String? = nil, lang: String? = nil
     ) {
         self.swimmers = swimmers
         self.lead = lead
         self.selected = selected
         self.enabled = enabled
         self.base = base
+        self.name = name
+        self.lang = lang
     }
 
     /// A list saved before N-11 has no `enabled`: it was on.
@@ -66,6 +73,8 @@ public struct MeetFollows: Sendable, Codable, Equatable {
         selected = try c.decode(Bool.self, forKey: .selected)
         enabled = try c.decodeIfPresent(Bool.self, forKey: .enabled) ?? true
         base = try c.decodeIfPresent(String.self, forKey: .base)
+        name = try c.decodeIfPresent(String.self, forKey: .name)
+        lang = try c.decodeIfPresent(String.self, forKey: .lang)
     }
 
     public var isEmpty: Bool { swimmers.isEmpty }
@@ -85,6 +94,29 @@ public struct MeetFollows: Sendable, Codable, Equatable {
     }
 }
 
+/// One meet with follows on this device, from any server (N-12).
+public struct FollowedMeet: Sendable, Equatable, Identifiable {
+    /// The origin of the server whose list the meet came from.
+    public var server: String
+    public var meetID: String
+    public var follows: MeetFollows
+
+    public init(server: String, meetID: String, follows: MeetFollows) {
+        self.server = server
+        self.meetID = meetID
+        self.follows = follows
+    }
+
+    public var id: String { server + "|" + meetID }
+}
+
+/// N-13: what the picker's bell says about a meet.
+public enum FollowState: Sendable, Equatable {
+    case none
+    case on
+    case paused
+}
+
 /// The device's follows, by server and meet: a meet id means something only on
 /// the server whose list it came from.
 public protocol FollowStore: Sendable {
@@ -97,6 +129,15 @@ extension FollowStore {
 
     public func follows(server: String, meetID: String) -> MeetFollows {
         load()[Self.key(server: server, meetID: meetID)] ?? MeetFollows()
+    }
+
+    /// N-12: every meet with follows, split back into its server and id.
+    public func meets() -> [FollowedMeet] {
+        load().compactMap { key, follows in
+            guard let bar = key.firstIndex(of: "|") else { return nil }
+            return FollowedMeet(
+                server: String(key[..<bar]), meetID: String(key[key.index(after: bar)...]), follows: follows)
+        }
     }
 
     public func set(_ f: MeetFollows?, server: String, meetID: String) {

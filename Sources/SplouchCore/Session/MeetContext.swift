@@ -47,6 +47,9 @@ public final class MeetContext {
     public var focus: HeatFocus?
     public let push: PushCenter?
     private let followStore: any FollowStore
+    /// N-12, N-13: told whenever this meet's follows are saved, so the picker
+    /// and settings read them again.
+    public var onFollowsChange: (@MainActor () -> Void)?
     public private(set) var refreshing = false
 
     /// The device's choices, applied over the meet's locale (T-06).
@@ -246,10 +249,11 @@ public final class MeetContext {
     /// N-02: store the new list and send it. The first swimmer added is the
     /// moment to ask for permission (N-04) — never at launch.
     public func setFollows(_ new: MeetFollows) async {
-        guard let meetID else { return }
+        guard meetID != nil else { return }
         let first = follows.isEmpty && !new.isEmpty
         follows = new
-        followStore.set(new, server: api.address.origin, meetID: meetID)
+        follows.name = title  // N-12
+        saveFollows()
         if first, let push { _ = await push.askIfNeeded() }
         await registerFollows()
     }
@@ -271,20 +275,29 @@ public final class MeetContext {
         } catch {
             return  // offline or refused: the next open sends again
         }
-        // Where it was registered, after any move: a new token goes there.
+        // Where it was registered, after any move: a new token goes there. The
+        // name and language let settings send it again without the meet (N-12).
         let base = session.base.url.absoluteString
-        if !follows.isEmpty, follows.base != base {
+        if !follows.isEmpty, follows.base != base || follows.name != title || follows.lang != settings.locale {
             follows.base = base
-            followStore.set(follows, server: api.address.origin, meetID: meetID)
+            follows.name = title
+            follows.lang = settings.locale
+            saveFollows()
         }
+    }
+
+    private func saveFollows() {
+        guard let meetID else { return }
+        followStore.set(follows, server: api.address.origin, meetID: meetID)
+        onFollowsChange?()
     }
 
     /// A-09, N-09: the meet is gone, and with it what this device followed there.
     private func markGone() {
         gone = true
-        if let meetID {
+        if meetID != nil {
             follows = MeetFollows()
-            followStore.set(nil, server: api.address.origin, meetID: meetID)
+            saveFollows()
         }
     }
 

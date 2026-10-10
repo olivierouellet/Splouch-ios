@@ -4,8 +4,8 @@ import SwiftUI
 /// P-19: settings in place of the picker's old `…` menu, which held three
 /// choices and could not hold a toggle, its explanation and a link. One `Form`
 /// in a sheet, sections in the contract's order (`AppModel.settingsSections`):
-/// Display, Privacy, Server, About — what most spectators open settings for
-/// first, the server for the few who follow a pool's own. Section names and the toggle are the app's words (T-05); the privacy
+/// Display, Notifications, Privacy, Server, About — what most spectators open
+/// settings for first, the server for the few who follow a pool's own. Section names and the toggle are the app's words (T-05); the privacy
 /// note and the disclaimer are the server's.
 struct SettingsSheet: View {
     let app: AppModel
@@ -24,6 +24,7 @@ struct SettingsSheet: View {
                 ForEach(app.settingsSections, id: \.self) { section in
                     switch section {
                     case .display: display
+                    case .notifications: notifications
                     case .privacy: privacy
                     case .server: server
                     case .about: about
@@ -100,6 +101,33 @@ struct SettingsSheet: View {
                 Text(Native.appearanceLight).tag(SplouchCore.Appearance.light)
                 Text(Native.appearanceAuto).tag(SplouchCore.Appearance.auto)
             }
+        }
+    }
+
+    /// N-12: every followed meet with its N-11 switch, the server under the name
+    /// when it is not the default and the count or *Paused* beside it; then
+    /// *Pause all*. Shown only while something is followed (`settingsSections`).
+    private var notifications: some View {
+        Section(Native.notifications) {
+            ForEach(app.followedMeets) { meet in
+                Toggle(
+                    isOn: Binding(
+                        get: { meet.follows.enabled },
+                        set: { on in Task { await app.setFollowsEnabled(meet, on) } })
+                ) {
+                    VStack(alignment: .leading) {
+                        Text(app.followedName(meet))
+                        let state =
+                            meet.follows.enabled
+                            ? Native.notifyFollowing(meet.follows.swimmers.count) : Native.notifyPausedShort
+                        Text(([app.followedServer(meet)].compactMap { $0 } + [state]).joined(separator: " · "))
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            Button(Native.notifyPauseAll) { Task { await app.pauseAllFollows() } }
+                .disabled(!app.followedMeets.contains { $0.follows.enabled })
         }
     }
 

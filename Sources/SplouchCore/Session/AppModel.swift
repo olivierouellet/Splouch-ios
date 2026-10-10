@@ -62,6 +62,7 @@ public enum InviteFailure: Sendable, Equatable {
 /// P-19: settings' sections, in the contract's order.
 public enum SettingsSection: String, Sendable, CaseIterable {
     case display
+    case notifications
     case privacy
     case server
     case about
@@ -85,6 +86,9 @@ public final class AppModel {
     public let push: PushCenter
     /// N-08: a tapped notification's heat, until the root view opens it.
     public var pendingFocus: HeatFocus?
+    /// N-12: every meet this device follows swimmers at, from every server, by
+    /// name. Read again whenever a meet saves its follows.
+    public private(set) var followedMeets: [FollowedMeet] = []
 
     public private(set) var preferences: Preferences
     public private(set) var server: ServerAddress
@@ -135,6 +139,7 @@ public final class AppModel {
         self.counting = vidStore.counting(for: (prefs.server ?? defaultServer).origin)
         self.strings = BuiltInStrings.table(
             for: prefs.language ?? Locale.current.language.languageCode?.identifier ?? "en")
+        refreshFollows()
     }
 
     public var api: SplouchAPI { SplouchAPI(address: server, session: session) }
@@ -148,11 +153,18 @@ public final class AppModel {
     public var serverName: String { serverInfo?.name ?? server.host }
     public var stringsLoader: StringsLoader { StringsLoader(api: api, cache: bundleCache) }
 
-    /// P-19's order: Display, Privacy, Server, About — the reader's own choices
-    /// first, the server for the few who follow a pool's own. Privacy only while
-    /// the server counts (P-07).
+    /// P-19's order: Display, Notifications, Privacy, Server, About — the
+    /// reader's own choices first, the server for the few who follow a pool's
+    /// own. Notifications only while a meet has follows (N-12); Privacy only
+    /// while the server counts (P-07).
     public var settingsSections: [SettingsSection] {
-        SettingsSection.allCases.filter { $0 != .privacy || analyticsEnabled }
+        SettingsSection.allCases.filter {
+            switch $0 {
+            case .notifications: !followedMeets.isEmpty
+            case .privacy: analyticsEnabled
+            default: true
+            }
+        }
     }
 
     /// The handshake, then the picker (cloud) or nothing more (Pi).
@@ -197,6 +209,7 @@ public final class AppModel {
                 self.picker = freshPicker
                 self.meets = freshMeets
                 meetListReachable = true
+                refreshFollows()  // N-12: names of lists saved before they were kept
                 let servers = (try? await api.servers().servers) ?? []
                 guard current() else { return }
                 directory = servers
@@ -496,10 +509,12 @@ public final class AppModel {
         }
         let title =
             config.appWindowTitle.isEmpty ? (config.name.isEmpty ? meet.name : config.name) : config.appWindowTitle
-        return MeetContext(
+        let ctx = MeetContext(
             api: api, base: base, kind: .cloud, meetID: meet.id, title: title, settings: config.settings,
             stringsLoader: stringsLoader, preferences: preferences, vidStore: vidStore,
             connector: connector, pushPlatforms: config.push, push: push, followStore: followStore)
+        ctx.onFollowsChange = { [weak self] in self?.refreshFollows() }
+        return ctx
     }
 
     // MARK: - Heat notifications (app.md §10)
@@ -509,21 +524,79 @@ public final class AppModel {
     /// registered at. A meet that answers 404 is gone, and its follows with it
     /// (N-09). The open meet, if any, re-sends through its own context too.
     public func registerAllFollows() async {
-        guard let token = push.token, push.permission == .allowed else { return }
-        for (key, follows) in followStore.load() {
-            guard let bar = key.firstIndex(of: "|") else { continue }
-            let server = String(key[..<bar])
-            let meetID = String(key[key.index(after: bar)...])
-            guard let address = follows.base.flatMap(ServerAddress.init(base:)) ?? ServerAddress(typed: server)
-            else { continue }
-            let lang = preferences.language ?? picker?.lang ?? "en"
-            do {
-                try await SplouchAPI(address: address, session: session)
-                    .follow(meetID: meetID, FollowRegistration(token: token, lang: lang, follows: follows))
-            } catch APIError.notFound {
-                followStore.set(nil, server: server, meetID: meetID)
-            } catch {}
+        guard push.token != nil, push.permission == .allowed else { return }
+        for meet in followStore.meets() { await register(meet) }
+        refreshFollows()
+    }
+
+    /// N-12: the list again, sorted by the meet's name.
+    public func refreshFollows() {
+        followedMeets = followStore.meets().sorted {
+            (followedName($0), $0.id) < (followedName($1), $1.id)
         }
+    }
+
+    /// N-12: the meet's name as last seen, else as this server lists it, else
+    /// its id — a list saved before names were kept, until the meet opens again.
+    public func followedName(_ meet: FollowedMeet) -> String {
+        if let name = meet.follows.name, !name.isEmpty { return name }
+        if meet.server == server.origin, let listed = meets.first(where: { $0.id == meet.meetID }),
+            !listed.name.isEmpty
+        {
+            return listed.name
+        }
+        return meet.meetID
+    }
+
+    /// N-12: the meet's server, named only when it is not the default (P-11).
+    public func followedServer(_ meet: FollowedMeet) -> String? {
+        guard meet.server != defaultServer.origin else { return nil }
+        return ServerAddress(typed: meet.server)?.display ?? meet.server
+    }
+
+    /// N-13: the picker's bell for a meet of this server's list.
+    public func followState(_ meet: MeetSummary) -> FollowState {
+        let id = server.origin + "|" + meet.id
+        guard let f = followedMeets.first(where: { $0.id == id })?.follows else { return .none }
+        return f.enabled ? .on : .paused
+    }
+
+    /// N-12: one meet's N-11 switch, from settings: saved, then sent as the
+    /// meet's own sheet would.
+    public func setFollowsEnabled(_ meet: FollowedMeet, _ on: Bool) async {
+        var f = followStore.follows(server: meet.server, meetID: meet.meetID)
+        guard !f.isEmpty, f.enabled != on else { return }
+        f.enabled = on
+        followStore.set(f, server: meet.server, meetID: meet.meetID)
+        refreshFollows()
+        await register(FollowedMeet(server: meet.server, meetID: meet.meetID, follows: f))
+        refreshFollows()
+    }
+
+    /// N-12: every meet's switch off. An action, not a mode: a meet followed
+    /// later starts on.
+    public func pauseAllFollows() async {
+        for meet in followStore.meets() where meet.follows.enabled {
+            await setFollowsEnabled(meet, false)
+        }
+    }
+
+    /// N-07 for a meet that is not open: at the `base` it was last registered
+    /// at, in the app's language else the meet's. A paused list is sent whatever
+    /// the permission (it stops the node); an active one only once allowed. A
+    /// 404 is a meet gone, and its follows with it (N-09).
+    private func register(_ meet: FollowedMeet) async {
+        guard let token = push.token else { return }
+        guard !meet.follows.isActive || push.permission == .allowed else { return }
+        guard let address = meet.follows.base.flatMap(ServerAddress.init(base:)) ?? ServerAddress(typed: meet.server)
+        else { return }
+        let lang = preferences.language ?? meet.follows.lang ?? picker?.lang ?? "en"
+        do {
+            try await SplouchAPI(address: address, session: session)
+                .follow(meetID: meet.meetID, FollowRegistration(token: token, lang: lang, follows: meet.follows))
+        } catch APIError.notFound {
+            followStore.set(nil, server: meet.server, meetID: meet.meetID)
+        } catch {}
     }
 
     /// A Pi has one meet and no picker: straight to the board.

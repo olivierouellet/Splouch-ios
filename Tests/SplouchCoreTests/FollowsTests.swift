@@ -206,6 +206,83 @@ import Testing
         #expect(store.load().isEmpty)
     }
 
+    // MARK: N-12, N-13
+
+    func makeApp(
+        _ stub: StubServer, store: InMemoryFollowStore,
+        push: PushCenter = PushCenter(
+            permission: .allowed, token: Self.token)
+    ) -> AppModel {
+        AppModel(
+            defaultServer: stub.address, preferencesStore: InMemoryPreferencesStore(),
+            vidStore: InMemoryVidStore(), bundleCache: InMemoryBundleCache(), session: stub.session,
+            connector: FakeConnector(), followStore: store, push: push)
+    }
+
+    @Test func aFollowKeepsTheMeetsNameAndLanguage() async {
+        let stub = StubServer()
+        stub.route("/meet/m1/follow") { _ in .init(status: 204) }
+        let store = InMemoryFollowStore()
+        let ctx = make(stub: stub, push: PushCenter(permission: .allowed, token: Self.token), store: store)
+        var told = 0
+        ctx.onFollowsChange = { told += 1 }
+        await ctx.setFollows(MeetFollows(swimmers: [Self.emma]))
+        let kept = store.follows(server: stub.address.origin, meetID: "m1")
+        #expect(kept.name == "Open")
+        #expect(kept.lang == "en")
+        #expect(told > 0)
+    }
+
+    @Test func settingsListEveryFollowedMeetByNameFromEveryServer() {
+        let stub = StubServer()
+        let store = InMemoryFollowStore()
+        store.set(MeetFollows(swimmers: [Self.emma], name: "Zone"), server: stub.address.origin, meetID: "m1")
+        store.set(MeetFollows(swimmers: [Self.emma], name: "Alpha"), server: "http://pool.local:80", meetID: "m2")
+        let app = makeApp(stub, store: store)
+        #expect(app.followedMeets.map { app.followedName($0) } == ["Alpha", "Zone"])
+        #expect(app.followedMeets.map { app.followedServer($0) } == ["pool.local", nil])
+        #expect(app.settingsSections.contains(.notifications))
+        #expect(makeApp(stub, store: InMemoryFollowStore()).settingsSections.contains(.notifications) == false)
+    }
+
+    @Test func pauseAllSendsEmptyListsAndKeepsTheSwimmers() async {
+        let stub = StubServer()
+        stub.route("/meet/m1/follow") { _ in .init(status: 204) }
+        let store = InMemoryFollowStore()
+        store.set(MeetFollows(swimmers: [Self.emma]), server: stub.address.origin, meetID: "m1")
+        // Paused already: nothing to send for it.
+        store.set(MeetFollows(swimmers: [Self.emma], enabled: false), server: stub.address.origin, meetID: "m3")
+        let app = makeApp(stub, store: store, push: PushCenter(permission: .refused, token: Self.token))
+        let summary = MeetSummary(
+            id: "m1", name: "Open", location: "", sport: "", organizer: "", meetDate: "", offline: false,
+            hasPickerImage: false)
+        #expect(app.followState(summary) == .on)
+        await app.pauseAllFollows()
+        #expect(Self.bodies(stub).map { $0["swimmers"]?.array?.count } == [0])
+        #expect(stub.requestCount("/meet/m3/follow") == 0)
+        #expect(app.followedMeets.allSatisfy { !$0.follows.enabled && $0.follows.swimmers == [Self.emma] })
+        #expect(app.followState(summary) == .paused)
+        #expect(
+            app.followState(
+                MeetSummary(
+                    id: "m9", name: "Other", location: "", sport: "", organizer: "", meetDate: "", offline: false,
+                    hasPickerImage: false)) == .none)
+    }
+
+    @Test func aMeetTurnedBackOnFromSettingsSendsItsList() async {
+        let stub = StubServer()
+        stub.route("/meet/m1/follow") { _ in .init(status: 204) }
+        let store = InMemoryFollowStore()
+        store.set(
+            MeetFollows(swimmers: [Self.emma], enabled: false, lang: "es"), server: stub.address.origin, meetID: "m1")
+        let app = makeApp(stub, store: store)
+        await app.setFollowsEnabled(app.followedMeets[0], true)
+        let body = Self.bodies(stub).first
+        #expect(body?["swimmers"]?.array?.count == 1)
+        #expect(body?["lang"]?.string == "es")
+        #expect(app.followedMeets[0].follows.enabled)
+    }
+
     @Test func aNewTokenIsSentForEveryMeetAndAGoneOneIsDropped() async {
         let stub = StubServer()
         stub.route("/meet/m1/follow") { _ in .init(status: 204) }

@@ -94,6 +94,8 @@ enum Native {
     static var notifySelectedFooter: String { String(localized: "notify_selected_footer", bundle: .module) }
     static var notifyEnabled: String { String(localized: "notify_enabled", bundle: .module) }
     static var notifyPaused: String { String(localized: "notify_paused", bundle: .module) }
+    static var notifyPausedShort: String { String(localized: "notify_paused_short", bundle: .module) }
+    static var notifyPauseAll: String { String(localized: "notify_pause_all", bundle: .module) }
     static var notifyPrivacy: String { String(localized: "notify_privacy", bundle: .module) }
     static var notifyDenied: String { String(localized: "notify_denied", bundle: .module) }
     static var notifyOpenSettings: String { String(localized: "notify_open_settings", bundle: .module) }
