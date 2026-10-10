@@ -99,7 +99,7 @@ struct IntroView: View {
                     LaneKey(
                         words: LaneKeyWords(
                             lane: Native.introKeyLane, club: Native.introKeyClub, time: Native.introKeyTime,
-                            gap: Native.introKeyGap, place: Native.introKeyPlace)
+                            gap: Native.introKeyGap, laps: Native.introKeyLaps, place: Native.introKeyPlace)
                     )
                     .environment(\.palette, Palette(colorScheme == .dark ? .dark : .light))
                     .environment(\.faces, Faces(ThemeFonts()))

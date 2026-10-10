@@ -750,6 +750,29 @@
         }
       }
     },
+    "intro_key_laps" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In the gap's place during the race: lengths swum or left"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En lugar de la diferencia durante la carrera: largos nadados o restantes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "À la place de l'écart pendant la course : longueurs nagées ou restantes"
+          }
+        }
+      }
+    },
     "intro_key_place" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -940,19 +963,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scoreboard shows the heat in the water, Results the finished heats, and Schedule the start lists.\n\nAll three sit along the bottom of a meet."
+            "value" : "Scoreboard shows the heat in the water, Results the finished heats, and Schedule the start lists."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Marcador muestra la serie en el agua, Resultados las series terminadas y Programa las listas de salida.\n\nLas tres están en la parte inferior de una competición."
+            "value" : "Marcador muestra la serie en el agua, Resultados las series terminadas y Programa las listas de salida."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tableau montre la série dans l'eau, Résultats les séries terminées et Horaire les listes de départ.\n\nLes trois sont au bas de l'écran d'une compétition."
+            "value" : "Tableau montre la série dans l'eau, Résultats les séries terminées et Horaire les listes de départ."
           }
         }
       }

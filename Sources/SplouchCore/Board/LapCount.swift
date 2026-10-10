@@ -45,4 +45,9 @@ public struct LapCount: Sendable, Equatable {
     /// accent to the timing colour a stopped chrono has. Not an animation: an
     /// earlier version pulsed this and it was removed on purpose.
     public let isFinal: Bool
+
+    public init(text: String, isFinal: Bool) {
+        self.text = text
+        self.isFinal = isFinal
+    }
 }

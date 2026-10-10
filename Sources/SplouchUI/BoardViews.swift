@@ -695,13 +695,14 @@ struct BoardNeedsBarKey: PreferenceKey {
 
 /// P-20's key words, the app's own (T-05): what each part of a lane is.
 struct LaneKeyWords {
-    var lane, club, time, gap, place: String
+    var lane, club, time, gap, laps, place: String
 }
 
 /// P-20, page 3: how to read a lane, since the narrow board (L-15) has no header
-/// row to name its columns. Two sample lanes drawn by the board's own
-/// `PortraitRow` — one faster than its seed, one slower — then a key pairing each
-/// part, drawn as on the board, with its meaning. Reads the environment's palette:
+/// row to name its columns. One sample lane drawn by the board's own
+/// `PortraitRow`, then a key pairing each part, drawn as on the board, with its
+/// meaning — a slower lane's delta beside the sample's, and the lap count a lane
+/// carries while swimming (L-23), among them. Reads the environment's palette:
 /// the server's default (api.md §6.1), there being no meet yet.
 ///
 /// The lanes are illustration and VoiceOver skips them; each key line is read as
@@ -715,18 +716,16 @@ struct LaneKey: View {
         sample: "4", name: "Noah Gagnon", club: "CAMO", time: "1:02.41", deltaSeconds: -0.83, place: "1")
     private static let slower = BoardRow(
         sample: "5", name: "Léa Roy", club: "CNQ", time: "1:03.12", deltaSeconds: 0.41, place: "2")
-    private static let columns = Columns(MeetSettings(numLanes: 2))
+    private static let lap = LapCount(text: "3", isFinal: false)
+    private static let columns = Columns(MeetSettings(numLanes: 1))
     private let size: CGFloat = 18
 
     var body: some View {
         let faster = Self.faster
         let slower = Self.slower
         VStack(spacing: 0) {
-            VStack(spacing: 0) {
-                PortraitRow(row: faster, columns: Self.columns, showsAlt: false).background(palette.rowOdd)
-                PortraitRow(row: slower, columns: Self.columns, showsAlt: false).background(palette.rowEven)
-            }
-            .accessibilityHidden(true)
+            PortraitRow(row: faster, columns: Self.columns, showsAlt: false).background(palette.rowOdd)
+                .accessibilityHidden(true)
             Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
                 line(faster.laneLabel, words.lane) { LaneNumber(text: faster.laneLabel, pulse: false, size: size) }
                 line(faster.club, words.club) {
@@ -738,6 +737,11 @@ struct LaneKey: View {
                         DeltaCell(text: faster.delta, better: faster.deltaBetter, size: size).fixedSize()
                         DeltaCell(text: slower.delta, better: slower.deltaBetter, size: size).fixedSize()
                     }
+                }
+                // L-23: the delta cell's other tenant, drawn rather than named — its
+                // accent is blue only on the dark board.
+                line(Self.lap.text, words.laps) {
+                    DeltaCell(text: "", better: nil, lap: Self.lap, size: size).fixedSize()
                 }
                 line("#" + faster.place, words.place) {
                     Text("#" + faster.place).font(faces.text(size, weight: .bold)).foregroundStyle(palette.headerLabel)
