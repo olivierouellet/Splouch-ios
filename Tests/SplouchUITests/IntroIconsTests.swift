@@ -6,7 +6,7 @@ import Testing
 /// P-20: a page names a control and shows it, `{filter}` drawn as the filter's own
 /// symbol. A token the view does not know would reach the screen as `{filtre}`, and
 /// one a translation dropped would leave that language without the picture.
-@Suite struct IntroIconsTests {
+@Suite @MainActor struct IntroIconsTests {
     static func tokens(_ text: String) -> [String] {
         let re = try! NSRegularExpression(pattern: #"\{(\w+)\}"#)
         let ns = text as NSString

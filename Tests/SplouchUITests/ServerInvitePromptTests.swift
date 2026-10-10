@@ -11,7 +11,7 @@ import Testing
 /// Values are compared against `Native.*` and never against English: under `swift test`
 /// every lookup returns its own key (see `NativeStringsCoverageTests`), and the
 /// catalogue's three languages are that suite's business.
-@Suite struct ServerInvitePromptTests {
+@Suite @MainActor struct ServerInvitePromptTests {
     let pi = ServerAddress(typed: "http://splouch.local:5000")!
     let cloud = ServerAddress(typed: "https://pool.example")!
 

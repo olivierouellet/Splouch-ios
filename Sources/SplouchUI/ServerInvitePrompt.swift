@@ -13,6 +13,7 @@ import SwiftUI
 /// The words are decided here rather than inside the `alert` modifier so they can be
 /// tested without a host: `SplouchUITests` asserts the four titles, the two buttons and
 /// the message for every standing, which is most of what this feature promises.
+@MainActor
 struct ServerInvitePrompt {
     let invite: ServerInvite
 

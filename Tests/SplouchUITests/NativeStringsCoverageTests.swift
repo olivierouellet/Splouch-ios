@@ -19,7 +19,7 @@ import Testing
 /// The scan mirrors `SnapshotCoverageTests` in the core suite: the call sites
 /// are the list of keys, so a key added without a translation fails here rather
 /// than reaching a phone.
-@Suite struct NativeStringsCoverageTests {
+@Suite @MainActor struct NativeStringsCoverageTests {
     static var uiSources: URL {
         // Tests/SplouchUITests/<file> → repo root → Sources/SplouchUI
         URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()

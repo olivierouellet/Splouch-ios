@@ -43,6 +43,8 @@ public struct SplouchRootView: View {
         // reads it back out of the environment for its own palette, so the bars,
         // the rows and the sheets cannot disagree.
         .preferredColorScheme(scheme)
+        // T-08: the app's own words in the chosen language (`Native`).
+        .onChange(of: app.preferences.language, initial: true) { _, lang in NativeLanguage.shared.set(lang) }
         .sensoryFeedback(.success, trigger: openCount)
         .task {
             await app.start()

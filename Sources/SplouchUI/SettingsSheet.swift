@@ -4,8 +4,9 @@ import SwiftUI
 /// P-19: settings in place of the picker's old `…` menu, which held three
 /// choices and could not hold a toggle, its explanation and a link. One `Form`
 /// in a sheet, sections in the contract's order (`AppModel.settingsSections`):
-/// Display, Notifications, Privacy, Server, About — what most spectators open
-/// settings for first, the server for the few who follow a pool's own. Section names and the toggle are the app's words (T-05); the privacy
+/// Display, Notifications, Server, About, Privacy — what most spectators open
+/// settings for first, the server for the few who follow a pool's own, the
+/// policy last and linked once. Section names and the toggle are the app's words (T-05); the privacy
 /// note and the disclaimer are the server's.
 struct SettingsSheet: View {
     let app: AppModel
@@ -18,9 +19,6 @@ struct SettingsSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                // P-07: no Privacy section while the server is not counting —
-                // there is nothing to refuse. The stored choice is kept for its
-                // return.
                 ForEach(app.settingsSections, id: \.self) { section in
                     switch section {
                     case .display: display
@@ -131,30 +129,30 @@ struct SettingsSheet: View {
         }
     }
 
-    /// P-07 + C-10: the toggle first, the server's note under it as its
-    /// explanation, then the server's policy.
+    /// P-19's one Privacy section: P-07's toggle while the server counts, with
+    /// the server's note under it, then the policy. Not counting, the toggle
+    /// goes and the stored choice is kept for its return.
     private var privacy: some View {
         Section {
-            CountingToggle(app: app)
+            if app.analyticsEnabled {
+                CountingToggle(app: app)
+                if let note = app.privacyNote {
+                    Text(note).font(.footnote).foregroundStyle(.secondary)
+                }
+            }
+            Link(Native.privacyPolicy, destination: app.privacyPolicyURL)
         } header: {
             Text(Native.settingsPrivacy)
-        } footer: {
-            VStack(alignment: .leading, spacing: 8) {
-                if let note = app.privacyNote { Text(note) }
-                Link(Native.privacyPolicy, destination: app.privacyPolicyURL)
-            }
         }
     }
 
-    /// P-06's full text, the policy, P-20's replay and the app's version. The
-    /// first three need the server's words, so they wait for `GET /picker/config`.
+    /// P-06's full text, P-20's replay and the app's version. The first two need
+    /// the server's words, so they wait for `GET /picker/config`. The policy is
+    /// Privacy's, below.
     private var about: some View {
         Section(Native.settingsAbout) {
             if let disclaimer = app.disclaimer {
                 Text(disclaimer).font(.subheadline)
-            }
-            if app.picker != nil {
-                Link(Native.privacyPolicy, destination: app.privacyPolicyURL)
             }
             Button(Native.showIntroduction) { replayingIntro = true }
                 .disabled(app.picker == nil)

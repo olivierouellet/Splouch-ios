@@ -63,9 +63,9 @@ public enum InviteFailure: Sendable, Equatable {
 public enum SettingsSection: String, Sendable, CaseIterable {
     case display
     case notifications
-    case privacy
     case server
     case about
+    case privacy
 }
 
 /// The picker and the choice of server (app.md §1, §7). One per app.
@@ -153,15 +153,16 @@ public final class AppModel {
     public var serverName: String { serverInfo?.name ?? server.host }
     public var stringsLoader: StringsLoader { StringsLoader(api: api, cache: bundleCache) }
 
-    /// P-19's order: Display, Notifications, Privacy, Server, About — the
+    /// P-19's order: Display, Notifications, Server, About, Privacy — the
     /// reader's own choices first, the server for the few who follow a pool's
-    /// own. Notifications only while a meet has follows (N-12); Privacy only
-    /// while the server counts (P-07).
+    /// own, the policy last and once. Notifications only while a meet has
+    /// follows (N-12); Privacy once a cloud has answered — its policy link is
+    /// always there, the counting toggle only while the server counts (P-07).
     public var settingsSections: [SettingsSection] {
         SettingsSection.allCases.filter {
             switch $0 {
             case .notifications: !followedMeets.isEmpty
-            case .privacy: analyticsEnabled
+            case .privacy: picker != nil
             default: true
             }
         }

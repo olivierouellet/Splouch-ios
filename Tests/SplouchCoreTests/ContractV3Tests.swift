@@ -382,17 +382,19 @@ import Testing
         #expect(a.preferences.server == nil)
     }
 
-    @Test func settingsSectionsAreDisplayPrivacyServerAbout() async {
+    @Test func settingsSectionsAreDisplayServerAboutPrivacy() async {
         let stub = StubServer()
         stub.route("/server", json: #"{"kind":"cloud","name":"Splouch","contract":{"api":"v2","app":"v3"}}"#)
         stub.route("/picker/config", json: #"{"lang":"en","analytics_enabled":true,"strings":{}}"#)
         stub.route("/meets", json: #"{"meets":[]}"#)
         let a = app(default: stub.address, selected: nil, stub: stub)
         await a.load()
-        #expect(a.settingsSections == [.display, .privacy, .server, .about])
+        #expect(a.settingsSections == [.display, .server, .about, .privacy])
 
+        // P-19: Privacy stays for its policy link while the server does not count.
         stub.route("/picker/config", json: #"{"lang":"en","analytics_enabled":false,"strings":{}}"#)
         await a.load()
-        #expect(a.settingsSections == [.display, .server, .about])  // P-07: no Privacy while not counting
+        #expect(a.settingsSections == [.display, .server, .about, .privacy])
+        #expect(!a.analyticsEnabled)
     }
 }
