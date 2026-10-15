@@ -58,6 +58,14 @@ import Testing
 /// R-04: the Scoreboard tab's `LaneRow` and the Results tab's `ResultRow` are
 /// different models of the same six columns, and this is where they meet.
 @Suite struct BoardRowTests {
+    // L-04: row i of `lane_*<i>` is labelled lane i + first_lane - 1.
+    @Test func aRowIsLabelledFromTheFirstLane() {
+        #expect(BoardRow(1, LaneRow()).laneLabel == "1")
+        #expect(BoardRow(1, LaneRow(), firstLane: 0).laneLabel == "0")
+        #expect(BoardRow(8, LaneRow(), firstLane: 0).laneLabel == "7")
+        #expect(BoardRow(8, LaneRow(), firstLane: 1).laneLabel == "8")
+    }
+
     @Test func aLaneRowKeepsItsLaneNumberAndItsCells() {
         var lane = LaneRow()
         lane.name = "Tremblay"

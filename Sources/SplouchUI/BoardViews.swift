@@ -21,8 +21,9 @@ struct BoardRow: Equatable {
     /// as still water is the table's call, which sees the whole heat (L-25).
     var vacant = false
 
-    init(_ i: Int, _ l: LaneRow, lap: LapCount? = nil) {
-        laneLabel = String(i)
+    /// Board row `i` (`lane_*<i>`) is labelled lane `i + firstLane - 1` (L-04).
+    init(_ i: Int, _ l: LaneRow, lap: LapCount? = nil, firstLane: Int = 1) {
+        laneLabel = String(i + firstLane - 1)
         name = l.name
         alt = l.alt
         club = l.club

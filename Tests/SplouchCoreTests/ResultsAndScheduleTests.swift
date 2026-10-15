@@ -70,6 +70,40 @@ import Testing
             lanes: [lane(9, place: "1", time: "1.00"), lane(0, place: "2", time: "1.00")])
         #expect(ResultsBoard.rows(snap, numLanes: 8).allSatisfy { $0.isEmpty })
     }
+
+    // L-04 / api.md §5.2: in a pool numbered from 0, channel 0 is a real lane on
+    // row 1, and every row is labelled with its pool lane.
+    @Test func laneSortFromLaneZeroPutsChannelZeroOnTheFirstRow() {
+        let snap = ResultsSnapshot(
+            event: "3", heat: "1", eventName: "", eventNameParts: nil, sort: .lane,
+            lanes: [
+                lane(0, place: "2", time: "1.00", name: "A"), lane(3, place: "1", time: "0.90", name: "B"),
+                lane(8, place: "3", time: "1.10", name: "C"),
+            ])
+        let rows = ResultsBoard.rows(snap, numLanes: 8, firstLane: 0)
+        #expect(rows.count == 8)
+        #expect(rows[0].name == "A" && rows[0].laneLabel == "0" && !rows[0].isEmpty)
+        #expect(rows[3].name == "B" && rows[3].laneLabel == "3")
+        #expect(rows[1].isEmpty && rows[1].laneLabel == "1")
+        #expect(rows[7].isEmpty && rows[7].laneLabel == "7")
+        // Lane 8 is past a 0…7 board.
+        #expect(!rows.contains { $0.name == "C" })
+    }
+
+    @Test func placeSortFromLaneZeroLabelsChannelZero() {
+        let snap = ResultsSnapshot(
+            event: "3", heat: "1", eventName: "", eventNameParts: nil, sort: .place,
+            lanes: [lane(0, place: "1", time: "1.00", name: "A")])
+        let rows = ResultsBoard.rows(snap, numLanes: 3, firstLane: 0)
+        #expect(rows[0].name == "A" && rows[0].laneLabel == "0")
+        // R-06: unfilled ranks still show no lane number.
+        #expect(rows[1].isEmpty && rows[1].laneLabel.isEmpty)
+    }
+
+    @Test func emptyGridFromLaneZeroStartsAtZero() {
+        let rows = ResultsBoard.empty(numLanes: 4, firstLane: 0)
+        #expect(rows.map(\.laneLabel) == ["0", "1", "2", "3"])
+    }
 }
 
 @Suite struct ScheduleFilterTests {

@@ -86,6 +86,18 @@ import Testing
         #expect(LapSettings(s) == .off)
     }
 
+    // L-04 / api.md §5.4: absent → 1, so an older server reads as today.
+    @Test func firstLaneIsReadAndDefaultsToOne() {
+        #expect(MeetSettings(json: json(#"{"num_lanes":8}"#)).firstLane == 1)
+        #expect(MeetSettings(json: json(#"{"first_lane":0}"#)).firstLane == 0)
+        #expect(MeetSettings(json: json(#"{"first_lane":1}"#)).firstLane == 1)
+        #expect(MeetSettings(json: json(#"{"first_lane":"0"}"#)).firstLane == 0)
+        // Anything other than 0 is 1.
+        #expect(MeetSettings(json: json(#"{"first_lane":3}"#)).firstLane == 1)
+        #expect(MeetSettings(json: json(#"{"first_lane":null}"#)).firstLane == 1)
+        #expect(MeetSettings(firstLane: -1).firstLane == 1)
+    }
+
     // L-23 / api.md §5.4.
     @Test func lapSettingsAreReadAndDefaultOffAndUp() {
         let on = MeetSettings(json: json(#"{"show_laps":true,"lap_direction":"down"}"#))

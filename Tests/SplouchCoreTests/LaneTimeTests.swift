@@ -91,6 +91,30 @@ import Testing
         #expect(s.heats[0].lanes[0].consoleTime == "00:00:30.15")
     }
 
+    // Lane 0 is a real lane: it decodes, survives a filter, and takes its
+    // console time by `channel`.
+    @Test func laneZeroIsShownFilteredAndPatched() throws {
+        var s = try Schedule(
+            data: Data(
+                #"{"heats":[{"event":1,"heat":2,"lanes":[{"lane":0,"name":"Z","club":"C"},{"lane":1,"name":"O","club":"C"}]}]}"#
+                    .utf8))
+        #expect(s.heats[0].lanes.map(\.lane) == [0, 1])
+        var filter = ScheduleFilter()
+        filter.add(FilterTerm(kind: .swimmer, name: "Z", club: "C"))
+        let visible = ScheduleView.visible(s.heats, filter: filter, current: nil)
+        #expect(visible.first?.lanes.map(\.lane) == [0])
+        s.applyConsoleTimes(
+            ResultsSnapshot(
+                event: "1", heat: "2", eventName: "", eventNameParts: nil, sort: nil,
+                lanes: [
+                    ResultLane(
+                        channel: 0, place: "1", placeInt: 1, time: "30.15", name: "Z", club: "C", alt: "",
+                        deltaSeconds: nil, deltaBetter: nil)
+                ]))
+        #expect(s.heats[0].lanes[0].consoleTime == "00:00:30.15")
+        #expect(s.heats[0].lanes[1].consoleTime.isEmpty)
+    }
+
     @Test func theNewFieldsDecodeAndDefault() throws {
         let s = try Schedule(
             data: Data(

@@ -41,7 +41,9 @@ struct ScoreboardTab: View {
                             // L-23: the lap is derived from the merged
                             // board and the meet's two settings, here,
                             // where both are in hand.
-                            BoardRow($0, board[lane: $0], lap: board.lap(lane: $0, laps))
+                            BoardRow(
+                                $0, board[lane: $0], lap: board.lap(lane: $0, laps),
+                                firstLane: ctx.settings.firstLane)
                         },
                         columns: Columns(ctx.settings, laps: laps), labels: ctx.labels,
                         lapsWord: ctx.strings.mobile("spoken_laps"), isWide: isWide,

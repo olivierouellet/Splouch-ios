@@ -139,6 +139,10 @@ public struct ConsoleInfo: Sendable, Equatable {
 /// Pi's `GET /config` carries at top level.
 public struct MeetSettings: Sendable, Equatable {
     public var numLanes: Int
+    /// The pool's first lane number: `0` for a pool numbered from lane 0, else
+    /// `1` — also when the server predates the field. Board row *i* is lane
+    /// `i + firstLane - 1` (L-04).
+    public var firstLane: Int
     public var showName: Bool
     public var showClub: Bool
     public var showDelta: Bool
@@ -167,7 +171,7 @@ public struct MeetSettings: Sendable, Equatable {
     public var console: ConsoleInfo
 
     public init(
-        numLanes: Int = 8,
+        numLanes: Int = 8, firstLane: Int = 1,
         showName: Bool = true, showClub: Bool = true, showDelta: Bool = true,
         showPosition: Bool = true, showPodium: Bool = true,
         showLaneHeader: Bool = true, showNameHeader: Bool = true, showClubHeader: Bool = true,
@@ -178,6 +182,7 @@ public struct MeetSettings: Sendable, Equatable {
         labelStyle: String? = nil, console: ConsoleInfo = ConsoleInfo()
     ) {
         self.numLanes = numLanes
+        self.firstLane = firstLane == 0 ? 0 : 1
         self.showName = showName
         self.showClub = showClub
         self.showDelta = showDelta

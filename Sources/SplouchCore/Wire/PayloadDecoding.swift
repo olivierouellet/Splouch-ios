@@ -68,6 +68,7 @@ extension MeetSettings {
     public init(json: JSONValue) {
         self.init(
             numLanes: json.integer("num_lanes") ?? 8,
+            firstLane: json.integer("first_lane") == 0 ? 0 : 1,
             showName: json.flag("show_name", default: true),
             showClub: json.flag("show_club", default: true),
             showDelta: json.flag("show_delta", default: true),
