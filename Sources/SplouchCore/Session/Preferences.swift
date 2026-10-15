@@ -35,6 +35,24 @@ public enum Appearance: String, Sendable, Codable, CaseIterable {
     case auto
 }
 
+/// P-23: the reader's results order. `pool` follows the snapshot's `sort`, the
+/// order the operator set; the other two outrank it on every meet.
+public enum ResultsOrder: String, Sendable, Codable, CaseIterable {
+    case pool
+    case lane
+    case place
+
+    /// The order a snapshot is drawn in: the reader's, else the pool's, else
+    /// lane order for a relay that predates `sort` (R-05).
+    public func resolve(_ pool: ResultsSort?) -> ResultsSort {
+        switch self {
+        case .pool: pool ?? .lane
+        case .lane: .lane
+        case .place: .place
+        }
+    }
+}
+
 /// Per-device choices. The schedule's filters are deliberately not here (S-20);
 /// the picker's is (P-21).
 public struct Preferences: Sendable, Codable, Equatable {
@@ -62,11 +80,17 @@ public struct Preferences: Sendable, Codable, Equatable {
     public var introSeen: Bool
     /// P-21: one for the app, whichever server is in use.
     public var meetFilter: MeetFilter
+    /// P-23: `pool` until the reader picks.
+    public var resultsOrder: ResultsOrder
+    /// L-26: the meets whose lanes this reader turned around, by
+    /// `MeetContext.laneKey`. A meet absent here is ascending.
+    public var descendingLanes: Set<String>
 
     public init(
         language: String? = nil, labelStyle: LabelStyle = .long, appearance: Appearance = .dark,
         server: ServerAddress? = nil, savedServers: [SavedServer] = [], introSeen: Bool = false,
-        meetFilter: MeetFilter = MeetFilter()
+        meetFilter: MeetFilter = MeetFilter(), resultsOrder: ResultsOrder = .pool,
+        descendingLanes: Set<String> = []
     ) {
         self.language = language
         self.labelStyle = labelStyle
@@ -75,6 +99,8 @@ public struct Preferences: Sendable, Codable, Equatable {
         self.savedServers = savedServers
         self.introSeen = introSeen
         self.meetFilter = meetFilter
+        self.resultsOrder = resultsOrder
+        self.descendingLanes = descendingLanes
     }
 
     /// Preferences stored before the style became a two-way choice carry either
@@ -98,6 +124,10 @@ public struct Preferences: Sendable, Codable, Equatable {
         introSeen = try c.decodeIfPresent(Bool.self, forKey: .introSeen) ?? false
         // A filter that no longer decodes costs the filter, not the record.
         meetFilter = (try? c.decodeIfPresent(MeetFilter.self, forKey: .meetFilter)) ?? MeetFilter()
+        // Stored before P-23 and L-26, or by a release that knew a case this one
+        // does not: the pool's order, every lane ascending.
+        resultsOrder = (try? c.decodeIfPresent(ResultsOrder.self, forKey: .resultsOrder)) ?? .pool
+        descendingLanes = (try? c.decodeIfPresent(Set<String>.self, forKey: .descendingLanes)) ?? []
     }
 }
 

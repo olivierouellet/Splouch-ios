@@ -153,6 +153,27 @@ import Testing
         #expect(p.labelStyle == .short)
         #expect(p.language == "fr")
     }
+
+    /// P-23, L-26: a device that stored its preferences before either existed
+    /// follows the pool's order with every lane ascending, and keeps the rest.
+    @Test func resultsOrderAndLaneDirectionDefaultForOldPreferences() throws {
+        let old = try JSONDecoder().decode(Preferences.self, from: Data(#"{"language":"fr","savedServers":[]}"#.utf8))
+        #expect(old.resultsOrder == .pool)
+        #expect(old.descendingLanes.isEmpty)
+        #expect(old.language == "fr")
+        let unknown = try JSONDecoder().decode(
+            Preferences.self, from: Data(#"{"resultsOrder":"time","savedServers":[]}"#.utf8))
+        #expect(unknown.resultsOrder == .pool)
+        let p = Preferences(resultsOrder: .place, descendingLanes: ["m1"])
+        #expect(try JSONDecoder().decode(Preferences.self, from: JSONEncoder().encode(p)) == p)
+    }
+
+    @Test func theReadersResultsOrderOutranksThePools() {
+        #expect(ResultsOrder.pool.resolve(.place) == .place)
+        #expect(ResultsOrder.pool.resolve(nil) == .lane)
+        #expect(ResultsOrder.lane.resolve(.place) == .lane)
+        #expect(ResultsOrder.place.resolve(.lane) == .place)
+    }
     /// P-05: the picker's artwork is fetched by the view, not the client, so
     /// these are URLs rather than requests. They hang off the server's own base,
     /// which matters for a Pi served under a path prefix.

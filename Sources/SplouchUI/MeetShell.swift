@@ -46,6 +46,7 @@ struct MeetShell: View {
     }
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var network = NetworkWatcher()
     @State private var showFilter = false
     /// N-01: the Notifications sheet.
@@ -306,7 +307,9 @@ struct MeetShell: View {
                 // Less to reserve in portrait: the bar there holds a back
                 // button and the clock, not a back button, the clock and the
                 // slack a landscape bar has.
-                barBoardHeader.frame(width: max(0, width - (isLandscape ? 200 : 100)), alignment: .leading)
+                // L-26's button takes its own room beside them.
+                let reserved: CGFloat = (isLandscape ? 200 : 100) + (showsLaneOrder ? 50 : 0)
+                barBoardHeader.frame(width: max(0, width - reserved), alignment: .leading)
             }
             // Landscape keeps the clock; portrait does not. The row is only up
             // here in portrait because the board ran out of height, and the bar
@@ -325,12 +328,43 @@ struct MeetShell: View {
                 }
             }
         }
+        if showsLaneOrder {
+            ToolbarItem(placement: .primaryAction) { laneOrderButton }
+        }
         if tab.wrappedValue == .schedule {
             if ctx.canNotify {
                 ToolbarItem(placement: .primaryAction) { bellButton }
             }
             ToolbarItem(placement: .primaryAction) { filterButton }
         }
+    }
+
+    /// L-26: on the boards, and on Results only while it is in lane order — a
+    /// ranking has no lanes to turn around.
+    private var showsLaneOrder: Bool {
+        switch tab.wrappedValue {
+        case .scoreboard: true
+        case .results: ctx.resultsSort == .lane
+        case .schedule: false
+        }
+    }
+
+    /// L-26: turns the lanes around. The rows slide to their new places —
+    /// `BoardTable` identifies them by lane, so SwiftUI moves them — unless
+    /// the reader asked for less motion.
+    private var laneOrderButton: some View {
+        let first = String(ctx.settings.firstLane)
+        let last = String(ctx.settings.firstLane + max(1, ctx.settings.numLanes) - 1)
+        return Button {
+            withAnimation(reduceMotion ? nil : .snappy) {
+                app.setLanesDescending(!ctx.lanesDescending, in: ctx)
+            }
+        } label: {
+            Image(systemName: "arrow.up.arrow.down")
+        }
+        .accessibilityLabel(Native.laneOrder)
+        .accessibilityValue(
+            ctx.lanesDescending ? Native.laneOrderValue(last, first) : Native.laneOrderValue(first, last))
     }
 
     /// A-12: back asks the meet list first (~4 s). An answer pops; anything

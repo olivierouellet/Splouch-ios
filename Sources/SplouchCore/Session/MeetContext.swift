@@ -55,6 +55,11 @@ public final class MeetContext {
     /// The device's choices, applied over the meet's locale (T-06).
     public private(set) var language: String?
     public private(set) var labelStyle: LabelStyle
+    /// P-23: read once, as the meet opens — settings live on the picker.
+    public let resultsOrder: ResultsOrder
+    /// L-26: this meet's lanes run bottom to top. Set through
+    /// `AppModel.setLanesDescending`, which stores it.
+    public internal(set) var lanesDescending: Bool
 
     public init(
         api: SplouchAPI, base: ServerAddress? = nil, kind: ServerKind, meetID: String?, title: String,
@@ -79,6 +84,9 @@ public final class MeetContext {
         self.stringsLoader = stringsLoader
         self.language = preferences.language
         self.labelStyle = preferences.effectiveLabelStyle
+        self.resultsOrder = preferences.resultsOrder
+        self.lanesDescending = preferences.descendingLanes.contains(
+            Self.laneKey(server: api.address, kind: kind, meetID: meetID))
         self.session = MeetSession(
             address: api.address, base: base, kind: kind, meetID: meetID, settings: settings,
             vidStore: vidStore, connector: connector, timing: timing)
@@ -103,6 +111,18 @@ public final class MeetContext {
     /// The meet's own address (C-11): its config, schedule and icon. Follows
     /// the session's `base`, so a `moved` (C-12) re-points these too.
     public var meetAPI: SplouchAPI { api.at(session.base) }
+
+    /// L-26's key for this meet. A cloud meet by its id, which `base` moves
+    /// (C-12) do not change; a Pi's one meet by the server, which is the pool.
+    public var laneKey: String { Self.laneKey(server: api.address, kind: kind, meetID: meetID) }
+
+    static func laneKey(server: ServerAddress, kind: ServerKind, meetID: String?) -> String {
+        kind == .cloud ? meetID ?? server.origin : server.origin
+    }
+
+    /// The order the Results tab draws the current snapshot in (P-23, R-05,
+    /// R-06): what decides whether L-26's action is offered there.
+    public var resultsSort: ResultsSort { resultsOrder.resolve(session.results?.sort) }
 
     /// The language the tabs render in.
     public var effectiveLanguage: String { language ?? settings.locale }

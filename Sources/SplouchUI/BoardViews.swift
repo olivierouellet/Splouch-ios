@@ -3,7 +3,10 @@ import SwiftUI
 
 /// One row as both boards draw it: the Scoreboard tab's `LaneRow` and the
 /// Results tab's `ResultRow` map onto this (R-04: same six columns).
-struct BoardRow: Equatable {
+struct BoardRow: Equatable, Identifiable {
+    /// The board row this is, wherever it is drawn: the lane's row on the
+    /// Scoreboard, `ResultRow.slot` on Results (L-26).
+    var id = 0
     var laneLabel: String
     var name = ""
     var alt = ""
@@ -23,6 +26,7 @@ struct BoardRow: Equatable {
 
     /// Board row `i` (`lane_*<i>`) is labelled lane `i + firstLane - 1` (L-04).
     init(_ i: Int, _ l: LaneRow, lap: LapCount? = nil, firstLane: Int = 1) {
+        id = i
         laneLabel = String(i + firstLane - 1)
         name = l.name
         alt = l.alt
@@ -49,6 +53,7 @@ struct BoardRow: Equatable {
     }
 
     init(_ r: ResultRow) {
+        id = r.slot
         laneLabel = r.laneLabel
         name = r.name
         alt = r.alt
@@ -431,7 +436,9 @@ struct BoardTable: View {
         let named = rows.contains { !$0.name.isEmpty }
         VStack(spacing: 0) {
             if let wide, landscape.showsHeader { header(size: rowFont, widths: wide.widths) }
-            ForEach(Array(rows.enumerated()), id: \.offset) { i, row in
+            // By the row's own identity, not its position, so L-26 turning the
+            // lanes around moves each row rather than repainting every one.
+            ForEach(Array(rows.enumerated()), id: \.element.id) { i, row in
                 Group {
                     if let wide {
                         LandscapeRow(

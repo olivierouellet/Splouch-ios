@@ -43,6 +43,43 @@ import Testing
         #expect(rows[0].isEmpty)
     }
 
+    /// P-23: a reader who wants places ranks a heat the pool sorted by lane.
+    @Test func readersPlaceOrderRanksALaneSortedSnapshot() {
+        let snap = ResultsSnapshot(
+            event: "3", heat: "1", eventName: "", eventNameParts: nil, sort: .lane,
+            lanes: [
+                lane(1, place: "", time: "", name: "DQ"), lane(2, place: "2", time: "2.00", name: "B"),
+                lane(3, place: "1", time: "1.00", name: "A"),
+            ])
+        let rows = ResultsBoard.rows(snap, numLanes: 4, order: .place)
+        #expect(rows.map(\.name) == ["A", "B", "DQ", ""])
+        #expect(rows.map(\.slot) == [1, 2, 3, 4])
+        #expect(rows[3].laneLabel.isEmpty)
+    }
+
+    /// P-23: and one who wants lanes puts a place-sorted heat back on its lanes.
+    @Test func readersLaneOrderOutranksThePoolsPlaceOrder() {
+        let snap = ResultsSnapshot(
+            event: "3", heat: "1", eventName: "", eventNameParts: nil, sort: .place,
+            lanes: [lane(4, place: "1", time: "1.00", name: "A"), lane(2, place: "2", time: "2.00", name: "B")])
+        let rows = ResultsBoard.rows(snap, numLanes: 4, order: .lane)
+        #expect(rows.map(\.name) == ["", "B", "", "A"])
+    }
+
+    /// L-26: lane order turned around keeps each row's lane and identity; a
+    /// ranking is never turned around.
+    @Test func descendingTurnsLanesAroundButNotARanking() {
+        let snap = ResultsSnapshot(
+            event: "3", heat: "1", eventName: "", eventNameParts: nil, sort: .lane,
+            lanes: [lane(1, place: "2", time: "2.00", name: "B"), lane(3, place: "1", time: "1.00", name: "A")])
+        let down = ResultsBoard.rows(snap, numLanes: 4, firstLane: 0, descending: true)
+        #expect(down.map(\.laneLabel) == ["3", "2", "1", "0"])
+        #expect(down.map(\.slot) == [4, 3, 2, 1])
+        #expect(down[0].name == "A" && down[2].name == "B")
+        let ranked = ResultsBoard.rows(snap, numLanes: 4, order: .place, descending: true)
+        #expect(ranked.map(\.name) == ["A", "B", "", ""])
+    }
+
     @Test func placeSortFillsTopDown() {
         let snap = ResultsSnapshot(
             event: "3", heat: "1", eventName: "", eventNameParts: nil, sort: .place,

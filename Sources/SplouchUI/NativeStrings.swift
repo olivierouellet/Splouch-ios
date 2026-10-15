@@ -81,6 +81,22 @@ enum Native {
     static var appearanceDark: String { String(localized: "appearance_dark", bundle: NativeLanguage.shared.bundle) }
     static var appearanceLight: String { String(localized: "appearance_light", bundle: NativeLanguage.shared.bundle) }
     static var appearanceAuto: String { String(localized: "appearance_auto", bundle: NativeLanguage.shared.bundle) }
+    // P-23, beside Appearance in Display.
+    static var resultsOrder: String { String(localized: "results_order", bundle: NativeLanguage.shared.bundle) }
+    static var resultsOrderPool: String {
+        String(localized: "results_order_pool", bundle: NativeLanguage.shared.bundle)
+    }
+    static var resultsOrderLane: String {
+        String(localized: "results_order_lane", bundle: NativeLanguage.shared.bundle)
+    }
+    static var resultsOrderPlace: String {
+        String(localized: "results_order_place", bundle: NativeLanguage.shared.bundle)
+    }
+    // L-26: the board's action and what it says the order is now, "1 to 8".
+    static var laneOrder: String { String(localized: "lane_order", bundle: NativeLanguage.shared.bundle) }
+    static func laneOrderValue(_ top: String, _ bottom: String) -> String {
+        String(format: String(localized: "lane_order_value", bundle: NativeLanguage.shared.bundle), top, bottom)
+    }
     static var language: String { String(localized: "language", bundle: NativeLanguage.shared.bundle) }
     static var languageAuto: String { String(localized: "language_auto", bundle: NativeLanguage.shared.bundle) }
     static var done: String { String(localized: "done", bundle: NativeLanguage.shared.bundle) }

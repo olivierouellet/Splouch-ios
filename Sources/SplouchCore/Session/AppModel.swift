@@ -491,6 +491,28 @@ public final class AppModel {
         preferencesStore.save(p)
     }
 
+    /// P-23. Read by each meet as it opens; settings are only reachable from
+    /// the picker, so no open meet has to follow it.
+    public func setResultsOrder(_ order: ResultsOrder) {
+        var p = preferences
+        p.resultsOrder = order
+        preferences = p
+        preferencesStore.save(p)
+    }
+
+    /// L-26: turn this meet's lanes around, and remember it for the meet.
+    public func setLanesDescending(_ descending: Bool, in meet: MeetContext) {
+        meet.lanesDescending = descending
+        var p = preferences
+        if descending {
+            p.descendingLanes.insert(meet.laneKey)
+        } else {
+            p.descendingLanes.remove(meet.laneKey)
+        }
+        preferences = p
+        preferencesStore.save(p)
+    }
+
     public func setLabelStyle(_ style: LabelStyle) {
         var p = preferences
         p.labelStyle = style

@@ -37,8 +37,11 @@ struct ResultsTab: View {
                 ScrollView {
                     if let snapshot {
                         BoardTable(
-                            rows: ResultsBoard.rows(snapshot, numLanes: n, firstLane: ctx.settings.firstLane)
-                                .map(BoardRow.init),
+                            rows: ResultsBoard.rows(
+                                snapshot, numLanes: n, firstLane: ctx.settings.firstLane,
+                                order: ctx.resultsOrder, descending: ctx.lanesDescending
+                            )
+                            .map(BoardRow.init),
                             columns: Columns(ctx.settings), labels: ctx.labels,
                             lapsWord: ctx.strings.mobile("spoken_laps"), isWide: isWide,
                             height: BoardTable.tableHeight(in: geo), width: geo.size.width)

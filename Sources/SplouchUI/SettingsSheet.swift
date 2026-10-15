@@ -68,11 +68,11 @@ struct SettingsSheet: View {
         }
     }
 
-    /// T-08 and P-15 as `Picker` rows. The language is one row naming the
+    /// T-08, P-15 and P-23 as `Picker` rows. The language is one row naming the
     /// current choice and pushing the list, since it is served and open-ended —
     /// inline, a server's many languages would push everything else down;
-    /// Appearance is three fixed choices the app owns.
-    /// Both announce the current choice as selected (X-06) on their own.
+    /// Appearance and results order are three fixed choices each, the app's.
+    /// All announce the current choice as selected (X-06) on their own.
     private var display: some View {
         Section(Native.settingsDisplay) {
             Picker(
@@ -98,6 +98,18 @@ struct SettingsSheet: View {
                 Text(Native.appearanceDark).tag(SplouchCore.Appearance.dark)
                 Text(Native.appearanceLight).tag(SplouchCore.Appearance.light)
                 Text(Native.appearanceAuto).tag(SplouchCore.Appearance.auto)
+            }
+            // P-23: the pool's order is the default and named as such, so a
+            // reader who never opens this sees what the operator chose.
+            Picker(
+                Native.resultsOrder,
+                selection: Binding(
+                    get: { app.preferences.resultsOrder },
+                    set: { app.setResultsOrder($0) })
+            ) {
+                Text(Native.resultsOrderPool).tag(ResultsOrder.pool)
+                Text(Native.resultsOrderLane).tag(ResultsOrder.lane)
+                Text(Native.resultsOrderPlace).tag(ResultsOrder.place)
             }
         }
     }

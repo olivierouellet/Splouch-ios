@@ -37,7 +37,8 @@ struct ScoreboardTab: View {
             GeometryReader { geo in
                 ScrollView {
                     BoardTable(
-                        rows: (1...board.numLanes).map {
+                        // L-26: the same rows, bottom lane first.
+                        rows: lanes(board.numLanes).map {
                             // L-23: the lap is derived from the merged
                             // board and the meet's two settings, here,
                             // where both are in hand.
@@ -65,6 +66,10 @@ struct ScoreboardTab: View {
             }
         }
         .onDisappear { ctx.session.suspend() }
+    }
+
+    private func lanes(_ n: Int) -> [Int] {
+        ctx.lanesDescending ? Array((1...n).reversed()) : Array(1...n)
     }
 
     /// Whether the lanes want the navigation bar to take the header row.
