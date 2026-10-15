@@ -253,8 +253,11 @@ public final class AppModel {
     /// P-07's note, nil while this server is not counting.
     public var privacyNote: String? { analyticsEnabled ? served("privacy_note") : nil }
 
-    /// P-07, P-19: the server's own policy page.
-    public var privacyPolicyURL: URL { server.endpoint("privacy") }
+    /// P-07, P-19: the server's own policy page, in the app's language: the page's
+    /// own switcher is a step a reader should not need.
+    public var privacyPolicyURL: URL {
+        server.endpoint("privacy", query: [URLQueryItem(name: "lang", value: strings.language)])
+    }
 
     private func served(_ key: String) -> String? {
         guard let text = picker?.strings[key], !text.isEmpty else { return nil }

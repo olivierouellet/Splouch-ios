@@ -375,6 +375,9 @@ import Testing
         await app.setLanguage("fr")
         #expect(app.picker?.lang == "fr")
         #expect(store.load().language == "fr")
+        await app.setLanguage("es")
+        // P-07: the policy opens in the app's language, not the page's guess.
+        #expect(app.privacyPolicyURL.absoluteString == stub.address.endpoint("privacy").absoluteString + "?lang=es")
         app.setLabelStyle(.long)
         #expect(store.load().labelStyle == .long)
         // P-15: dark until the user says otherwise, then persisted.
