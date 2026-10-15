@@ -31,8 +31,8 @@ import Testing
             "/meet/m1/schedule", json: #"{"heats":[{"event":1,"heat":1,"lanes":[{"lane":1,"name":"A","club":"C"}]}]}"#)
         let connector = FakeConnector()
         let ctx = make(stub: stub, connector: connector)
-        ctx.filter.add(FilterTerm(kind: .swimmer, name: "Nobody"))
-        ctx.filter.add(FilterTerm(kind: .swimmer, name: "A"))
+        ctx.filter.add(FilterTerm(kind: .swimmer, name: "Nobody", club: "C"))
+        ctx.filter.add(FilterTerm(kind: .swimmer, name: "A", club: "C"))
         ctx.start()
         #expect(await eventually { @MainActor in ctx.schedule?.heats.count == 1 })
         #expect(ctx.filter.terms.map(\.name) == ["A"])  // pruned to names that still exist

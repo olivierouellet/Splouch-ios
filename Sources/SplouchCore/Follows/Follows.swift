@@ -245,17 +245,10 @@ public struct FollowRegistration: Sendable, Equatable {
 }
 
 extension MeetFollows {
-    /// N-03: a filter chip names a swimmer, not a club; the follow carries the
-    /// club the start list gives that name — one follow per club when two
-    /// swimmers share it.
-    public static func swimmers(named name: String, in heats: [ScheduleHeat]) -> [FollowedSwimmer] {
-        var clubs: [String] = []
-        for h in heats {
-            for l in h.lanes where l.name == name || l.swimmers.contains(where: { $0.name == name }) {
-                if !clubs.contains(l.club) { clubs.append(l.club) }
-            }
-        }
-        return clubs.map { FollowedSwimmer(name: name, club: $0) }
+    /// N-03: the swimmer chips as follows, each with the club it was found
+    /// with; club chips are not copied.
+    public static func swimmers(of terms: [FilterTerm]) -> [FollowedSwimmer] {
+        terms.filter { $0.kind == .swimmer }.map { FollowedSwimmer(name: $0.name, club: $0.club) }
     }
 }
 

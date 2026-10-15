@@ -117,13 +117,17 @@ import Testing
         #expect(index.search("北島").isEmpty)
     }
 
-    @Test func laterLaneWinsAClubDisagreement() {
+    /// S-09: one name in two clubs is two swimmers, each offered with its
+    /// club, by club after the name.
+    @Test func aNameInTwoClubsIsTwoRows() {
         let h = [
-            heat("1", [lane(1, "Doe, Jane", club: "CAMO")]),
-            heat("2", [lane(1, "Doe, Jane", club: "PCSC")]),
+            heat("1", [lane(1, "Doe, Jane", club: "PCSC")]),
+            heat("2", [lane(1, "Doe, Jane", club: "CAMO")]),
+            heat("3", [lane(1, "Doe, Jane", club: "PCSC")]),
         ]
         let hits = SuggestionIndex(heats: h).search("doe")
-        #expect(hits.map(\.club) == ["PCSC"])
+        #expect(hits.map(\.club) == ["CAMO", "PCSC"])
+        #expect(hits.map(\.term).count == Set(hits.map(\.term)).count)
     }
 
     @Test func resultsAreCappedAtTwenty() {
@@ -138,7 +142,7 @@ import Testing
 
     @Test func suggestionCarriesTheChipItAdds() {
         let s = index.search("foo")[0]
-        #expect(s.term == FilterTerm(kind: .swimmer, name: "Foo Bar"))
+        #expect(s.term == FilterTerm(kind: .swimmer, name: "Foo Bar", club: "CAMO"))
         // S-14: the chip still matches the relay lane, through its members.
         #expect(ScheduleView.laneMatches(heats[1].lanes[0], [s.term]))
     }

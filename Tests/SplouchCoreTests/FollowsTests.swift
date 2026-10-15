@@ -87,19 +87,14 @@ import Testing
         #expect(store.load().isEmpty)  // an empty list is no row
     }
 
-    @Test func aFilterChipBecomesOneFollowPerClub() {
-        let heats = [
-            ScheduleHeat(
-                event: "1", heat: "1", eventName: "", time: "",
-                lanes: [
-                    ScheduleLane(lane: 1, name: "Emma Roy", club: "CNQ", seedTime: "", swimmers: []),
-                    ScheduleLane(
-                        lane: 2, name: "MEGO A", club: "MEGO", seedTime: "",
-                        swimmers: [ScheduleSwimmer(name: "Emma Roy", first: "Emma")]),
-                ])
+    /// N-03: a chip follows the swimmer it was found as — not every swimmer of
+    /// that name — and club chips are not copied.
+    @Test func aFilterChipBecomesTheFollowItNames() {
+        let terms = [
+            FilterTerm(kind: .swimmer, name: "Emma Roy", club: "CNQ"),
+            FilterTerm(kind: .club, name: "MEGO"),
         ]
-        #expect(
-            MeetFollows.swimmers(named: "Emma Roy", in: heats).map(\.club) == ["CNQ", "MEGO"])
+        #expect(MeetFollows.swimmers(of: terms) == [FollowedSwimmer(name: "Emma Roy", club: "CNQ")])
     }
 
     // MARK: N-01, N-04, N-07

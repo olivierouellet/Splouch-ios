@@ -1,7 +1,8 @@
 import Foundation
 
 /// One active filter chip (app.md S-11): a swimmer or a club, matched by exact
-/// name as the search suggestion supplied it.
+/// name as the search suggestion supplied it. A swimmer also carries the club it
+/// was found with — two swimmers of one name in two clubs are two people (S-09).
 public struct FilterTerm: Sendable, Hashable, Codable {
     public enum Kind: String, Sendable, Codable {
         case swimmer
@@ -10,10 +11,13 @@ public struct FilterTerm: Sendable, Hashable, Codable {
 
     public var kind: Kind
     public var name: String
+    /// The swimmer's club; always empty for a club term.
+    public var club: String
 
-    public init(kind: Kind, name: String) {
+    public init(kind: Kind, name: String, club: String = "") {
         self.kind = kind
         self.name = name
+        self.club = kind == .swimmer ? club : ""
     }
 }
 
@@ -52,24 +56,12 @@ public struct ScheduleFilter: Sendable, Equatable {
         self = ScheduleFilter()
     }
 
-    /// After a new schedule arrives (S-21): keep the filters whose names still
-    /// exist in it; silently dropping them mid-meet is worse than a stale list,
-    /// but a chip that can never match again is noise.
+    /// After a new schedule arrives (S-21): keep the filters still in it — a
+    /// swimmer by name and club; silently dropping them mid-meet is worse than a
+    /// stale list, but a chip that can never match again is noise.
     public mutating func prune(to heats: [ScheduleHeat]) {
-        var swimmers = Set<String>()
-        var clubs = Set<String>()
-        for h in heats {
-            for l in h.lanes {
-                if !l.name.isEmpty { swimmers.insert(l.name) }
-                if !l.club.isEmpty { clubs.insert(l.club) }
-                for s in l.swimmers where !s.name.isEmpty { swimmers.insert(s.name) }
-            }
-        }
         terms.removeAll { t in
-            switch t.kind {
-            case .swimmer: return !swimmers.contains(t.name)
-            case .club: return !clubs.contains(t.name)
-            }
+            !heats.contains { h in h.lanes.contains { ScheduleView.laneMatches($0, [t]) } }
         }
     }
 }
@@ -100,7 +92,8 @@ public struct VisibleHeat: Sendable, Equatable {
 }
 
 public enum ScheduleView {
-    /// S-13: OR-ed. S-14: a swimmer filter matches relay members too.
+    /// S-13: OR-ed; a swimmer only in the club it was found with. S-14: a
+    /// swimmer filter matches relay members too.
     public static func laneMatches(_ lane: ScheduleLane, _ terms: [FilterTerm]) -> Bool {
         if terms.isEmpty { return true }
         for t in terms {
@@ -108,6 +101,7 @@ public enum ScheduleView {
             case .club:
                 if lane.club == t.name { return true }
             case .swimmer:
+                guard lane.club == t.club else { continue }
                 if lane.name == t.name { return true }
                 if lane.swimmers.contains(where: { $0.name == t.name }) { return true }
             }

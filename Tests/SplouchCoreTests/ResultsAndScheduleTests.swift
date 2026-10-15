@@ -126,7 +126,9 @@ import Testing
     }
 
     @Test func filtersAreORedAndHideEmptyHeats() {
-        let f = ScheduleFilter(terms: [.init(kind: .club, name: "PCSC"), .init(kind: .swimmer, name: "Doe, Jane")])
+        let f = ScheduleFilter(terms: [
+            .init(kind: .club, name: "PCSC"), .init(kind: .swimmer, name: "Doe, Jane", club: "CAMO"),
+        ])
         let v = ScheduleView.visible(heats, filter: f, current: nil)
         #expect(v.map { $0.heat.heat + "@" + $0.heat.event } == ["1@1", "2@1"])
         #expect(v[0].lanes.map(\.lane) == [1, 2])
@@ -135,10 +137,30 @@ import Testing
     }
 
     @Test func swimmerFilterMatchesRelayMembers() {
-        let f = ScheduleFilter(terms: [.init(kind: .swimmer, name: "Foo Bar")])
+        let f = ScheduleFilter(terms: [.init(kind: .swimmer, name: "Foo Bar", club: "CAMO")])
         let v = ScheduleView.visible(heats, filter: f, current: nil)
         #expect(v.count == 1)
         #expect(v[0].heat.event == "2")
+    }
+
+    /// S-13: two swimmers of one name in two clubs are two people; following
+    /// one does not bring the other's heat along.
+    @Test func swimmerFilterMatchesOnlyItsOwnClub() {
+        let h = [
+            ScheduleHeat(
+                event: "2", heat: "1", eventName: "", eventNameParts: nil, time: "",
+                lanes: [
+                    lane(3, "Olivia Gagné", club: "PPO"),
+                    lane(4, "PPO A", club: "PPO", swimmers: ["Olivia Gagné"]),
+                ]),
+            ScheduleHeat(
+                event: "3", heat: "1", eventName: "", eventNameParts: nil, time: "",
+                lanes: [lane(5, "Olivia Gagné", club: "CNQ")]),
+        ]
+        let cnq = ScheduleFilter(terms: [.init(kind: .swimmer, name: "Olivia Gagné", club: "CNQ")])
+        #expect(ScheduleView.visible(h, filter: cnq, current: nil).map(\.heat.event) == ["3"])
+        let ppo = ScheduleFilter(terms: [.init(kind: .swimmer, name: "Olivia Gagné", club: "PPO")])
+        #expect(ScheduleView.visible(h, filter: ppo, current: nil).flatMap { $0.lanes.map(\.lane) } == [3, 4])
     }
 
     @Test func allHeatsKeepsHeatsButStillFiltersLanes() {
@@ -185,7 +207,9 @@ import Testing
     @Test func pruneKeepsFiltersThatStillMatchTheNewSchedule() {
         var f = ScheduleFilter(
             terms: [
-                .init(kind: .swimmer, name: "Foo Bar"), .init(kind: .swimmer, name: "Gone"),
+                .init(kind: .swimmer, name: "Foo Bar", club: "CAMO"), .init(kind: .swimmer, name: "Gone", club: "CAMO"),
+                // The name is still there, but not in this club.
+                .init(kind: .swimmer, name: "Poe, Ann", club: "CAMO"),
                 .init(kind: .club, name: "CAMO"),
             ], showAllHeats: true)
         f.prune(to: heats)

@@ -14,7 +14,7 @@ public struct Suggestion: Sendable, Equatable {
     }
 
     /// The chip this row adds.
-    public var term: FilterTerm { FilterTerm(kind: kind, name: name) }
+    public var term: FilterTerm { FilterTerm(kind: kind, name: name, club: club) }
 }
 
 /// S-09: typeahead over the start list this app already holds for S-01. There
@@ -38,18 +38,20 @@ public struct SuggestionIndex: Sendable, Equatable {
 
     /// Every `lane.name` — relay team names included, since a spectator may know
     /// the team and not one swimmer on it — plus every `lane.swimmers[].name`,
-    /// each carrying its lane's club; then one row per distinct club. Names are
-    /// deduped, the later lane in schedule order winning a club disagreement.
+    /// each carrying its lane's club; then one row per distinct club. One row
+    /// per name and club: the same name in two clubs is two swimmers.
     public init(heats: [ScheduleHeat]) {
-        var byName: [String: Entry] = [:]
-        var nameOrder: [String] = []
+        var byName: [FilterTerm: Entry] = [:]
+        var nameOrder: [FilterTerm] = []
         var byClub: [String: Entry] = [:]
         var clubOrder: [String] = []
 
         func addName(_ name: String, club: String) {
             guard !name.isEmpty else { return }
-            if byName[name] == nil { nameOrder.append(name) }
-            byName[name] = Entry(kind: .swimmer, name: name, club: club, key: SuggestionIndex.fold(name))
+            let id = FilterTerm(kind: .swimmer, name: name, club: club)
+            guard byName[id] == nil else { return }
+            nameOrder.append(id)
+            byName[id] = Entry(kind: .swimmer, name: name, club: club, key: SuggestionIndex.fold(name))
         }
 
         for h in heats {
@@ -72,14 +74,16 @@ public struct SuggestionIndex: Sendable, Equatable {
 
     /// Substring of the folded query against the folded key — nothing else.
     /// Matching swimmers first, then matching clubs, each in folded-name order
-    /// (so `Ève` sorts with the E's, not after `Zoé`), capped at `limit`. An empty or whitespace-only query offers nothing rather than
+    /// (so `Ève` sorts with the E's, not after `Zoé`), then by club, capped at `limit`. An empty or whitespace-only query offers nothing rather than
     /// the whole index; so does one that folds away to nothing (`北島`), the
     /// known limit app.md records.
     public func search(_ query: String, limit: Int = 20) -> [Suggestion] {
         let needle = SuggestionIndex.fold(query.trimmingCharacters(in: .whitespacesAndNewlines))
         guard !needle.isEmpty else { return [] }
         func hits(_ entries: [Entry]) -> [Entry] {
-            entries.filter { $0.key.contains(needle) }.sorted { ($0.key, $0.name) < ($1.key, $1.name) }
+            entries.filter { $0.key.contains(needle) }.sorted {
+                ($0.key, $0.name, $0.club) < ($1.key, $1.name, $1.club)
+            }
         }
         let rows = hits(swimmers) + hits(clubs)
         return rows.prefix(limit).map { Suggestion(kind: $0.kind, name: $0.name, club: $0.club) }

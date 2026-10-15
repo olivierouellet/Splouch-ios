@@ -114,13 +114,8 @@ struct FilterSheet: View {
         }
     }
 
-    /// N-03: the swimmer chips, each with the club the start list gives it.
-    private var filteredSwimmers: [FollowedSwimmer] {
-        let heats = ctx.schedule?.heats ?? []
-        return ctx.filter.terms.filter { $0.kind == .swimmer }.flatMap {
-            MeetFollows.swimmers(named: $0.name, in: heats)
-        }
-    }
+    /// N-03: the swimmer chips, each with the club it was found with.
+    private var filteredSwimmers: [FollowedSwimmer] { MeetFollows.swimmers(of: ctx.filter.terms) }
 
     private func followFiltered() {
         var f = ctx.follows
@@ -231,6 +226,10 @@ struct FilterSheet: View {
                     Image(systemName: term.kind == .club ? "building.2" : "person").font(.caption)
                         .accessibilityHidden(true)
                     Text(term.name).font(.subheadline)
+                    // Two swimmers of one name in two clubs are two chips.
+                    if !term.club.isEmpty {
+                        Text(term.club).font(.subheadline).foregroundStyle(.secondary)
+                    }
                     Button {
                         ctx.filter.remove(term)
                     } label: {
@@ -245,7 +244,8 @@ struct FilterSheet: View {
                             .padding(-6)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("\(Native.remove), \(term.name)")
+                    .accessibilityLabel(
+                        [Native.remove, term.name, term.club].filter { !$0.isEmpty }.joined(separator: ", "))
                 }
                 .padding(.horizontal, 10).padding(.vertical, 6)
                 .background(.quaternary, in: Capsule())
