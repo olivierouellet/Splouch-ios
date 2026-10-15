@@ -12,6 +12,9 @@ public enum EventName {
     /// no parts or no vocabulary; the raw name when the parts compose to nothing.
     public static func compose(_ parts: EventNameParts?, vocab: [String: String]?) -> String {
         guard let parts, let vocab else { return "" }
+        // A kind (the console's test race) is that word alone; `raw`, the meet's
+        // language, when this vocabulary predates the key.
+        if !parts.kind.isEmpty { return vocab[parts.kind] ?? parts.raw }
         func word(_ k: String) -> String { k.isEmpty ? "" : (vocab[k] ?? k) }
         var left: [String] = []
         if !parts.dist.isEmpty { left.append(parts.dist + " " + (vocab["unit"] ?? "m")) }

@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 
 @testable import SplouchCore
@@ -22,6 +23,18 @@ import Testing
     @Test func unknownKeysRenderAsThemselves() {
         let p = EventNameParts(dist: "100", stroke: "sidestroke", gender: "boys")
         #expect(EventName.compose(p, vocab: es) == "100 m sidestroke  —  boys")
+    }
+
+    @Test func aKindIsItsWordAlone() {
+        let test = EventNameParts(raw: "Test race", kind: "test_race")
+        let withKey = es.merging(["test_race": "Carrera de prueba"]) { a, _ in a }
+        #expect(EventName.compose(test, vocab: withKey) == "Carrera de prueba")
+        #expect(EventName.compose(test, vocab: es) == "Test race")
+    }
+
+    @Test func decodesTheKind() {
+        let json = try! JSONValue.parse(Data(#"{"raw":"Test race","kind":"test_race"}"#.utf8))
+        #expect(EventNameParts(json: json)?.kind == "test_race")
     }
 
     @Test func fallsBackToRawThenName() {
