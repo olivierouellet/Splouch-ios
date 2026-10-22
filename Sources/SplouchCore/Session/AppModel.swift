@@ -502,11 +502,13 @@ public final class AppModel {
 
     /// L-26: turn this meet's lanes around, and remember it for the meet.
     public func setLanesDescending(_ descending: Bool, in meet: MeetContext) {
-        meet.lanesDescending = descending
+        meet.laneChoice = descending
         var p = preferences
         if descending {
             p.descendingLanes.insert(meet.laneKey)
+            p.ascendingLanes.remove(meet.laneKey)
         } else {
+            p.ascendingLanes.insert(meet.laneKey)
             p.descendingLanes.remove(meet.laneKey)
         }
         preferences = p

@@ -117,6 +117,12 @@ import Testing
         #expect(LapSettings(off).show == false)
     }
 
+    // L-26 / api.md §5.4: the pool's starting lane order, up when absent.
+    @Test func laneDirectionIsReadAndDefaultsUp() {
+        #expect(MeetSettings(json: json(#"{"lane_direction":"down"}"#)).laneDirection == "down")
+        #expect(MeetSettings(json: json("{}")).laneDirection == "up")
+    }
+
     // A-11 / api.md §5.4: `timed` is the whole question and `key` is diagnostic.
     @Test func consoleIsReadForItsTimedFlagAndNeverItsKey() {
         let manual = MeetSettings(json: json(#"{"console":{"key":"manual","timed":false}}"#))

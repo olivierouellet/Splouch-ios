@@ -160,7 +160,7 @@ import Testing
     @Test func resultsOrderAndLaneDirectionDefaultForOldPreferences() throws {
         let old = try JSONDecoder().decode(Preferences.self, from: Data(#"{"language":"fr","savedServers":[]}"#.utf8))
         #expect(old.resultsOrder == .place)
-        #expect(old.descendingLanes.isEmpty)
+        #expect(old.descendingLanes.isEmpty && old.ascendingLanes.isEmpty)
         #expect(old.language == "fr")
         let unknown = try JSONDecoder().decode(
             Preferences.self, from: Data(#"{"resultsOrder":"time","savedServers":[]}"#.utf8))
@@ -168,7 +168,7 @@ import Testing
         let pool = try JSONDecoder().decode(
             Preferences.self, from: Data(#"{"resultsOrder":"pool","savedServers":[]}"#.utf8))
         #expect(pool.resultsOrder == .place)
-        let p = Preferences(resultsOrder: .lane, descendingLanes: ["m1"])
+        let p = Preferences(resultsOrder: .lane, descendingLanes: ["m1"], ascendingLanes: ["m2"])
         #expect(try JSONDecoder().decode(Preferences.self, from: JSONEncoder().encode(p)) == p)
     }
 

@@ -80,15 +80,17 @@ public struct Preferences: Sendable, Codable, Equatable {
     public var meetFilter: MeetFilter
     /// P-23: `place` until the reader picks.
     public var resultsOrder: ResultsOrder
-    /// L-26: the meets whose lanes this reader turned around, by
-    /// `MeetContext.laneKey`. A meet absent here is ascending.
+    /// L-26: the meets this reader set descending, and those set ascending, by
+    /// `MeetContext.laneKey`. A key is in one at most; a meet in neither follows
+    /// the pool's `lane_direction`.
     public var descendingLanes: Set<String>
+    public var ascendingLanes: Set<String>
 
     public init(
         language: String? = nil, labelStyle: LabelStyle = .long, appearance: Appearance = .dark,
         server: ServerAddress? = nil, savedServers: [SavedServer] = [], introSeen: Bool = false,
         meetFilter: MeetFilter = MeetFilter(), resultsOrder: ResultsOrder = .place,
-        descendingLanes: Set<String> = []
+        descendingLanes: Set<String> = [], ascendingLanes: Set<String> = []
     ) {
         self.language = language
         self.labelStyle = labelStyle
@@ -99,6 +101,7 @@ public struct Preferences: Sendable, Codable, Equatable {
         self.meetFilter = meetFilter
         self.resultsOrder = resultsOrder
         self.descendingLanes = descendingLanes
+        self.ascendingLanes = ascendingLanes
     }
 
     /// Preferences stored before the style became a two-way choice carry either
@@ -126,6 +129,7 @@ public struct Preferences: Sendable, Codable, Equatable {
         // does not (`pool`, withdrawn): by place, every lane ascending.
         resultsOrder = (try? c.decodeIfPresent(ResultsOrder.self, forKey: .resultsOrder)) ?? .place
         descendingLanes = (try? c.decodeIfPresent(Set<String>.self, forKey: .descendingLanes)) ?? []
+        ascendingLanes = (try? c.decodeIfPresent(Set<String>.self, forKey: .ascendingLanes)) ?? []
     }
 }
 

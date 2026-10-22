@@ -231,6 +231,20 @@ import Testing
         #expect(ctx.eventName("Club Handicap Final", parts: nil) == "Club Handicap Final")
     }
 
+    /// L-26: a meet the reader has not turned around starts the pool's way; their
+    /// choice, either way, outranks it.
+    @Test func theReadersLaneChoiceOutranksThePools() {
+        let stub = StubServer()
+        let down = MeetSettings(numLanes: 4, laneDirection: "down")
+        #expect(!make(stub: stub, connector: FakeConnector()).lanesDescending)
+        #expect(make(stub: stub, connector: FakeConnector(), settings: down).lanesDescending)
+        let up = Preferences(ascendingLanes: ["m1"])
+        #expect(make(stub: stub, connector: FakeConnector(), prefs: up, settings: down).laneChoice == false)
+        #expect(!make(stub: stub, connector: FakeConnector(), prefs: up, settings: down).lanesDescending)
+        let flipped = Preferences(descendingLanes: ["m1"])
+        #expect(make(stub: stub, connector: FakeConnector(), prefs: flipped).lanesDescending)
+    }
+
     @Test func piContextLoadsScheduleJSONAndSendsNoJoin() async {
         let stub = StubServer()
         stub.route("/schedule.json", json: #"{"heats":[{"event":3,"heat":1,"lanes":[]}]}"#)

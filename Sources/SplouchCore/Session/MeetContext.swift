@@ -57,9 +57,12 @@ public final class MeetContext {
     public private(set) var labelStyle: LabelStyle
     /// P-23: read once, as the meet opens — settings live on the picker.
     public let resultsOrder: ResultsOrder
-    /// L-26: this meet's lanes run bottom to top. Set through
-    /// `AppModel.setLanesDescending`, which stores it.
-    public internal(set) var lanesDescending: Bool
+    /// L-26: the reader's own direction for this meet, nil until they turn the
+    /// lanes around. Set through `AppModel.setLanesDescending`, which stores it.
+    public internal(set) var laneChoice: Bool?
+    /// L-26: this meet's lanes run bottom to top — the reader's choice, else the
+    /// pool's, which a refresh can change for a reader who has not chosen.
+    public var lanesDescending: Bool { laneChoice ?? (settings.laneDirection == "down") }
 
     public init(
         api: SplouchAPI, base: ServerAddress? = nil, kind: ServerKind, meetID: String?, title: String,
@@ -85,8 +88,10 @@ public final class MeetContext {
         self.language = preferences.language
         self.labelStyle = preferences.effectiveLabelStyle
         self.resultsOrder = preferences.resultsOrder
-        self.lanesDescending = preferences.descendingLanes.contains(
-            Self.laneKey(server: api.address, kind: kind, meetID: meetID))
+        let laneKey = Self.laneKey(server: api.address, kind: kind, meetID: meetID)
+        self.laneChoice =
+            preferences.descendingLanes.contains(laneKey)
+            ? true : preferences.ascendingLanes.contains(laneKey) ? false : nil
         self.session = MeetSession(
             address: api.address, base: base, kind: kind, meetID: meetID, settings: settings,
             vidStore: vidStore, connector: connector, timing: timing)

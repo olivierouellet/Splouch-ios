@@ -159,6 +159,10 @@ public struct MeetSettings: Sendable, Equatable {
     /// `"up"` (lengths completed) or `"down"` (lengths left). Anything else,
     /// including a server that predates the field, counts up.
     public var lapDirection: String
+    /// L-26: `"down"` when the pool lists its lanes last-first for a reader who
+    /// has not turned them around. Anything else, including a server that
+    /// predates the field, is ascending.
+    public var laneDirection: String
     public var themeColors: [String: String]
     public var themeFonts: [String: String]
     public var locale: String
@@ -176,7 +180,7 @@ public struct MeetSettings: Sendable, Equatable {
         showPosition: Bool = true, showPodium: Bool = true,
         showLaneHeader: Bool = true, showNameHeader: Bool = true, showClubHeader: Bool = true,
         showTimeHeader: Bool = true, showDeltaHeader: Bool = true, showPositionHeader: Bool = true,
-        showLaps: Bool = false, lapDirection: String = "up",
+        showLaps: Bool = false, lapDirection: String = "up", laneDirection: String = "up",
         themeColors: [String: String] = [:], themeFonts: [String: String] = [:],
         locale: String = "en", labels: [String: String] = [:],
         labelStyle: String? = nil, console: ConsoleInfo = ConsoleInfo()
@@ -196,6 +200,7 @@ public struct MeetSettings: Sendable, Equatable {
         self.showPositionHeader = showPositionHeader
         self.showLaps = showLaps
         self.lapDirection = lapDirection
+        self.laneDirection = laneDirection
         self.themeColors = themeColors
         self.themeFonts = themeFonts
         self.locale = locale
