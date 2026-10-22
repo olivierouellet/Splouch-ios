@@ -135,7 +135,7 @@ import Testing
         #expect(await eventually { @MainActor in s.results != nil })
         #expect(s.resultsLive)
         #expect(s.currentHeat == HeatRef(event: "5", heat: "1"))
-        #expect(ResultsBoard.rows(s.results!, numLanes: 4)[1].name == "B")
+        #expect(ResultsBoard.rows(s.results!, numLanes: 4, order: .lane)[1].name == "B")
         await rs.dropFromServer()
         #expect(await eventually { @MainActor in s.results == nil })
         #expect(!s.resultsLive)

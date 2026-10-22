@@ -122,7 +122,7 @@ public final class MeetContext {
 
     /// The order the Results tab draws the current snapshot in (P-23, R-05,
     /// R-06): what decides whether L-26's action is offered there.
-    public var resultsSort: ResultsSort { resultsOrder.resolve(session.results?.sort) }
+    public var resultsSort: ResultsSort { resultsOrder.sort }
 
     /// The language the tabs render in.
     public var effectiveLanguage: String { language ?? settings.locale }

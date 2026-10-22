@@ -25,22 +25,13 @@ import Testing
         let snap = ResultsSnapshot(
             event: "3", heat: "1", eventName: "x", eventNameParts: nil, sort: .lane,
             lanes: [lane(4, place: "1", time: "2:20.92", name: "A"), lane(2, place: "2", time: "2:21.00", name: "B")])
-        let rows = ResultsBoard.rows(snap, numLanes: 6)
+        let rows = ResultsBoard.rows(snap, numLanes: 6, order: .lane)
         #expect(rows[3].name == "A")
         #expect(rows[1].name == "B")
         #expect(rows[0].isEmpty && rows[0].laneLabel == "1" && rows[0].time == "—")
         #expect(rows[3].laneLabel == "4")
         #expect(rows[3].locked)
         #expect(rows[3].place == "1")
-    }
-
-    @Test func absentSortIsLaneNeverPlace() {
-        let snap = ResultsSnapshot(
-            event: "3", heat: "1", eventName: "", eventNameParts: nil, sort: nil,
-            lanes: [lane(5, place: "1", time: "1.00", name: "A")])
-        let rows = ResultsBoard.rows(snap, numLanes: 8)
-        #expect(rows[4].name == "A")
-        #expect(rows[0].isEmpty)
     }
 
     /// P-23: a reader who wants places ranks a heat the pool sorted by lane.
@@ -72,7 +63,7 @@ import Testing
         let snap = ResultsSnapshot(
             event: "3", heat: "1", eventName: "", eventNameParts: nil, sort: .lane,
             lanes: [lane(1, place: "2", time: "2.00", name: "B"), lane(3, place: "1", time: "1.00", name: "A")])
-        let down = ResultsBoard.rows(snap, numLanes: 4, firstLane: 0, descending: true)
+        let down = ResultsBoard.rows(snap, numLanes: 4, firstLane: 0, order: .lane, descending: true)
         #expect(down.map(\.laneLabel) == ["3", "2", "1", "0"])
         #expect(down.map(\.slot) == [4, 3, 2, 1])
         #expect(down[0].name == "A" && down[2].name == "B")
@@ -84,7 +75,7 @@ import Testing
         let snap = ResultsSnapshot(
             event: "3", heat: "1", eventName: "", eventNameParts: nil, sort: .place,
             lanes: [lane(4, place: "1", time: "1.00", name: "A"), lane(2, place: "2", time: "2.00", name: "B")])
-        let rows = ResultsBoard.rows(snap, numLanes: 4)
+        let rows = ResultsBoard.rows(snap, numLanes: 4, order: .place)
         #expect(rows[0].name == "A" && rows[0].laneLabel == "4")
         #expect(rows[1].name == "B" && rows[1].laneLabel == "2")
         #expect(rows[2].isEmpty && rows[2].laneLabel.isEmpty)
@@ -94,7 +85,7 @@ import Testing
         let snap = ResultsSnapshot(
             event: "3", heat: "1", eventName: "", eventNameParts: nil, sort: .lane,
             lanes: [lane(1, place: " ", time: " ", name: "A")])
-        let row = ResultsBoard.rows(snap, numLanes: 2)[0]
+        let row = ResultsBoard.rows(snap, numLanes: 2, order: .lane)[0]
         #expect(row.time == "—")
         #expect(row.place == "")
         #expect(!row.locked)
@@ -105,7 +96,7 @@ import Testing
         let snap = ResultsSnapshot(
             event: "3", heat: "1", eventName: "", eventNameParts: nil, sort: .lane,
             lanes: [lane(9, place: "1", time: "1.00"), lane(0, place: "2", time: "1.00")])
-        #expect(ResultsBoard.rows(snap, numLanes: 8).allSatisfy { $0.isEmpty })
+        #expect(ResultsBoard.rows(snap, numLanes: 8, order: .lane).allSatisfy { $0.isEmpty })
     }
 
     // L-04 / api.md §5.2: in a pool numbered from 0, channel 0 is a real lane on
@@ -117,7 +108,7 @@ import Testing
                 lane(0, place: "2", time: "1.00", name: "A"), lane(3, place: "1", time: "0.90", name: "B"),
                 lane(8, place: "3", time: "1.10", name: "C"),
             ])
-        let rows = ResultsBoard.rows(snap, numLanes: 8, firstLane: 0)
+        let rows = ResultsBoard.rows(snap, numLanes: 8, firstLane: 0, order: .lane)
         #expect(rows.count == 8)
         #expect(rows[0].name == "A" && rows[0].laneLabel == "0" && !rows[0].isEmpty)
         #expect(rows[3].name == "B" && rows[3].laneLabel == "3")
@@ -131,7 +122,7 @@ import Testing
         let snap = ResultsSnapshot(
             event: "3", heat: "1", eventName: "", eventNameParts: nil, sort: .place,
             lanes: [lane(0, place: "1", time: "1.00", name: "A")])
-        let rows = ResultsBoard.rows(snap, numLanes: 3, firstLane: 0)
+        let rows = ResultsBoard.rows(snap, numLanes: 3, firstLane: 0, order: .place)
         #expect(rows[0].name == "A" && rows[0].laneLabel == "0")
         // R-06: unfilled ranks still show no lane number.
         #expect(rows[1].isEmpty && rows[1].laneLabel.isEmpty)

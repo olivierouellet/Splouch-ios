@@ -103,6 +103,7 @@ struct IntroView: View {
                     )
                     .environment(\.palette, Palette(colorScheme == .dark ? .dark : .light))
                     .environment(\.faces, Faces(ThemeFonts()))
+                    ResultsOrderToggle(app: app)
                 }
                 if p.counting {
                     CountingToggle(app: app)
@@ -159,6 +160,31 @@ struct IntroView: View {
     private func finish() {
         app.finishIntro()
         dismiss()
+    }
+}
+
+/// P-23 on the introduction's tabs page: the same setting as settings Display,
+/// two ways, so a reader picks before the first Results tab.
+private struct ResultsOrderToggle: View {
+    let app: AppModel
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Text(Native.resultsOrder)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Picker(
+                Native.resultsOrder,
+                selection: Binding(
+                    get: { app.preferences.resultsOrder },
+                    set: { app.setResultsOrder($0) })
+            ) {
+                Text(Native.resultsOrderLane).tag(ResultsOrder.lane)
+                Text(Native.resultsOrderPlace).tag(ResultsOrder.place)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+        }
     }
 }
 

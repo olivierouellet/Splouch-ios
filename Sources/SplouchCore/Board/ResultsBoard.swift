@@ -36,9 +36,8 @@ public enum ResultsBoard {
         (1...max(1, numLanes)).map { ResultRow(laneLabel: String($0 + firstLane - 1), slot: $0) }
     }
 
-    /// Place each result on a row, in the reader's `order` (P-23) over the
-    /// pool's `sort`. Lane order — `sort == "lane"`, and when `sort` is absent —
-    /// puts a result on the row of its `channel`, the pool's lane number, at row
+    /// Place each result on a row, in the reader's `order` (P-23), whatever the
+    /// pool's `sort`. Lane order puts a result on the row of its `channel`, the pool's lane number, at row
     /// `channel - firstLane + 1`, so a lane without a final time leaves its row
     /// blank (R-05); `descending` turns those rows around (L-26). Place order
     /// fills rows top-down as a ranking (R-06), ranked here by `place_int` since
@@ -47,10 +46,10 @@ public enum ResultsBoard {
     /// pool numbered from 0.
     public static func rows(
         _ snapshot: ResultsSnapshot, numLanes: Int, firstLane: Int = 1,
-        order: ResultsOrder = .pool, descending: Bool = false
+        order: ResultsOrder, descending: Bool = false
     ) -> [ResultRow] {
         let n = max(1, numLanes)
-        let laneMode = order.resolve(snapshot.sort) == .lane
+        let laneMode = order == .lane
         let lanes =
             laneMode
             ? snapshot.lanes

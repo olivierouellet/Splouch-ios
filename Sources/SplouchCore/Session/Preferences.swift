@@ -35,18 +35,16 @@ public enum Appearance: String, Sendable, Codable, CaseIterable {
     case auto
 }
 
-/// P-23: the reader's results order. `pool` follows the snapshot's `sort`, the
-/// order the operator set; the other two outrank it on every meet.
+/// P-23: the reader's results order. It outranks the snapshot's `sort`, the
+/// order the operator set, on every meet's Results tab; the Scoreboard is
+/// always by lane.
 public enum ResultsOrder: String, Sendable, Codable, CaseIterable {
-    case pool
     case lane
     case place
 
-    /// The order a snapshot is drawn in: the reader's, else the pool's, else
-    /// lane order for a relay that predates `sort` (R-05).
-    public func resolve(_ pool: ResultsSort?) -> ResultsSort {
+    /// The order a snapshot is drawn in.
+    public var sort: ResultsSort {
         switch self {
-        case .pool: pool ?? .lane
         case .lane: .lane
         case .place: .place
         }
@@ -80,7 +78,7 @@ public struct Preferences: Sendable, Codable, Equatable {
     public var introSeen: Bool
     /// P-21: one for the app, whichever server is in use.
     public var meetFilter: MeetFilter
-    /// P-23: `pool` until the reader picks.
+    /// P-23: `place` until the reader picks.
     public var resultsOrder: ResultsOrder
     /// L-26: the meets whose lanes this reader turned around, by
     /// `MeetContext.laneKey`. A meet absent here is ascending.
@@ -89,7 +87,7 @@ public struct Preferences: Sendable, Codable, Equatable {
     public init(
         language: String? = nil, labelStyle: LabelStyle = .long, appearance: Appearance = .dark,
         server: ServerAddress? = nil, savedServers: [SavedServer] = [], introSeen: Bool = false,
-        meetFilter: MeetFilter = MeetFilter(), resultsOrder: ResultsOrder = .pool,
+        meetFilter: MeetFilter = MeetFilter(), resultsOrder: ResultsOrder = .place,
         descendingLanes: Set<String> = []
     ) {
         self.language = language
@@ -125,8 +123,8 @@ public struct Preferences: Sendable, Codable, Equatable {
         // A filter that no longer decodes costs the filter, not the record.
         meetFilter = (try? c.decodeIfPresent(MeetFilter.self, forKey: .meetFilter)) ?? MeetFilter()
         // Stored before P-23 and L-26, or by a release that knew a case this one
-        // does not: the pool's order, every lane ascending.
-        resultsOrder = (try? c.decodeIfPresent(ResultsOrder.self, forKey: .resultsOrder)) ?? .pool
+        // does not (`pool`, withdrawn): by place, every lane ascending.
+        resultsOrder = (try? c.decodeIfPresent(ResultsOrder.self, forKey: .resultsOrder)) ?? .place
         descendingLanes = (try? c.decodeIfPresent(Set<String>.self, forKey: .descendingLanes)) ?? []
     }
 }

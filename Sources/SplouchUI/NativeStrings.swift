@@ -83,9 +83,6 @@ enum Native {
     static var appearanceAuto: String { String(localized: "appearance_auto", bundle: NativeLanguage.shared.bundle) }
     // P-23, beside Appearance in Display.
     static var resultsOrder: String { String(localized: "results_order", bundle: NativeLanguage.shared.bundle) }
-    static var resultsOrderPool: String {
-        String(localized: "results_order_pool", bundle: NativeLanguage.shared.bundle)
-    }
     static var resultsOrderLane: String {
         String(localized: "results_order_lane", bundle: NativeLanguage.shared.bundle)
     }

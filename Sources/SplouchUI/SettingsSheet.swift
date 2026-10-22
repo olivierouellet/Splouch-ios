@@ -99,15 +99,13 @@ struct SettingsSheet: View {
                 Text(Native.appearanceLight).tag(SplouchCore.Appearance.light)
                 Text(Native.appearanceAuto).tag(SplouchCore.Appearance.auto)
             }
-            // P-23: the pool's order is the default and named as such, so a
-            // reader who never opens this sees what the operator chose.
+            // P-23: by place until the reader picks; also on the introduction (P-20).
             Picker(
                 Native.resultsOrder,
                 selection: Binding(
                     get: { app.preferences.resultsOrder },
                     set: { app.setResultsOrder($0) })
             ) {
-                Text(Native.resultsOrderPool).tag(ResultsOrder.pool)
                 Text(Native.resultsOrderLane).tag(ResultsOrder.lane)
                 Text(Native.resultsOrderPlace).tag(ResultsOrder.place)
             }

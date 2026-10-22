@@ -2038,29 +2038,6 @@
         }
       }
     },
-    "results_order_pool" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "As the pool sets it"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Como lo fija la piscina"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Comme la piscine le règle"
-          }
-        }
-      }
-    },
     "retry" : {
       "extractionState" : "manual",
       "localizations" : {

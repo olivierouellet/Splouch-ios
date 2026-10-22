@@ -154,25 +154,28 @@ import Testing
         #expect(p.language == "fr")
     }
 
-    /// P-23, L-26: a device that stored its preferences before either existed
-    /// follows the pool's order with every lane ascending, and keeps the rest.
+    /// P-23, L-26: a device that stored its preferences before either existed,
+    /// or chose the withdrawn `pool`, ranks by place with every lane ascending,
+    /// and keeps the rest.
     @Test func resultsOrderAndLaneDirectionDefaultForOldPreferences() throws {
         let old = try JSONDecoder().decode(Preferences.self, from: Data(#"{"language":"fr","savedServers":[]}"#.utf8))
-        #expect(old.resultsOrder == .pool)
+        #expect(old.resultsOrder == .place)
         #expect(old.descendingLanes.isEmpty)
         #expect(old.language == "fr")
         let unknown = try JSONDecoder().decode(
             Preferences.self, from: Data(#"{"resultsOrder":"time","savedServers":[]}"#.utf8))
-        #expect(unknown.resultsOrder == .pool)
-        let p = Preferences(resultsOrder: .place, descendingLanes: ["m1"])
+        #expect(unknown.resultsOrder == .place)
+        let pool = try JSONDecoder().decode(
+            Preferences.self, from: Data(#"{"resultsOrder":"pool","savedServers":[]}"#.utf8))
+        #expect(pool.resultsOrder == .place)
+        let p = Preferences(resultsOrder: .lane, descendingLanes: ["m1"])
         #expect(try JSONDecoder().decode(Preferences.self, from: JSONEncoder().encode(p)) == p)
     }
 
-    @Test func theReadersResultsOrderOutranksThePools() {
-        #expect(ResultsOrder.pool.resolve(.place) == .place)
-        #expect(ResultsOrder.pool.resolve(nil) == .lane)
-        #expect(ResultsOrder.lane.resolve(.place) == .lane)
-        #expect(ResultsOrder.place.resolve(.lane) == .place)
+    @Test func theReadersResultsOrderIsTheSort() {
+        #expect(ResultsOrder.allCases == [.lane, .place])
+        #expect(ResultsOrder.lane.sort == .lane)
+        #expect(ResultsOrder.place.sort == .place)
     }
     /// P-05: the picker's artwork is fetched by the view, not the client, so
     /// these are URLs rather than requests. They hang off the server's own base,
