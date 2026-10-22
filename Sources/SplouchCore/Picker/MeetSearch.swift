@@ -14,13 +14,13 @@ public enum MeetSearch {
     public static func isShown(meetCount: Int) -> Bool { meetCount >= threshold }
 
     /// What a meet is searched on: what its card shows, plus what it does not
-    /// that a spectator may know a meet by — its day, sport and organizer — and
+    /// that a spectator may know a meet by — its day and organizer — and
     /// the organizer's province as sent and by its full name (`Subdivisions`),
     /// and country by code, both named in `locale` (P-17).
     /// Empty fields are skipped rather than joined as double spaces.
     public static func text(of meet: MeetSummary, locale: Locale = .current) -> String {
         [
-            meet.name, meet.meetDate, meet.location, meet.sport, meet.organizer, meet.province,
+            meet.name, meet.meetDate, meet.location, meet.organizer, meet.province,
             Subdivisions.lookup(country: meet.country, province: meet.province)?.name(locale: locale) ?? "",
             meet.country, meet.countryName(locale: locale) ?? "",
         ]

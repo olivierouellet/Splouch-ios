@@ -42,7 +42,6 @@ public struct MeetSummary: Sendable, Equatable, Identifiable {
     public var id: String
     public var name: String
     public var location: String
-    public var sport: String
     public var organizer: String
     public var meetDate: String
     /// Retained meet with no relay connected — still listed on purpose (P-03).
@@ -61,14 +60,13 @@ public struct MeetSummary: Sendable, Equatable, Identifiable {
     public var test: Bool
 
     public init(
-        id: String, name: String, location: String, sport: String, organizer: String, meetDate: String,
+        id: String, name: String, location: String, organizer: String, meetDate: String,
         offline: Bool, hasPickerImage: Bool, country: String = "", province: String = "",
         base: ServerAddress? = nil, test: Bool = false
     ) {
         self.id = id
         self.name = name
         self.location = location
-        self.sport = sport
         self.organizer = organizer
         self.meetDate = meetDate
         self.offline = offline
@@ -99,7 +97,6 @@ public struct PickerConfig: Sendable, Equatable {
 public struct MeetConfig: Sendable, Equatable {
     public var name: String
     public var location: String
-    public var sport: String
     public var appWindowTitle: String
     public var meetDate: String
     public var live: Bool

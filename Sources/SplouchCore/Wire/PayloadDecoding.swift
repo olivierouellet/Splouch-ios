@@ -35,7 +35,7 @@ extension MeetSummary {
         guard let id = json["id"]?.text, !id.isEmpty else { throw PayloadError("meet without id") }
         self.init(
             id: id, name: json.str("name"), location: json.str("location"),
-            sport: json.str("sport"), organizer: json.str("organizer"),
+            organizer: json.str("organizer"),
             meetDate: json.str("meet_date"), offline: json.flag("offline", default: false),
             hasPickerImage: json.flag("has_picker_image", default: false),
             country: json.str("country"), province: json.str("province"),
@@ -112,7 +112,6 @@ extension MeetConfig {
     public init(json: JSONValue) {
         name = json.str("name")
         location = json.str("location")
-        sport = json.str("sport")
         appWindowTitle = json.str("app_window_title")
         meetDate = json.str("meet_date")
         live = json.flag("live", default: false)

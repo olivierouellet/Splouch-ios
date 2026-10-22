@@ -51,11 +51,11 @@ import Testing
 
     @Test func aMeetIsFoundByItsProvincesFullName() {
         let m = MeetSummary(
-            id: "m", name: "Invitational", location: "", sport: "", organizer: "", meetDate: "",
+            id: "m", name: "Invitational", location: "", organizer: "", meetDate: "",
             offline: false, hasPickerImage: false, country: "CA", province: "QC")
         #expect(MeetSearch.filter([m], query: "québec").count == 1)
         let bc = MeetSummary(
-            id: "b", name: "Invitational", location: "", sport: "", organizer: "", meetDate: "",
+            id: "b", name: "Invitational", location: "", organizer: "", meetDate: "",
             offline: false, hasPickerImage: false, country: "CA", province: "BC")
         #expect(MeetSearch.filter([bc], query: "colombie", locale: Locale(identifier: "fr")).count == 1)
         #expect(

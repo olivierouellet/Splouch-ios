@@ -7,7 +7,7 @@ import Testing
 @Suite struct MeetFilterTests {
     func meet(_ id: String, country: String = "", province: String = "", organizer: String = "") -> MeetSummary {
         MeetSummary(
-            id: id, name: id, location: "", sport: "", organizer: organizer, meetDate: "",
+            id: id, name: id, location: "", organizer: organizer, meetDate: "",
             offline: false, hasPickerImage: false, country: country, province: province)
     }
 

@@ -249,7 +249,7 @@ import Testing
         store.set(MeetFollows(swimmers: [Self.emma], enabled: false), server: stub.address.origin, meetID: "m3")
         let app = makeApp(stub, store: store, push: PushCenter(permission: .refused, token: Self.token))
         let summary = MeetSummary(
-            id: "m1", name: "Open", location: "", sport: "", organizer: "", meetDate: "", offline: false,
+            id: "m1", name: "Open", location: "", organizer: "", meetDate: "", offline: false,
             hasPickerImage: false)
         #expect(app.followState(summary) == .on)
         await app.pauseAllFollows()
@@ -260,7 +260,7 @@ import Testing
         #expect(
             app.followState(
                 MeetSummary(
-                    id: "m9", name: "Other", location: "", sport: "", organizer: "", meetDate: "", offline: false,
+                    id: "m9", name: "Other", location: "", organizer: "", meetDate: "", offline: false,
                     hasPickerImage: false)) == .none)
     }
 

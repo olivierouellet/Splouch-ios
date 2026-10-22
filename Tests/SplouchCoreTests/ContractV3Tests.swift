@@ -274,7 +274,7 @@ import Testing
 
     func meet(country: String, province: String) -> MeetSummary {
         MeetSummary(
-            id: "x", name: "Open", location: "Pool", sport: "", organizer: "", meetDate: "", offline: false,
+            id: "x", name: "Open", location: "Pool", organizer: "", meetDate: "", offline: false,
             hasPickerImage: false, country: country, province: province)
     }
 
@@ -308,7 +308,7 @@ import Testing
     @Test func meetsGoUnderTheirDayAnUndatedOneLast() {
         func m(_ id: String, _ date: String) -> MeetSummary {
             MeetSummary(
-                id: id, name: id, location: "", sport: "", organizer: "", meetDate: date, offline: false,
+                id: id, name: id, location: "", organizer: "", meetDate: date, offline: false,
                 hasPickerImage: false)
         }
         let days = MeetDay.group([m("a", ""), m("b", "2026-10-07"), m("c", "2026-10-06"), m("d", "2026-10-07")])

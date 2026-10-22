@@ -6,22 +6,22 @@ import Testing
 /// P-17: search over the meet list, on the device.
 @Suite struct MeetSearchTests {
     func meet(
-        _ id: String, name: String = "", date: String = "", location: String = "", sport: String = "",
+        _ id: String, name: String = "", date: String = "", location: String = "",
         organizer: String = "", offline: Bool = false
     ) -> MeetSummary {
         MeetSummary(
-            id: id, name: name, location: location, sport: sport, organizer: organizer, meetDate: date,
+            id: id, name: name, location: location, organizer: organizer, meetDate: date,
             offline: offline, hasPickerImage: false)
     }
 
     var quebec: MeetSummary {
         meet(
-            "q", name: "Coupe du Québec", date: "2026-10-04", location: "Île-des-Sœurs", sport: "Swimming",
+            "q", name: "Coupe du Québec", date: "2026-10-04", location: "Île-des-Sœurs",
             organizer: "CAMO")
     }
 
     @Test func theSearchTextIsTheFieldsInOrderJoinedBySpaces() {
-        #expect(MeetSearch.text(of: quebec) == "Coupe du Québec 2026-10-04 Île-des-Sœurs Swimming CAMO")
+        #expect(MeetSearch.text(of: quebec) == "Coupe du Québec 2026-10-04 Île-des-Sœurs CAMO")
     }
 
     /// No double space where a field is missing.
@@ -40,7 +40,7 @@ import Testing
         ("   ", true),
     ])
     func matching(query: String, expected: Bool) {
-        let text = "Coupe du Québec 2026-10-04 Île-des-Sœurs Swimming CAMO"
+        let text = "Coupe du Québec 2026-10-04 Île-des-Sœurs CAMO"
         #expect(MeetSearch.matches(text, query: query) == expected)
     }
 
