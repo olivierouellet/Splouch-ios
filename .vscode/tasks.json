@@ -1,0 +1,34 @@
+{
+  // Terminal → Run Task…. Both run scripts/release.sh, which says what it does at the top.
+  //
+  // Run the dry run first: it checks main is clean, in step with GitHub and green, and
+  // prints the tag and the next version without changing anything. Release when the
+  // build on HEAD is the one sent to the App Store: it tags HEAD, moves main to the next
+  // version, pushes both, and opens a draft GitHub release for the notes.
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Release: dry run",
+      "type": "shell",
+      "command": "scripts/release.sh --dry-run",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "Release: tag, bump and push",
+      "type": "shell",
+      // Typing the word is the confirmation: this pushes a tag that cannot be taken back
+      // once the App Store has the build.
+      "command": "if [ '${input:confirm}' = release ]; then scripts/release.sh; else echo 'Not released: type release to confirm.'; fi",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "confirm",
+      "type": "promptString",
+      "description": "Type release to tag HEAD, move main to the next version and push both"
+    }
+  ]
+}

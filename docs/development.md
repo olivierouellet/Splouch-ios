@@ -107,3 +107,22 @@ Two kinds, split by what the word is about (app.md T-05):
   `Sources/SplouchUI/Resources/Localizable.xcstrings` (en, fr, es) behind the
   `Native` enum. Cancel, Done and OK use the platform's own labels where SwiftUI
   provides them.
+
+## Releasing
+
+`main` is always one version ahead of the last release. Xcode Cloud archives every
+push to `main`, and App Store Connect refuses a build for a version it has already
+received, so the version moves on the moment one is released, not when the next
+one is.
+
+Once the build from `HEAD` is the one sent to the App Store, run
+`scripts/release.sh --dry-run`, then `scripts/release.sh` (or the two *Release*
+tasks in VS Code, Terminal → Run Task). The script checks that `main` is clean, in
+step with GitHub and green on every check, Xcode Cloud's archive included. It tags
+`HEAD` `v<version>`, moves `MARKETING_VERSION` to the next version as
+`[Build] Version <next>`, pushes both at once, and opens a draft GitHub release for
+the notes. The next version is the next patch in the same month, or
+`<year>.<month>.0` in a new one.
+
+The build number needs nothing: Xcode Cloud numbers its own builds, and
+`scripts/archive.sh` uses the commit count.
