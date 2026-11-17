@@ -195,7 +195,7 @@ extension Schedule {
                 lanes: h.list("lanes").map { l in
                     ScheduleLane(
                         lane: l.integer("lane") ?? 0, name: l.str("name"), club: l.str("club"),
-                        seedTime: l.str("seed_time"),
+                        seedTime: l.str("seed_time"), seedCourse: l.str("seed_course"),
                         swimmers: l.list("swimmers").map { s in
                             ScheduleSwimmer(name: s.str("name"), first: s.str("first"))
                         },
@@ -205,7 +205,8 @@ extension Schedule {
                         resultDeltaBetter: l["result_delta_better"]?.bool)
                 },
                 official: h.flag("official", default: false),
-                age: h.str("age"), seeded: h.flag("seeded", default: true))
+                age: h.str("age"), seeded: h.flag("seeded", default: true),
+                session: h.integer("session") ?? 0, sessionName: h.str("session_name"))
         }
     }
     public init(data: Data) throws { self.init(json: try JSONValue.parse(data)) }

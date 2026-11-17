@@ -84,7 +84,7 @@ public struct LaneTime: Sendable, Equatable {
                 return LaneTime(
                     text: DeltaFormat.text(d), kind: lane.resultDeltaBetter == true ? .better : .worse,
                     spokenKey: "seed_diff")
-            } else if lane.resultTime.isEmpty, let c = hundredths(lane.consoleTime),
+            } else if lane.resultTime.isEmpty, lane.seedCourse.isEmpty, let c = hundredths(lane.consoleTime),
                 let s = hundredths(lane.seedTime)
             {
                 // Not official yet: the console's own gap, on the server's rule.
@@ -93,8 +93,7 @@ public struct LaneTime: Sendable, Equatable {
                     text: DeltaFormat.text(Double(d) / 100), kind: d < 0 ? .better : .worse,
                     spokenKey: "seed_diff")
             } else {
-                let seed = lane.seedTime.isEmpty ? "NT" : display(lane.seedTime)
-                return LaneTime(text: seed, kind: .seed, spokenKey: "time_seed")
+                return LaneTime(text: seedText(lane), kind: .seed, spokenKey: "time_seed")
             }
         }
         if !status.isEmpty {
@@ -108,9 +107,18 @@ public struct LaneTime: Sendable, Equatable {
             return LaneTime(text: display(lane.consoleTime), kind: .console, spokenKey: "time_console")
         }
         if !lane.seedTime.isEmpty {
-            return LaneTime(text: display(lane.seedTime), kind: .seed, spokenKey: "time_seed")
+            return LaneTime(text: seedText(lane), kind: .seed, spokenKey: "time_seed")
         }
         return nil
+    }
+
+    /// The seed as drawn: `NT` for none, and the course after it when it is not
+    /// the meet's (S-27), `1:01.00 LCM`. A course is the same three letters in
+    /// every language.
+    public static func seedText(_ lane: ScheduleLane) -> String {
+        if lane.seedTime.isEmpty { return "NT" }
+        let seed = display(lane.seedTime)
+        return lane.seedCourse.isEmpty ? seed : seed + " " + lane.seedCourse
     }
 }
 

@@ -46,7 +46,13 @@ struct ScheduleTab: View {
                             ctx.filter.reset()
                         }
                     } else {
-                        ForEach(visible, id: \.heat.id) { v in
+                        ForEach(Array(visible.enumerated()), id: \.element.heat.id) { i, v in
+                            // S-26: where a session starts, its name above the card.
+                            if let title = ScheduleView.sessionHeading(
+                                visible, at: i, word: ctx.strings.mobile("session"))
+                            {
+                                SessionHeading(title: title)
+                            }
                             HeatCard(
                                 heat: v, labels: ctx.shortLabels,
                                 eventName: ScheduleView.heading(
@@ -86,6 +92,27 @@ extension ScheduleTab {
         guard let f = ctx.focus, let i = ScheduleView.focusIndex(heats, event: f.event, heat: f.heat)
         else { return nil }
         return heats[i].id
+    }
+}
+
+/// S-26: the name of the session the cards below it are swum in.
+struct SessionHeading: View {
+    let title: String
+    @Environment(\.palette) private var palette
+    @Environment(\.faces) private var faces
+    @ScaledMetric(relativeTo: .headline) private var typeScale: CGFloat = 1
+
+    var body: some View {
+        Text(title.uppercased())
+            .font(faces.text(15 * typeScale, weight: .bold))
+            .tracking(0.6)
+            .foregroundStyle(palette.scheduleTime)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 12)
+            .padding(.top, 14)
+            .padding(.bottom, 6)
+            .accessibilityAddTraits(.isHeader)
+            .accessibilityLabel(title)
     }
 }
 

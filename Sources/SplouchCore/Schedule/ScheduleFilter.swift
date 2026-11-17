@@ -119,6 +119,16 @@ public enum ScheduleView {
         return heats.firstIndex(where: current.matches)
     }
 
+    /// S-26: the session heading drawn above `visible[i]`, nil where there is
+    /// none — the first card shown of a session, so a filter moves it to the
+    /// first heat it leaves. `word` is `mobile.session`, its `{n}` the number,
+    /// for a session the meet file gives no name.
+    public static func sessionHeading(_ visible: [VisibleHeat], at i: Int, word: String) -> String? {
+        let h = visible[i].heat
+        guard h.session != 0, i == 0 || visible[i - 1].heat.session != h.session else { return nil }
+        return h.sessionName.isEmpty ? word.replacingOccurrences(of: "{n}", with: String(h.session)) : h.sessionName
+    }
+
     /// The heading's name, with the heat's own age group after it (S-25):
     /// `100 m libre · 13-14`. The band is numbers, so it needs no translation.
     public static func heading(_ eventName: String, age: String) -> String {

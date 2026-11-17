@@ -323,6 +323,10 @@ public struct ScheduleHeat: Sendable, Equatable {
     /// False while the heat's round has no swimmer yet: its lanes are empty
     /// because it is not seeded, not because the heat is (S-25).
     public var seeded: Bool = true
+    /// The meet file's session the heat is swum in: its number, 0 outside one,
+    /// and its name or "" (S-26).
+    public var session: Int = 0
+    public var sessionName: String = ""
 }
 
 /// A lane's three times (S-22, api.md §5.8), each `HH:MM:SS.hh` or "".
@@ -331,6 +335,9 @@ public struct ScheduleLane: Sendable, Equatable {
     public var name: String
     public var club: String
     public var seedTime: String
+    /// The course the seed was swum in when it is not the meet's (`LCM`), else
+    /// "": it is shown beside the seed and no gap is drawn to it (S-27).
+    public var seedCourse: String = ""
     public var swimmers: [ScheduleSwimmer]
     /// The timing console's finish, provisional.
     public var consoleTime: String = ""
@@ -338,7 +345,8 @@ public struct ScheduleLane: Sendable, Equatable {
     public var resultTime: String = ""
     /// `DSQ`, `DNS`, `DNF`, `WDR`, `SICK`, or "" for a finish.
     public var resultStatus: String = ""
-    /// Official − seed, negative = faster; nil with no seed, no official time, or a status.
+    /// Official − seed, negative = faster; nil with no seed, no official time, a
+    /// status, or a seed from another course.
     public var resultDeltaSeconds: Double? = nil
     public var resultDeltaBetter: Bool? = nil
 }
