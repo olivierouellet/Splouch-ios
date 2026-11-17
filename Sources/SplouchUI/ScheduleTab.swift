@@ -138,6 +138,8 @@ struct HeatCard: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// S-23: this heat is showing its gaps to the seed.
     @State private var showingDiff = false
+    /// S-23: the swap's second half, where a status lane shows its gap.
+    @State private var diffLate = false
     @State private var springBack: Task<Void, Never>?
     @Environment(\.faces) private var faces
     /// The schedule is the screen a spectator reads hardest — hunting one name
@@ -196,22 +198,30 @@ struct HeatCard: View {
     }
 
     /// S-23: swap the heat's times — official, or the console's before then —
-    /// for their gaps to the seed, and back after four seconds or a second tap. The swap is SwiftUI's own numeric content
-    /// transition; under Reduce Motion it is instant.
+    /// for their gaps to the seed, and back after four seconds or a second tap. A
+    /// status lane shows its console time for the first two, its gap for the
+    /// last two. The swap is SwiftUI's own numeric content transition; under
+    /// Reduce Motion it is instant.
     private func toggleDiff() {
         guard swaps else { return }
         setDiff(!showingDiff)
         springBack?.cancel()
         guard showingDiff else { return }
         springBack = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(4))
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            withAnimation(reduceMotion ? nil : .snappy) { diffLate = true }
+            try? await Task.sleep(for: .seconds(2))
             guard !Task.isCancelled else { return }
             setDiff(false)
         }
     }
 
     private func setDiff(_ on: Bool) {
-        withAnimation(reduceMotion ? nil : .snappy) { showingDiff = on }
+        withAnimation(reduceMotion ? nil : .snappy) {
+            showingDiff = on
+            diffLate = false
+        }
     }
 
     @ViewBuilder private var header: some View {
@@ -333,7 +343,7 @@ struct HeatCard: View {
     /// this screen came from (12 each) and the pass that lifted the row to
     /// platform body sizes moved the club and missed the time.
     @ViewBuilder private func timeColumn(_ lane: ScheduleLane) -> some View {
-        let cell = LaneTime.of(lane, diff: showingDiff && swaps)
+        let cell = LaneTime.of(lane, diff: showingDiff && swaps, late: diffLate)
         if cell != nil || !seedTemplate.isEmpty {
             let text = Text(cell?.text ?? "")
                 .font(faces.timing(14 * typeScale))

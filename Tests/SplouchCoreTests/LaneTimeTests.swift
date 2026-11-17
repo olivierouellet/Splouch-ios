@@ -51,6 +51,26 @@ import Testing
         #expect(LaneTime.of(lane(seed: "", result: "00:00:30.12"), diff: true)?.text == "NT")
     }
 
+    @Test func aStatusLaneShowsItsGapInTheSecondHalf() {
+        let dsq = lane(console: "00:00:30.15", status: "DSQ")
+        #expect(
+            LaneTime.of(dsq, diff: true, late: true) == LaneTime(text: "-0.85", kind: .better, spokenKey: "seed_diff"))
+        #expect(LaneTime.of(dsq, late: true)?.text == "DSQ")  // not swapped: the status
+        // No console time: the status throughout.
+        #expect(LaneTime.of(lane(status: "DSQ"), diff: true, late: true)?.text == "DSQ")
+        // No seed, or one from another course: the console time throughout.
+        #expect(
+            LaneTime.of(lane(seed: "", console: "00:00:30.15", status: "DSQ"), diff: true, late: true)?.kind == .console
+        )
+        var lcm = dsq
+        lcm.seedCourse = "LCM"
+        #expect(LaneTime.of(lcm, diff: true, late: true)?.kind == .console)
+        // Other lanes don't change halfway.
+        let official = lane(result: "00:00:30.12", delta: -0.88, better: true)
+        #expect(LaneTime.of(official, diff: true, late: true) == LaneTime.of(official, diff: true))
+        #expect(LaneTime.of(lane(console: "00:00:30.15"), diff: true, late: true)?.text == "-0.85")
+    }
+
     @Test func theConsoleTimesGapBeforeTheResult() {
         #expect(
             LaneTime.of(lane(console: "00:00:30.15"), diff: true)

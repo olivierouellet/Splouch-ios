@@ -73,10 +73,26 @@ public struct LaneTime: Sendable, Equatable {
         return total > 0 ? total : nil
     }
 
-    public static func of(_ lane: ScheduleLane, diff: Bool = false) -> LaneTime? {
+    /// `console_time` − `seed_time` in hundredths, on the server's rule; nil with
+    /// no console time, no seed, or a seed from another course (S-27).
+    static func consoleGap(_ lane: ScheduleLane) -> Int? {
+        guard lane.seedCourse.isEmpty, let c = hundredths(lane.consoleTime), let s = hundredths(lane.seedTime)
+        else { return nil }
+        return c - s
+    }
+
+    static func gap(_ d: Int) -> LaneTime {
+        LaneTime(text: DeltaFormat.text(Double(d) / 100), kind: d < 0 ? .better : .worse, spokenKey: "seed_diff")
+    }
+
+    /// The cell for `lane`; with `diff`, its S-23 gap to the seed. `late` is the
+    /// swap's second half, where a status lane, which has no official gap, turns
+    /// from its console time to the console's gap.
+    public static func of(_ lane: ScheduleLane, diff: Bool = false, late: Bool = false) -> LaneTime? {
         let status = lane.resultStatus
         if diff {
             if !status.isEmpty {
+                if late, let d = consoleGap(lane) { return gap(d) }
                 if !lane.consoleTime.isEmpty {
                     return LaneTime(text: display(lane.consoleTime), kind: .console, spokenKey: "time_console")
                 }
@@ -84,14 +100,9 @@ public struct LaneTime: Sendable, Equatable {
                 return LaneTime(
                     text: DeltaFormat.text(d), kind: lane.resultDeltaBetter == true ? .better : .worse,
                     spokenKey: "seed_diff")
-            } else if lane.resultTime.isEmpty, lane.seedCourse.isEmpty, let c = hundredths(lane.consoleTime),
-                let s = hundredths(lane.seedTime)
-            {
+            } else if lane.resultTime.isEmpty, let d = consoleGap(lane) {
                 // Not official yet: the console's own gap, on the server's rule.
-                let d = c - s
-                return LaneTime(
-                    text: DeltaFormat.text(Double(d) / 100), kind: d < 0 ? .better : .worse,
-                    spokenKey: "seed_diff")
+                return gap(d)
             } else {
                 return LaneTime(text: seedText(lane), kind: .seed, spokenKey: "time_seed")
             }

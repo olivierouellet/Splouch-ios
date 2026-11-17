@@ -170,8 +170,10 @@ public enum ScheduleView {
         visible.lazy.flatMap { v -> [String] in
             let swaps = LaneTime.swaps(official: v.heat.official, lanes: v.lanes)
             return v.lanes.flatMap { lane in
-                [LaneTime.of(lane)?.text, swaps ? LaneTime.of(lane, diff: true)?.text : nil]
-                    .compactMap { $0 }
+                [
+                    LaneTime.of(lane)?.text, swaps ? LaneTime.of(lane, diff: true)?.text : nil,
+                    swaps ? LaneTime.of(lane, diff: true, late: true)?.text : nil,
+                ].compactMap { $0 }
             }
         }.max { $0.count < $1.count } ?? ""
     }
