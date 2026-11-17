@@ -162,6 +162,7 @@ extension ResultsSnapshot {
     public init(json: JSONValue) {
         event = json.str("event")
         heat = json.str("heat")
+        round = json.str("round")
         eventName = json.str("event_name")
         eventNameParts = EventNameParts(json: json["event_name_parts"])
         sort = json["sort"]?.string.flatMap(ResultsSort.init(rawValue:))
@@ -188,7 +189,8 @@ extension Schedule {
     public init(json: JSONValue) {
         heats = json.list("heats").map { h in
             ScheduleHeat(
-                event: h.str("event"), heat: h.str("heat"), eventName: h.str("event_name"),
+                event: h.str("event"), heat: h.str("heat"), round: h.str("round"),
+                eventName: h.str("event_name"),
                 eventNameParts: EventNameParts(json: h["event_name_parts"]), time: h.str("time"),
                 lanes: h.list("lanes").map { l in
                     ScheduleLane(

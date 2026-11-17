@@ -82,14 +82,15 @@ struct ScheduleTab: View {
 extension ScheduleTab {
     /// The focused heat's id when the list carries it, else nil.
     fileprivate func focusTarget(_ heats: [ScheduleHeat]) -> String? {
-        guard let f = ctx.focus else { return nil }
-        let id = f.event + "/" + f.heat
-        return heats.contains { $0.id == id } ? id : nil
+        guard let f = ctx.focus, let i = ScheduleView.focusIndex(heats, event: f.event, heat: f.heat)
+        else { return nil }
+        return heats[i].id
     }
 }
 
 extension ScheduleHeat {
-    var id: String { event + "/" + heat }
+    /// Event, heat and round: a prelim and its final share their numbers (S-24).
+    var id: String { event + "/" + heat + "/" + round }
 }
 
 /// S-01 to S-05: one heat as a card.

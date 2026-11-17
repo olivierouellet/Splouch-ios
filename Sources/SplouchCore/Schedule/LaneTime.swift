@@ -117,9 +117,11 @@ public struct LaneTime: Sendable, Equatable {
 extension Schedule {
     /// A finished heat's console times, from the `results_snapshot` that
     /// announced it (S-22): patched in place rather than re-fetching every heat.
-    /// A lane's `channel` is its lane number.
+    /// A lane's `channel` is its lane number; the heat is matched on its round
+    /// too (S-24).
     public mutating func applyConsoleTimes(_ snap: ResultsSnapshot) {
-        guard let i = heats.firstIndex(where: { $0.event == snap.event && $0.heat == snap.heat }) else { return }
+        let ref = HeatRef(event: snap.event, heat: snap.heat, round: snap.round)
+        guard let i = heats.firstIndex(where: ref.matches) else { return }
         for r in snap.lanes {
             let t = LaneTime.wire(r.time)
             guard !t.isEmpty, let j = heats[i].lanes.firstIndex(where: { $0.lane == r.channel }) else { continue }

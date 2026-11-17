@@ -66,18 +66,21 @@ public struct ScheduleFilter: Sendable, Equatable {
     }
 }
 
-/// The heat the meet is on, as read off the other two sockets (S-05).
+/// The heat the meet is on, as read off the other two sockets (S-05): its
+/// event, heat and round, since a prelim and its final share their numbers (S-24).
 public struct HeatRef: Sendable, Equatable {
     public var event: String
     public var heat: String
+    public var round: String
 
-    public init(event: String, heat: String) {
+    public init(event: String, heat: String, round: String = "") {
         self.event = event.trimmingCharacters(in: .whitespaces)
         self.heat = heat.trimmingCharacters(in: .whitespaces)
+        self.round = round.trimmingCharacters(in: .whitespaces)
     }
 
     public func matches(_ h: ScheduleHeat) -> Bool {
-        h.event == event && h.heat == heat
+        h.event == event && h.heat == heat && h.round == round
     }
 }
 
@@ -114,6 +117,14 @@ public enum ScheduleView {
     public static func currentIndex(_ heats: [ScheduleHeat], current: HeatRef?) -> Int? {
         guard let current else { return nil }
         return heats.firstIndex(where: current.matches)
+    }
+
+    /// The heat a notification names (N-08), which carries no round: of the
+    /// heats with its numbers, the last that has swimmers — the live round, the
+    /// one the cloud notifies about (S-24) — else the first.
+    public static func focusIndex(_ heats: [ScheduleHeat], event: String, heat: String) -> Int? {
+        let same = heats.indices.filter { heats[$0].event == event && heats[$0].heat == heat }
+        return same.last { !heats[$0].lanes.isEmpty } ?? same.first
     }
 
     /// The cards to render, in running order.

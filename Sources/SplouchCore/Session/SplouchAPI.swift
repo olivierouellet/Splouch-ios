@@ -90,9 +90,13 @@ public struct SplouchAPI: Sendable {
         try MeetConfig(data: try await get(address.endpoint("/meet/\(meetID)/config")))
     }
 
+    /// Every round of a number several share (S-24): asked for, since a client
+    /// that keys cards by event and heat alone would see two alike.
     public func schedule(meetID: String) async throws -> Schedule {
-        try Schedule(data: try await get(address.endpoint("/meet/\(meetID)/schedule")))
+        try Schedule(data: try await get(address.endpoint("/meet/\(meetID)/schedule", query: Self.allRounds)))
     }
+
+    static let allRounds = [URLQueryItem(name: "rounds", value: "1")]
 
     /// N-07: the swimmers this device follows at a meet, asked of the meet's
     /// `base` (api.md §5.13). An empty list stops it. `409` is a meet held by
@@ -130,7 +134,7 @@ public struct SplouchAPI: Sendable {
 
     /// The Pi's start list — the cloud's schedule body, no meet in the path.
     public func piSchedule() async throws -> Schedule {
-        try Schedule(data: try await get(address.endpoint("/schedule.json")))
+        try Schedule(data: try await get(address.endpoint("/schedule.json", query: Self.allRounds)))
     }
 
     // MARK: Plumbing

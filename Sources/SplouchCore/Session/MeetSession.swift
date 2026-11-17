@@ -227,8 +227,12 @@ public final class MeetSession {
                 scoreboard.setMeetLive(MeetLive(json: f.data).live)
             case "update_scoreboard":
                 scoreboard.apply(f.data, at: .now)
-                if f.data["current_event"] != nil || f.data["current_heat"] != nil {
-                    currentHeat = HeatRef(event: scoreboard.currentEvent, heat: scoreboard.currentHeat)
+                if f.data["current_event"] != nil || f.data["current_heat"] != nil
+                    || f.data["current_round"] != nil
+                {
+                    currentHeat = HeatRef(
+                        event: scoreboard.currentEvent, heat: scoreboard.currentHeat,
+                        round: scoreboard.currentRound)
                 }
             case "reset":
                 // api.md §2.2, local Pi only. Distinct from `test_mode
@@ -265,7 +269,7 @@ public final class MeetSession {
                 let snap = ResultsSnapshot(json: f.data)
                 guard !snap.lanes.isEmpty else { return }  // the reference ignores an empty snapshot
                 results = snap
-                currentHeat = HeatRef(event: snap.event, heat: snap.heat)
+                currentHeat = HeatRef(event: snap.event, heat: snap.heat, round: snap.round)
                 onResults?(snap)
             case "reload":
                 reloadVersion += 1

@@ -254,6 +254,8 @@ public struct EventNameParts: Sendable, Equatable {
 public struct ResultsSnapshot: Sendable, Equatable {
     public var event: String
     public var heat: String
+    /// The heat's round (S-24), "" when its number has one or the server predates it.
+    public var round: String = ""
     public var eventName: String
     public var eventNameParts: EventNameParts?
     /// nil when the relay predates the field; R-05 reads that as lane order.
@@ -307,6 +309,9 @@ public struct Schedule: Sendable, Equatable {
 public struct ScheduleHeat: Sendable, Equatable {
     public var event: String
     public var heat: String
+    /// The round, when the meet gives the event number several (S-24): "" for
+    /// one round, and from a server that predates the field.
+    public var round: String = ""
     public var eventName: String
     public var eventNameParts: EventNameParts?
     public var time: String

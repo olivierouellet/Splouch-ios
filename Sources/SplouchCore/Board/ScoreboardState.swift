@@ -51,6 +51,8 @@ public struct ScoreboardState: Sendable, Equatable {
     public private(set) var lanes: [LaneRow]
     public private(set) var currentEvent = ""
     public private(set) var currentHeat = ""
+    /// The current heat's round (S-24): "" for a number with one round.
+    public private(set) var currentRound = ""
     public private(set) var eventName = ""
     public private(set) var eventNameParts: EventNameParts?
     public private(set) var heatTime = ""
@@ -161,6 +163,7 @@ public struct ScoreboardState: Sendable, Equatable {
         lastHeat = nil
         currentEvent = ""
         currentHeat = ""
+        currentRound = ""
         eventName = ""
         eventNameParts = nil
         heatTime = ""
@@ -276,6 +279,7 @@ public struct ScoreboardState: Sendable, Equatable {
             if let last = lastHeat, last != v { heatChanged = true }
             lastHeat = v
         }
+        if let v = fields["current_round"]?.text { currentRound = v }
         if heatChanged {
             if wasRunning {
                 clock.stop()  // the ticker stops either way (L-12)
