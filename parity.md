@@ -127,7 +127,7 @@ language controls reuse all of it.
 | ID | Feature | Level | Status | Notes |
 | --- | --- | --- | --- | --- |
 | `L-18` | Carousel / fullscreen image overlay | n/a | `n/a` | images are local to the Pi and are never relayed |
-| `L-19` | Podium highlight animation | n/a | `n/a` | Pi-local, `race_finished` is not forwarded |
+| `L-19` | Podium highlight animation | n/a | `n/a` | Pi-local, `race_finished` is not forwarded. `results_pending` (`api.md` §5.1) only holds a podium back, so with none to hold it is ignored — frames are read by key, and an unknown one changes nothing |
 | `L-20` | Animated column show/hide, operator-driven | n/a | `n/a` | cloud columns are always visible |
 | `L-21` | Any timed hold on a state — the kiosk's 3s `brief_results` flash, its results pause, its leave-results debounce | n/a | `n/a` | still real on the kiosk, still deliberately absent here: the phone shows the last frame received and runs no… |
 | `L-22` | Independent per-lane clock, each lane timing its own length | n/a | `n/a` | the console has one race clock and the lanes mirror it; a lane's own figure exists only as its split… |
