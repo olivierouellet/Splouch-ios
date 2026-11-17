@@ -204,7 +204,8 @@ extension Schedule {
                         resultDeltaSeconds: l["result_delta_seconds"]?.double,
                         resultDeltaBetter: l["result_delta_better"]?.bool)
                 },
-                official: h.flag("official", default: false))
+                official: h.flag("official", default: false),
+                age: h.str("age"), seeded: h.flag("seeded", default: true))
         }
     }
     public init(data: Data) throws { self.init(json: try JSONValue.parse(data)) }

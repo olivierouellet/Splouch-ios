@@ -119,6 +119,13 @@ public enum ScheduleView {
         return heats.firstIndex(where: current.matches)
     }
 
+    /// The heading's name, with the heat's own age group after it (S-25):
+    /// `100 m libre · 13-14`. The band is numbers, so it needs no translation.
+    public static func heading(_ eventName: String, age: String) -> String {
+        if age.isEmpty { return eventName }
+        return eventName.isEmpty ? age : eventName + " · " + age
+    }
+
     /// The heat a notification names (N-08), which carries no round: of the
     /// heats with its numbers, the last that has swimmers — the live round, the
     /// one the cloud notifies about (S-24) — else the first.

@@ -62,4 +62,18 @@ import Testing
         _ = try await api.piSchedule()
         #expect(stub.requests.map { $0.url?.query } == ["rounds=1", "rounds=1"])
     }
+
+    /// S-25: a finals heat names its age group; an unseeded round says so.
+    @Test func aHeatCarriesItsAgeGroupAndWhetherItIsSeeded() {
+        let heats = Schedule(
+            json: json(
+                #"{"heats":[{"event":15,"heat":2,"age":"13-14","seeded":false,"lanes":[]},{"event":3,"heat":1,"lanes":[]}]}"#
+            )
+        ).heats
+        #expect(heats.map(\.age) == ["13-14", ""])
+        #expect(heats.map(\.seeded) == [false, true])  // an older server: seeded
+        #expect(ScheduleView.heading("100 Free", age: "13-14") == "100 Free · 13-14")
+        #expect(ScheduleView.heading("100 Free", age: "") == "100 Free")
+        #expect(ScheduleView.heading("", age: "17+") == "17+")
+    }
 }

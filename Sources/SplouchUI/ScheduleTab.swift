@@ -49,7 +49,8 @@ struct ScheduleTab: View {
                         ForEach(visible, id: \.heat.id) { v in
                             HeatCard(
                                 heat: v, labels: ctx.shortLabels,
-                                eventName: ctx.eventName(v.heat.eventName, parts: v.heat.eventNameParts),
+                                eventName: ScheduleView.heading(
+                                    ctx.eventName(v.heat.eventName, parts: v.heat.eventNameParts), age: v.heat.age),
                                 seedTemplate: seedTemplate, strings: ctx.strings
                             )
                             .id(v.heat.id)
@@ -140,6 +141,12 @@ struct HeatCard: View {
         // taller, so the same gap read as a gappy list rather than a heat.
         VStack(alignment: .leading, spacing: 3) {
             header
+            // S-25: a round no swimmer is in yet says so, rather than an empty card.
+            if !heat.heat.seeded {
+                Text(strings.mobile("not_seeded"))
+                    .font(faces.text(15 * typeScale)).italic()
+                    .foregroundStyle(palette.scheduleEvent.opacity(0.7))
+            }
             ForEach(heat.lanes, id: \.lane) { lane in
                 laneRow(lane)
             }

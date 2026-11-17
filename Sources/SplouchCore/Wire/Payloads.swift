@@ -318,6 +318,11 @@ public struct ScheduleHeat: Sendable, Equatable {
     public var lanes: [ScheduleLane]
     /// Every lane with a swimmer has an official time or status (S-23).
     public var official: Bool = false
+    /// The heat's own age group, numbers only (`"13-14"`, `"17+"`), or "" (S-25).
+    public var age: String = ""
+    /// False while the heat's round has no swimmer yet: its lanes are empty
+    /// because it is not seeded, not because the heat is (S-25).
+    public var seeded: Bool = true
 }
 
 /// A lane's three times (S-22, api.md §5.8), each `HH:MM:SS.hh` or "".
