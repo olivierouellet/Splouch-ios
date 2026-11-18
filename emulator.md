@@ -98,7 +98,7 @@ cd ../Splouch/cloud  && DATA_DIR=/tmp/splouch-cloud \
 ```
 
 For live frames without a timing console, log in to the Pi (`score` / `swimming`)
-and `POST /test_play {"name": "200m_medley_2heats.cts"}`. Relaying those to the
+and `POST /test_play {"name": "200m_medley_2heats.serial"}`. Relaying those to the
 local cloud needs a key: `POST /admin` on the cloud (Basic auth `admin`, empty
 password, form `action=add&organizer=Dev`), then save it on the Pi via
 `POST /settings`. [docs/development.md](docs/development.md) has the full form fields.

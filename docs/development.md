@@ -60,7 +60,7 @@ touching stored preferences), `SPLOUCH_MEET` (open this meet id at once),
 app a scanned QR link, `P-16` — see [`emulator.md`](../emulator.md)).
 
 Live frames without a timing console: log in to the Pi (`score` / `swimming` by
-default) and `POST /test_play {"name": "200m_medley_2heats.cts"}`. To feed the
+default) and `POST /test_play {"name": "200m_medley_2heats.serial"}`. To feed the
 local cloud, create a relay key on it (`POST /admin`, Basic auth `admin` with an
 empty password by default, form `action=add&organizer=Dev`; the key lands in
 `$DATA_DIR/keys.json`) and save it on the Pi with `POST /settings`
