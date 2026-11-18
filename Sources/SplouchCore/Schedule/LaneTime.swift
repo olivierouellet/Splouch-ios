@@ -7,6 +7,8 @@ import Foundation
 public struct LaneTime: Sendable, Equatable {
     public enum Kind: Sendable, Equatable {
         case seed
+        /// A seed swum in another course than the meet's (S-27), in its own colour.
+        case seedOther
         case console
         case official
         /// A gap to the seed, faster (`delta_better`) or slower (`delta_worse`).
@@ -20,12 +22,16 @@ public struct LaneTime: Sendable, Equatable {
     /// when `speaksText` — "Official time 30.12", but "Disqualified" alone.
     public var spokenKey: String
     public var speaksText: Bool
+    /// What a screen reader says after `text`: a `.seedOther` seed's course
+    /// (S-27), "Seed time 1:01.00 LCM", since the cell shows it only by colour.
+    public var spokenSuffix: String
 
-    public init(text: String, kind: Kind, spokenKey: String, speaksText: Bool = true) {
+    public init(text: String, kind: Kind, spokenKey: String, speaksText: Bool = true, spokenSuffix: String = "") {
         self.text = text
         self.kind = kind
         self.spokenKey = spokenKey
         self.speaksText = speaksText
+        self.spokenSuffix = spokenSuffix
     }
 
     /// Every time travels as `HH:MM:SS.hh`; the hours go when there are none.
@@ -104,7 +110,7 @@ public struct LaneTime: Sendable, Equatable {
                 // Not official yet: the console's own gap, on the server's rule.
                 return gap(d)
             } else {
-                return LaneTime(text: seedText(lane), kind: .seed, spokenKey: "time_seed")
+                return seed(lane)
             }
         }
         if !status.isEmpty {
@@ -117,19 +123,20 @@ public struct LaneTime: Sendable, Equatable {
         if !lane.consoleTime.isEmpty {
             return LaneTime(text: display(lane.consoleTime), kind: .console, spokenKey: "time_console")
         }
-        if !lane.seedTime.isEmpty {
-            return LaneTime(text: seedText(lane), kind: .seed, spokenKey: "time_seed")
-        }
+        if !lane.seedTime.isEmpty { return seed(lane) }
         return nil
     }
 
-    /// The seed as drawn: `NT` for none, and the course after it when it is not
-    /// the meet's (S-27), `1:01.00 LCM`. A course is the same three letters in
+    /// The seed's cell: `NT` for none. One swum in another course than the
+    /// meet's (S-27) is `.seedOther`, drawn in its own colour with nothing beside
+    /// it; the screen reader says the course after it, the same three letters in
     /// every language.
-    public static func seedText(_ lane: ScheduleLane) -> String {
-        if lane.seedTime.isEmpty { return "NT" }
-        let seed = display(lane.seedTime)
-        return lane.seedCourse.isEmpty ? seed : seed + " " + lane.seedCourse
+    static func seed(_ lane: ScheduleLane) -> LaneTime {
+        if lane.seedTime.isEmpty { return LaneTime(text: "NT", kind: .seed, spokenKey: "time_seed") }
+        let other = !lane.seedCourse.isEmpty
+        return LaneTime(
+            text: display(lane.seedTime), kind: other ? .seedOther : .seed, spokenKey: "time_seed",
+            spokenSuffix: lane.seedCourse)
     }
 }
 

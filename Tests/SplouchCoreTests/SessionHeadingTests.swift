@@ -47,14 +47,17 @@ import Testing
         #expect(ScheduleView.sessionHeading(filtered, at: 0, word: "") == "Samedi am")
     }
 
-    @Test func aSeedFromAnotherCourseShowsItAndNoGap() {
+    @Test func aSeedFromAnotherCourseIsItsOwnColourAndNoGap() {
         var lane = ScheduleLane(
             lane: 4, name: "N", club: "C", seedTime: "00:01:01.00", seedCourse: "LCM", swimmers: [])
-        #expect(LaneTime.of(lane)?.text == "01:01.00 LCM")
+        let other = LaneTime(text: "01:01.00", kind: .seedOther, spokenKey: "time_seed", spokenSuffix: "LCM")
+        #expect(LaneTime.of(lane) == other)
         // Not official yet: the console's gap would be to a long-course seed.
         lane.consoleTime = "00:00:59.00"
-        #expect(LaneTime.of(lane, diff: true)?.text == "01:01.00 LCM")
+        #expect(LaneTime.of(lane, diff: true) == other)
         lane.seedCourse = ""
-        #expect(LaneTime.of(lane, diff: true)?.text != "01:01.00 LCM")
+        #expect(LaneTime.of(lane, diff: true)?.kind == .better)
+        lane.consoleTime = ""
+        #expect(LaneTime.of(lane) == LaneTime(text: "01:01.00", kind: .seed, spokenKey: "time_seed"))
     }
 }

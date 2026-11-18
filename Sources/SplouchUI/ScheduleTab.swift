@@ -355,7 +355,7 @@ struct HeatCard: View {
         if cell != nil || !seedTemplate.isEmpty {
             let text = Text(cell?.text ?? "")
                 .font(faces.timing(14 * typeScale))
-                .fontWeight(cell.map { $0.kind == .seed || $0.kind == .console } ?? true ? .regular : .bold)
+                .fontWeight(cell.map { [.seed, .seedOther, .console].contains($0.kind) } ?? true ? .regular : .bold)
                 .foregroundStyle(color(cell?.kind))
                 .lineLimit(1)
                 .fixedSize()
@@ -390,6 +390,7 @@ struct HeatCard: View {
         case .official: palette.scheduleOfficial
         case .better: palette.deltaBetter
         case .worse: palette.deltaWorse
+        case .seedOther: palette.scheduleSeedOther
         case .seed, nil: palette.scheduleSeed
         }
     }
@@ -398,7 +399,8 @@ struct HeatCard: View {
     private func spoken(_ cell: LaneTime?) -> String {
         guard let cell else { return "" }
         let word = strings.mobile(cell.spokenKey)
-        return cell.speaksText ? "\(word) \(cell.text)" : word
+        guard cell.speaksText else { return word }
+        return cell.spokenSuffix.isEmpty ? "\(word) \(cell.text)" : "\(word) \(cell.text) \(cell.spokenSuffix)"
     }
 
     @ViewBuilder private func laneRow(_ lane: ScheduleLane) -> some View {

@@ -427,6 +427,7 @@ import Testing
             "podium_bronze": "#343434", "schedule_event": "#3b9eff",
             "schedule_time": "#FFD700", "schedule_name": "#e0e0e0", "schedule_club": "#666666",
             "schedule_seed": "#e0e0e0", "schedule_console": "#FFD700", "schedule_official": "#4ade80",
+            "schedule_seed_other": "#3b9eff",
         ]
         let light = [
             "bg": "#f8f8f8", "header_bg": "#ffffff", "header_border": "#dddddd",
@@ -437,6 +438,7 @@ import Testing
             "podium_bronze": "#e8e8e8", "schedule_event": "#0055cc",
             "schedule_time": "#0055aa", "schedule_name": "#111111", "schedule_club": "#888888",
             "schedule_seed": "#111111", "schedule_console": "#0055aa", "schedule_official": "#2e7d32",
+            "schedule_seed_other": "#7b1fa2",
         ]
         for (key, value) in ThemeColors.defaults { #expect(dark[key] == value, "dark \(key)") }
         for (key, value) in ThemeColors.lightDefaults { #expect(light[key] == value, "light \(key)") }

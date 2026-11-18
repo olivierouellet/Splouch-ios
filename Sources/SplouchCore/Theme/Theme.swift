@@ -37,6 +37,8 @@ public struct ThemeColors: Sendable, Equatable {
     public var scheduleClub: String
     /// A lane's time by how far it has come (S-22): seed, console, official.
     public var scheduleSeed: String
+    /// A seed swum in another course than the meet's (S-27).
+    public var scheduleSeedOther: String
     public var scheduleConsole: String
     public var scheduleOfficial: String
 
@@ -50,6 +52,7 @@ public struct ThemeColors: Sendable, Equatable {
         "schedule_event": "#3b9eff", "schedule_time": "#FFD700",
         "schedule_name": "#e0e0e0", "schedule_club": "#666666",
         "schedule_seed": "#e0e0e0", "schedule_console": "#FFD700", "schedule_official": "#4ade80",
+        "schedule_seed_other": "#3b9eff",
     ]
 
     /// `server/themes/white.toml`, minus the two keys only the Qt display draws
@@ -64,6 +67,7 @@ public struct ThemeColors: Sendable, Equatable {
         "schedule_event": "#0055cc", "schedule_time": "#0055aa",
         "schedule_name": "#111111", "schedule_club": "#888888",
         "schedule_seed": "#111111", "schedule_console": "#0055aa", "schedule_official": "#2e7d32",
+        "schedule_seed_other": "#7b1fa2",
     ]
 
     public static let dark = ThemeColors()
@@ -97,6 +101,7 @@ public struct ThemeColors: Sendable, Equatable {
         scheduleName = pick("schedule_name")
         scheduleClub = pick("schedule_club")
         scheduleSeed = pick("schedule_seed")
+        scheduleSeedOther = pick("schedule_seed_other")
         scheduleConsole = pick("schedule_console")
         scheduleOfficial = pick("schedule_official")
     }
