@@ -41,6 +41,13 @@ public struct StringTable: Sendable, Equatable {
         merged { $0.eventName }
     }
 
+    /// The short vocabulary the Schedule's cards compose against (S-01). Its
+    /// `unit` and `relay` are empty on purpose, and an empty value does not
+    /// override in `merged`, so they come from the English floor, which has them.
+    public var eventVocabularyShort: [String: String] {
+        merged { $0.eventNameShort }
+    }
+
     /// The bundled label table for one style, merged per key. The server's
     /// `long` table already holds short words for the narrow columns (T-09).
     public func labels(_ style: LabelStyle) -> [String: String] {

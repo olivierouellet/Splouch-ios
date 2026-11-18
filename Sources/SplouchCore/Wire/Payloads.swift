@@ -362,15 +362,20 @@ public struct I18nBundle: Sendable, Equatable, Codable {
     public var mobile: [String: String]
     public var labels: [String: [String: String]]
     public var eventName: [String: String]
+    /// The same vocabulary, short, for the Schedule's cards (app.md S-01). Empty
+    /// from a server older than it.
+    public var eventNameShort: [String: String]
 
     public init(
         lang: String, mobile: [String: String] = [:],
-        labels: [String: [String: String]] = [:], eventName: [String: String] = [:]
+        labels: [String: [String: String]] = [:], eventName: [String: String] = [:],
+        eventNameShort: [String: String] = [:]
     ) {
         self.lang = lang
         self.mobile = mobile
         self.labels = labels
         self.eventName = eventName
+        self.eventNameShort = eventNameShort
     }
 }
 

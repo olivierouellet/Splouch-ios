@@ -336,6 +336,15 @@ public final class MeetContext {
         EventName.resolve(eventName: name, parts: parts, vocab: strings.eventVocabulary)
     }
 
+    /// S-01: the same name from the short vocabulary, for a Schedule card. The
+    /// long one when no bundle has a short vocabulary yet.
+    public func shortEventName(_ name: String, parts: EventNameParts?) -> String {
+        let short = strings.eventVocabularyShort
+        guard !short.isEmpty else { return eventName(name, parts: parts) }
+        let composed = EventName.compose(parts, vocab: short)
+        return composed.isEmpty ? eventName(name, parts: parts) : composed
+    }
+
     // MARK: - Private
 
     private func apply(settings new: MeetSettings, rejoin: Bool) {

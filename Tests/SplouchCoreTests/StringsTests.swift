@@ -89,6 +89,36 @@ import Testing
         let p = EventNameParts(dist: "4x50", stroke: "freestyle", relay: true)
         #expect(EventName.compose(p, vocab: vocab) == "4x50 m libre")
     }
+
+    /// S-01: the card's name, from the short vocabulary the server ships — no
+    /// unit, one space, no relay word, and a relay's medley not called an IM.
+    /// The same strings the server's own test expects, from the same parts.
+    @Test(arguments: [
+        ("en", "4x100 Medley MX 13-14 FH", "1500 Breast W Sn QF", "200 IM B Pr"),
+        ("fr", "4x100 4N MX 13-14 SR", "1500 brasse F Sn QF", "200 4N G Pr"),
+        ("es", "4x100 est MX 13-14 SR", "1500 pecho F Sn CF", "200 est NO Pr"),
+    ])
+    func theShortVocabularyComposesACardSizedName(lang: String, relay: String, senior: String, im: String) {
+        let t = StringTable(language: lang, builtIn: BuiltInStrings.bundle(for: lang), english: BuiltInStrings.english)
+        let v = t.eventVocabularyShort
+        let r = EventNameParts(
+            dist: "4x100", stroke: "medley", relay: true, gender: "mixed", age: "13-14", round: "fastest_heat")
+        #expect(EventName.compose(r, vocab: v) == relay)
+        let s = EventNameParts(
+            dist: "1500", stroke: "breaststroke", gender: "women", ageKey: "senior", round: "quarterfinal")
+        #expect(EventName.compose(s, vocab: v) == senior)
+        let i = EventNameParts(dist: "200", stroke: "medley", gender: "boys", round: "prelims")
+        #expect(EventName.compose(i, vocab: v) == im)
+        // The long vocabulary still says `m` and dashes.
+        #expect(EventName.compose(i, vocab: t.eventVocabulary).contains("200 m "))
+    }
+
+    /// An empty unit is no unit, where an absent one is still `m`.
+    @Test func anEmptyUnitIsNoUnit() {
+        let p = EventNameParts(dist: "50", stroke: "freestyle")
+        #expect(EventName.compose(p, vocab: es.merging(["unit": ""]) { $1 }) == "50 libre")
+        #expect(EventName.compose(p, vocab: es.filter { $0.key != "unit" }) == "50 m libre")
+    }
 }
 
 @Suite struct StringTableTests {

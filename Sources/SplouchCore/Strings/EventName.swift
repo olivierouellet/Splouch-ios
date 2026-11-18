@@ -17,8 +17,13 @@ public enum EventName {
         if !parts.kind.isEmpty { return vocab[parts.kind] ?? parts.raw }
         func word(_ k: String) -> String { k.isEmpty ? "" : (vocab[k] ?? k) }
         var left: [String] = []
-        if !parts.dist.isEmpty { left.append(parts.dist + " " + (vocab["unit"] ?? "m")) }
-        if !parts.stroke.isEmpty { left.append(word(parts.stroke)) }
+        // The short vocabulary (S-01) has an empty unit: no unit, not the default.
+        let unit = vocab["unit"] ?? "m"
+        if !parts.dist.isEmpty { left.append(unit.isEmpty ? parts.dist : parts.dist + " " + unit) }
+        // And a word for a relay's medley, which is not an IM.
+        var stroke = parts.stroke
+        if stroke == "medley", parts.relay, let m = vocab["medley_relay"], !m.isEmpty { stroke = "medley_relay" }
+        if !stroke.isEmpty { left.append(word(stroke)) }
         if parts.relay, let relay = vocab["relay"], !relay.isEmpty { left.append(relay) }
         let age = parts.age.isEmpty ? word(parts.ageKey) : parts.age
         let right = [word(parts.gender), age].filter { !$0.isEmpty }.joined(separator: " ")

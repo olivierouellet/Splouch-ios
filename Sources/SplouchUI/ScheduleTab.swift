@@ -56,6 +56,9 @@ struct ScheduleTab: View {
                             HeatCard(
                                 heat: v, labels: ctx.shortLabels,
                                 eventName: ScheduleView.heading(
+                                    ctx.shortEventName(v.heat.eventName, parts: v.heat.eventNameParts),
+                                    age: v.heat.age),
+                                spokenName: ScheduleView.heading(
                                     ctx.eventName(v.heat.eventName, parts: v.heat.eventNameParts), age: v.heat.age),
                                 seedTemplate: seedTemplate, strings: ctx.strings
                             )
@@ -128,7 +131,10 @@ struct HeatCard: View {
     /// The pair is repeated once per card and the words buy nothing the numbers
     /// beside them do not already say.
     let labels: [String: String]
+    /// S-01: short (`4x100 4N MX 13-14 SR`), so the card's one line holds it.
     let eventName: String
+    /// The long name, for VoiceOver: `MX` and `SR` are not words.
+    let spokenName: String
     /// The widest time on screen, which sizes the time column. Empty when
     /// no lane has one — see `timeColumn`.
     let seedTemplate: String
@@ -243,7 +249,9 @@ struct HeatCard: View {
         // The event name takes the words' colour, not the numbers'.
         let name =
             eventName.isEmpty
-            ? nil : Text(eventName).font(faces.text(17 * typeScale)).foregroundStyle(palette.scheduleEvent)
+            ? nil
+            : Text(eventName).font(faces.text(17 * typeScale)).foregroundStyle(palette.scheduleEvent)
+                .accessibilityLabel(spokenName)
         // At its own width, not the seed column's. The heading's time is a clock
         // time and the column is sized for a seed time, so lining the two up
         // parked "9:12" at the right edge of a ruler cut for "1:04.219" and left
