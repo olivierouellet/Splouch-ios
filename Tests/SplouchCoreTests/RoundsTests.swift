@@ -75,5 +75,8 @@ import Testing
         #expect(ScheduleView.heading("100 Free", age: "13-14") == "100 Free · 13-14")
         #expect(ScheduleView.heading("100 Free", age: "") == "100 Free")
         #expect(ScheduleView.heading("", age: "17+") == "17+")
+        // A server that puts the age in the name's parts: not twice.
+        #expect(ScheduleView.heading("50 Free M 13-14 Fi", age: "13-14", partsAge: "13-14") == "50 Free M 13-14 Fi")
+        #expect(ScheduleView.heading("50 Free M 11+ Fi", age: "13-14", partsAge: "11+") == "50 Free M 11+ Fi · 13-14")
     }
 }

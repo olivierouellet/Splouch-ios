@@ -129,10 +129,12 @@ public enum ScheduleView {
         return h.sessionName.isEmpty ? word.replacingOccurrences(of: "{n}", with: String(h.session)) : h.sessionName
     }
 
-    /// The heading's name, with the heat's own age group after it (S-25):
+    /// The heading's name with the heat's own age group (S-25). A server that puts
+    /// it in the heat's `event_name_parts.age` (`partsAge`) has it in the name
+    /// already, `50 Free M 13-14 Fi`; an older one does not, so it goes after:
     /// `100 m libre · 13-14`. The band is numbers, so it needs no translation.
-    public static func heading(_ eventName: String, age: String) -> String {
-        if age.isEmpty { return eventName }
+    public static func heading(_ eventName: String, age: String, partsAge: String = "") -> String {
+        if age.isEmpty || age == partsAge { return eventName }
         return eventName.isEmpty ? age : eventName + " · " + age
     }
 

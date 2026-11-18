@@ -57,9 +57,10 @@ struct ScheduleTab: View {
                                 heat: v, labels: ctx.shortLabels,
                                 eventName: ScheduleView.heading(
                                     ctx.shortEventName(v.heat.eventName, parts: v.heat.eventNameParts),
-                                    age: v.heat.age),
+                                    age: v.heat.age, partsAge: v.heat.eventNameParts?.age ?? ""),
                                 spokenName: ScheduleView.heading(
-                                    ctx.eventName(v.heat.eventName, parts: v.heat.eventNameParts), age: v.heat.age),
+                                    ctx.eventName(v.heat.eventName, parts: v.heat.eventNameParts), age: v.heat.age,
+                                    partsAge: v.heat.eventNameParts?.age ?? ""),
                                 seedTemplate: seedTemplate, strings: ctx.strings
                             )
                             .id(v.heat.id)
